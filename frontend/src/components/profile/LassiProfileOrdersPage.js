@@ -78,8 +78,8 @@ const getStatusMeta = (order) => {
 };
 
 const formatOrderId = (order) => {
-  if (order?.orderNumber) return order.orderNumber.replace(/^ORD-?/i, 'LL');
-  return `LL${String(order?._id || '').slice(-5).toUpperCase()}`;
+  if (order?.orderNumber) return order.orderNumber.replace(/^ORD-?/i, 'BC');
+  return `BC${String(order?._id || '').slice(-5).toUpperCase()}`;
 };
 
 const formatDate = (value) => {
@@ -173,7 +173,7 @@ export default function LassiProfileOrdersPage({ user, logout, updateUser }) {
   const handleReorder = (order) => {
     const restaurantData = {
       _id: order.restaurantId,
-      name: order.restaurantName || 'Lassi Lounge',
+      name: order.restaurantName || 'Bhatura & Co',
       address: order.restaurantAddress || order.address || '',
       phone: order.restaurantPhone || '',
       deliveryFee: order.deliveryFee || 0,
@@ -357,7 +357,7 @@ function ProfileHero({ activeNav }) {
           <span className="text-[#e8a020] font-bold">{currentTitle}</span>
         </div>
         <p className="mt-4 max-w-[420px] text-[14px] leading-relaxed text-white/85">
-          Track, view and reorder your favorite meals from Lassi Lounge.
+          Track, view and reorder your favorite meals from Bhatura &amp; Co.
         </p>
       </div>
     </section>
@@ -541,8 +541,8 @@ function OrderHistoryCard({ order, onReorder, onViewDetails, onCancelOrder }) {
         </p>
         <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-[#4b5563] line-clamp-2">
           {order.orderType === 'pickup'
-            ? order.restaurantAddress || 'Lassi Lounge Restaurant'
-            : order.address || '9408 118th St, South Richmond Hill, NY 11419, USA'}
+            ? order.restaurantAddress || 'Bhatura & Co Restaurant'
+            : order.address || '1358 Oak Tree Rd, Iselin, NJ 08830, USA'}
         </p>
 
         <p className="mt-3 text-[11px] font-black text-[#1a1a1a]">Total Amount</p>
@@ -894,7 +894,7 @@ function EmptyOrders({ activeStatus, search }) {
         {search
           ? `No orders matching "${search}"`
           : activeStatus === 'all'
-            ? 'Your Lassi Lounge order history will appear here after you place an order.'
+            ? 'Your Bhatura & Co order history will appear here after you place an order.'
             : `No ${activeStatus} orders found in your history.`}
       </p>
     </div>
@@ -1121,7 +1121,7 @@ function LoyaltySubView({ user }) {
       <div className="border-t border-[#eadfdb] pt-4">
         <h4 className="text-[15px] font-black text-[#1a1a1a] mb-2">How it works</h4>
         <ul className="text-[13px] font-medium text-[#4b5563] space-y-2 list-disc pl-5">
-          <li>Earn 1 point for every $1 spent on Lassi Lounge orders.</li>
+          <li>Earn 1 point for every $1 spent on Bhatura &amp; Co orders.</li>
           <li>100 points = $1.00 discount on your next order.</li>
           <li>Points never expire!</li>
         </ul>

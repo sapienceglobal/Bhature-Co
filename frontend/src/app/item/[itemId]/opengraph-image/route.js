@@ -95,7 +95,7 @@ export async function GET(request, { params }) {
                 textTransform: 'uppercase',
               }}
             >
-              Lassi Lounge NY · Authentic Indian
+              Bhatura &amp; Co · Authentic Indian
             </span>
           </div>
 
@@ -233,7 +233,7 @@ export async function GET(request, { params }) {
                   color: '#ffffff',
                 }}
               >
-                Order Online at lassiloungeny.com
+                Order Online at bhaturaandco.com
               </span>
               <span
                 style={{
@@ -308,7 +308,7 @@ export async function GET(request, { params }) {
                   letterSpacing: '1px',
                 }}
               >
-                Lassi Lounge NY
+                Bhatura & Co
               </span>
               <span
                 style={{

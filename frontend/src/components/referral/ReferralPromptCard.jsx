@@ -8,7 +8,7 @@ import { showToast } from '@/components/ui';
 
 export default function ReferralPromptCard({
   programInfo,
-  restaurantName = 'Lassi Lounge',
+  restaurantName = 'Bhatura & Co',
   onComplete,
   isModal = false,
   onClose,

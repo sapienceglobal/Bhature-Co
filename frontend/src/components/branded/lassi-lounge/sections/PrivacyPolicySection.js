@@ -26,7 +26,7 @@ export default function PrivacyPolicySection() {
   ];
 
   return (
-    <section className="relative py-24 bg-[#faf9f8] overflow-hidden">
+    <section className="relative py-20 bg-[#FDF8EE] overflow-hidden">
       {/* Decorative Background Elements */}
       <div className="absolute top-20 left-0 w-96 h-96 bg-primary-100/50 rounded-full blur-3xl opacity-50 pointer-events-none" />
       <div className="absolute bottom-20 right-0 w-96 h-96 bg-secondary-100/50 rounded-full blur-3xl opacity-50 pointer-events-none" />
@@ -40,7 +40,7 @@ export default function PrivacyPolicySection() {
             Privacy Policy
           </h1>
           <p className="text-lg text-[#4b5563] leading-relaxed">
-            Your privacy is critically important to us. This policy outlines how we collect, use, and protect your personal information at Lassi Lounge.
+            Your privacy is critically important to us. This policy outlines how we collect, use, and protect your personal information at Bhatura &amp; Co.
           </p>
           <p className="text-sm text-[#9ca3af] mt-4">Last Updated: September 2026</p>
         </div>

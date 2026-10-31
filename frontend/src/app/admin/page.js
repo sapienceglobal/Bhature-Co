@@ -52,7 +52,7 @@ export default function AdminDashboard() {
       case 'template_cafe': return { label: 'Artisan Cafe', color: 'yellow', bg: 'bg-amber-500/10 text-amber-300 border-amber-500/30' };
       case 'template_dark_kitchen': return { label: 'Dark Kitchen', color: 'green', bg: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' };
       case 'lassi_classic':
-      default: return { label: 'Classic QSR (Lassi Lounge)', color: 'cyan', bg: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30' };
+      default: return { label: 'Classic QSR (Bhatura & Co)', color: 'cyan', bg: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30' };
     }
   };
 

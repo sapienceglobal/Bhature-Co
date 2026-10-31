@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * /events — Clean SEO URL for Lassi Lounge events page.
@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import EventsPage from '@/components/events/EventsPage';
 import { restaurantAPI } from '@/lib/api';
 
-const BRANDED_ID = process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'lassi-lounge';
+const BRANDED_ID = process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'bhatura-and-co';
 
 export default function EventsRoute() {
   const [restaurantId, setRestaurantId] = useState(null);

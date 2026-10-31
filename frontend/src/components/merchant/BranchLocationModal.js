@@ -44,7 +44,7 @@ export default function BranchLocationModal({
   isOpen, 
   onClose, 
   restaurant: initialRestaurant = null,
-  restaurantName = 'Lassi Lounge',
+  restaurantName = 'Bhatura & Co',
   address = '94-08 118th St, South Richmond Hill, NY 11419, United States',
   phone = '+1 347-233-3733'
 }) {

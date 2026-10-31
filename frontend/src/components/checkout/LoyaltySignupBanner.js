@@ -46,7 +46,7 @@ export default function LoyaltySignupBanner({ user, restaurant, total }) {
                     )}
                 </div>
                 <h4 className="font-bold text-[18px] text-[#e8a020] mb-1">
-                    Lassi Lounge Rewards
+                    Bhatura &amp; Co Rewards
                 </h4>
                 <p className="text-[13px] text-[#ffffff] leading-relaxed mb-4 max-w-[220px]">
                     {pointsToEarn > 0 ? (
@@ -76,7 +76,7 @@ export default function LoyaltySignupBanner({ user, restaurant, total }) {
             }}
         >
             <h4 className="font-bold text-[18px] text-[#e8a020] mb-1">
-                Join Lassi Lounge Rewards!
+                Join Bhatura &amp; Co Rewards!
             </h4>
             <p className="text-[13px] text-[#ffffff] leading-relaxed mb-4 max-w-[210px]">
                 {pointsToEarn > 0 ? (

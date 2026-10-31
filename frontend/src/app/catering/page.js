@@ -10,7 +10,7 @@ import CateringPage from '@/components/catering/CateringPage';
 import { restaurantAPI } from '@/lib/api';
 import Loading from '@/app/loading';
 
-const BRANDED_ID = process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'lassi-lounge';
+const BRANDED_ID = process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'bhatura-and-co';
 
 export default function CateringRoute() {
   const [restaurantId, setRestaurantId] = useState(null);

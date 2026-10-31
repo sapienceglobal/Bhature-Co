@@ -98,7 +98,7 @@ function ResetPasswordForm() {
       } catch (authErr) {
         // silent fallback if session refresh is delayed
       }
-      showToast(isWelcome ? 'Password created successfully! Welcome to Lassi Lounge.' : 'Password reset successful', 'success');
+      showToast(isWelcome ? 'Password created successfully! Welcome to Bhatura & Co.' : 'Password reset successful', 'success');
     } catch (err) {
       showToast(err.message || 'The link is invalid or has expired', 'error');
     } finally {
@@ -114,7 +114,7 @@ function ResetPasswordForm() {
         <div className="relative hidden lg:flex w-full lg:w-[50%] h-full flex-col justify-center items-center text-center px-8 pt-12 pb-32 overflow-hidden bg-[#4a090b]">
           <div className="absolute inset-0 z-0">
             <Image
-              src="/images/branded/lassi-lounge/hero-spread-auth.png"
+              src="/assets/images/branded/bhatura-and-co/auth_hero.jpg"
               alt="Indian Cuisine Spread"
               fill
               className="object-cover object-bottom"
@@ -134,8 +134,8 @@ function ResetPasswordForm() {
             <div className="mb-6 flex flex-col items-center">
               <div className="relative w-[480px] h-[180px]">
                 <Image
-                  src="/assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png"
-                  alt="Lassi Lounge"
+                  src="/assets/images/branded/bhatura-and-co/logo-emblem.png"
+                  alt="Bhatura & Co"
                   fill
                   className="object-contain"
                   priority
@@ -144,7 +144,7 @@ function ResetPasswordForm() {
             </div>
 
             <h2 className="text-[28px] font-serif text-[#c99742] mb-4">
-              {isWelcome ? 'Welcome to Lassi Lounge!' : 'Secure Your Account'}
+              {isWelcome ? 'Welcome to Bhatura & Co!' : 'Secure Your Account'}
             </h2>
             <div className="flex items-center justify-center mb-6 w-full">
               <div className="w-2 h-2 rotate-45 bg-[#c99742] mr-2 opacity-50"></div>
@@ -155,7 +155,7 @@ function ResetPasswordForm() {
             <p className="text-white/90 text-[15px] leading-relaxed mb-10">
               {isWelcome
                 ? 'Your order is confirmed! Set a password to easily track deliveries and earn loyalty rewards.'
-                : 'Choose a strong password to protect your\nLassi Lounge profile.'}
+                : 'Choose a strong password to protect your\nBhatura & Co profile.'}
             </p>
 
             <div className="grid grid-cols-3 gap-y-10 gap-x-6 w-full max-w-[380px] mt-6">
@@ -186,8 +186,8 @@ function ResetPasswordForm() {
             <div className="flex flex-col items-center mb-6 lg:hidden">
               <div className="relative w-[240px] h-[90px]">
                 <Image
-                  src="/assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png"
-                  alt="Lassi Lounge"
+                  src="/assets/images/branded/bhatura-and-co/logo-emblem.png"
+                  alt="Bhatura & Co"
                   fill
                   className="object-contain"
                   priority

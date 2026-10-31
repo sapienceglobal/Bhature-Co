@@ -104,7 +104,7 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
           <p className="text-lg text-[#4b5563] leading-relaxed">
             {isMerchant
               ? 'Permanently delete your restaurant manager/merchant profile and unlink your staff credentials.'
-              : 'Permanently remove your Lassi Lounge food delivery account, saved addresses, and personal profile data.'}
+              : 'Permanently remove your Bhatura & Co food delivery account, saved addresses, and personal profile data.'}
           </p>
         </div>
 
@@ -271,7 +271,7 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
                     <input
                       type="email"
                       required
-                      placeholder={isMerchant ? 'manager@lassilounge.com' : 'yourname@example.com'}
+                      placeholder={isMerchant ? 'merchant@bhaturaco.com' : 'yourname@example.com'}
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl border border-[#d1d5db] bg-white text-[#111827] placeholder:text-[#9ca3af] font-medium focus:ring-2 focus:ring-[#cd131b] focus:border-[#cd131b] outline-none transition-all"
@@ -378,7 +378,7 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
                 Prefer In-App Immediate Deletion?
               </h3>
               <p className="text-sm text-[#4b5563] leading-relaxed mb-3">
-                If you have the <strong>Lassi Lounge Customer App</strong> or <strong>Merchant App</strong> on your device, you can delete your account directly inside the app:
+                If you have the <strong>Bhatura &amp; Co Customer App</strong> or <strong>Merchant App</strong> on your device, you can delete your account directly inside the app:
               </p>
               <div className="text-sm font-semibold text-[#111827] bg-[#faf9f8] p-4 rounded-xl border border-[#e5e7eb]">
                 Open App &rarr; Tap Menu / Settings &rarr; Select <span className="text-[#cd131b]">Delete Account</span> &rarr; Enter password to wipe profile.

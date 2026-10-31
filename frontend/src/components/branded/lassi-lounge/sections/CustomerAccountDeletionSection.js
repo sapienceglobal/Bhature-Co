@@ -76,7 +76,7 @@ export default function CustomerAccountDeletionSection() {
   };
 
   return (
-    <section className="relative py-20 bg-[#faf9f8] text-[#1a1a1a] overflow-hidden">
+    <section className="relative py-20 bg-[#FDF8EE] text-[#1a1a1a] overflow-hidden">
       {/* Decorative Glow */}
       <div className="absolute top-10 left-1/4 w-96 h-96 bg-[#cd131b]/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-[#e8a020]/10 rounded-full blur-3xl pointer-events-none" />
@@ -94,7 +94,7 @@ export default function CustomerAccountDeletionSection() {
           </h1>
 
           <p className="text-lg text-[#4b5563] leading-relaxed">
-            Permanently remove your Lassi Lounge food delivery account, saved delivery addresses, loyalty rewards, and personal profile data.
+            Permanently remove your Bhatura &amp; Co food delivery account, saved delivery addresses, loyalty rewards, and personal profile data.
           </p>
         </div>
 
@@ -322,7 +322,7 @@ export default function CustomerAccountDeletionSection() {
                 Prefer In-App Immediate Deletion?
               </h3>
               <p className="text-sm text-[#4b5563] leading-relaxed mb-3">
-                If you have the <strong>Lassi Lounge Customer App</strong> installed on your Android or iPhone device, you can delete your account directly inside the app:
+                If you have the <strong>Bhatura &amp; Co Customer App</strong> installed on your Android or iPhone device, you can delete your account directly inside the app:
               </p>
               <div className="text-sm font-semibold text-[#111827] bg-[#faf9f8] p-4 rounded-xl border border-[#e5e7eb]">
                 Open App &rarr; Tap Menu / Profile &rarr; Select <span className="text-[#cd131b]">Delete Account</span> &rarr; Enter your password to instantly wipe your profile.

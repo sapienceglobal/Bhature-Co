@@ -91,7 +91,7 @@ export default function HoursModal({ isOpen, onClose, brand }) {
   const takeoutHours = generateDynamicHours(0);
 
   const sections = [
-    { id: 'lassi-lounge', title: 'Lassi Lounge', hoursData: lassiHours },
+    { id: 'lassi-lounge', title: 'Bhatura & Co', hoursData: lassiHours },
     { id: 'delivery', title: 'Delivery', hoursData: deliveryHours },
     { id: 'take-out', title: 'Take Out', hoursData: takeoutHours }
   ];

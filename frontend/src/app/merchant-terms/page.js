@@ -4,8 +4,8 @@ import MerchantPublicFooter from '@/components/merchant-public/MerchantPublicFoo
 import MerchantTermsSection from '@/components/branded/lassi-lounge/sections/MerchantTermsSection';
 
 export const metadata = {
-  title: 'Merchant & Partner Terms of Service - Lassi Lounge NY',
-  description: 'Operating guidelines, commercial standards, and service level terms for restaurant partners and merchant app users at Lassi Lounge.',
+  title: 'Merchant & Partner Terms of Service | Bhatura & Co',
+  description: 'Operating guidelines, commercial standards, and service level terms for restaurant partners and merchant app users at Bhatura & Co.',
   alternates: {
     canonical: '/merchant-terms',
   },
@@ -13,7 +13,7 @@ export const metadata = {
 
 export default function MerchantTermsPage() {
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#faf9f8]">
+    <div className="min-h-screen flex flex-col font-sans bg-[#FDF8EE]">
       <MerchantPublicHeader />
       <main className="flex-1">
         <MerchantTermsSection />

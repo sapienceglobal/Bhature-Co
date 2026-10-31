@@ -15,7 +15,7 @@ export default function Loading() {
 
         {/* Center Logo */}
         <img
-          src="/assets/images/branded/lassi-lounge/icon-small.png"
+          src="/assets/images/branded/bhatura-and-co/logo-emblem.png"
           alt=""
           className="w-9 h-9 object-contain animate-pulse"
         />

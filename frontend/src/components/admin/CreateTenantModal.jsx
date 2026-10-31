@@ -9,7 +9,7 @@ const TEMPLATE_OPTIONS = [
   {
     id: 'lassi_classic',
     title: 'Classic QSR / Fast Food',
-    description: 'Energetic, punchy layout optimized for high-volume quick service (Lassi Lounge style)',
+    description: 'Energetic, punchy layout optimized for high-volume quick service (Bhatura & Co style)',
     badge: 'Active & Tested',
     badgeColor: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
     defaultPrimary: '#FDB714',

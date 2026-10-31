@@ -32,7 +32,7 @@ export default function EventsTrustStrip() {
             {/* Title Section */}
             <div className="xl:w-[35%] xl:pl-[25%] shrink-0 text-center xl:text-left mb-6 xl:mb-0">
               <h2 className="text-[22px] md:text-[26px] font-black text-[#7a0b10] uppercase tracking-wide leading-tight">
-                WHY CHOOSE LASSI LOUNGE
+                WHY CHOOSE BHATURA &amp; CO
               </h2>
             </div>
 

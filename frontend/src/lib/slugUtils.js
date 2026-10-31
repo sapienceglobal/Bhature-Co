@@ -42,7 +42,7 @@ export function getItemUrl(item, restaurantId) {
     restaurantId ||
     item.restaurantId ||
     process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID ||
-    'lassi-lounge';
+    'bhatura-and-co';
   return `/restaurant/${rid}/item/${slug}`;
 }
 
@@ -68,7 +68,7 @@ export function resolveImageUrl(url, fallback = '') {
 
     const liveApi = process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('localhost') && !process.env.NEXT_PUBLIC_API_URL.includes('127.0.0.1')
       ? process.env.NEXT_PUBLIC_API_URL
-      : 'https://api.lassiloungeny.com';
+      : 'https://api.bhaturaandco.com';
     return url.replace(/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?/, liveApi);
   }
 

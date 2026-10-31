@@ -347,7 +347,7 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                   maxLength={160}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="e.g. Experience authentic Indian cuisine at Lassi Lounge NY. Order online for fast delivery or reserve your table today."
+                  placeholder="e.g. Experience authentic North Indian cuisine at Bhatura & Co. Order online for fast delivery or reserve your table today."
                   className="w-full rounded-xl bg-admin-card border border-admin-border text-sm font-normal text-admin-text px-4 py-3 placeholder:text-admin-text-secondary/50 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand transition-all resize-none"
                 />
               </div>
@@ -360,7 +360,7 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                 <input
                   value={formData.ogImage}
                   onChange={(e) => setFormData({ ...formData, ogImage: e.target.value })}
-                  placeholder="https://www.lassiloungeny.com/assets/images/branded/lassi-lounge/og-image.png"
+                  placeholder="https://www.bhaturaandco.com/assets/images/branded/bhatura-and-co/logo-full.png"
                   className="w-full rounded-xl bg-admin-card border border-admin-border text-sm font-medium text-admin-text px-4 py-3 placeholder:text-admin-text-secondary/50 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand transition-all"
                 />
                 <p className="text-[11px] text-admin-text-secondary mt-1 font-medium">
@@ -376,7 +376,7 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 rounded-full bg-brand flex items-center justify-center text-[10px] text-white font-bold shrink-0">
-                    LL
+                    BC
                   </div>
                   <a
                     href={selectedPath}
@@ -385,9 +385,9 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                     className="text-xs text-admin-text leading-tight truncate hover:underline"
                     title="Open live page in new tab"
                   >
-                    <span className="font-semibold text-admin-text">Lassi Lounge NY</span>
+                    <span className="font-semibold text-admin-text">Bhatura &amp; Co</span>
                     <span className="text-admin-text-secondary ml-1">
-                      · https://www.lassiloungeny.com{selectedPath === '/' ? '' : selectedPath}
+                      · https://www.bhaturaandco.com{selectedPath === '/' ? '' : selectedPath}
                     </span>
                   </a>
                 </div>
@@ -398,7 +398,7 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                   className="text-[17px] font-medium text-blue-400 hover:underline cursor-pointer leading-snug line-clamp-1 pt-0.5 block"
                   title="Open live page in new tab"
                 >
-                  {formData.title ? `${formData.title} | Lassi Lounge NY` : 'Page Title | Lassi Lounge NY'}
+                  {formData.title ? `${formData.title} | Bhatura & Co` : 'Page Title | Bhatura & Co'}
                 </a>
                 <p className="text-[13px] text-admin-text-secondary leading-relaxed line-clamp-2">
                   {formData.description || 'Page description will appear here on Google search results.'}

@@ -4,8 +4,8 @@ import MerchantPublicFooter from '@/components/merchant-public/MerchantPublicFoo
 import MerchantPrivacyPolicySection from '@/components/branded/lassi-lounge/sections/MerchantPrivacyPolicySection';
 
 export const metadata = {
-  title: 'Merchant & Partner Privacy Policy - Lassi Lounge NY',
-  description: 'Data protection, hardware permissions, and privacy guidelines for Lassi Lounge restaurant partners and mobile merchant app users.',
+  title: 'Merchant & Partner Privacy Policy | Bhatura & Co',
+  description: 'Data protection, hardware permissions, and privacy guidelines for Bhatura & Co restaurant partners and mobile merchant app users.',
   alternates: {
     canonical: '/merchant-privacy-policy',
   },
@@ -13,7 +13,7 @@ export const metadata = {
 
 export default function MerchantPrivacyPolicyPage() {
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#faf9f8]">
+    <div className="min-h-screen flex flex-col font-sans bg-[#FDF8EE]">
       <MerchantPublicHeader />
       <main className="flex-1">
         <MerchantPrivacyPolicySection />

@@ -295,7 +295,7 @@ export default function ReservationForm({ onSubmit }) {
           </div>
           <h2 className="text-[28px] font-serif font-black text-[#7a0b10] mb-3">Table Reserved!</h2>
           <p className="text-[#4b5563] text-[15px] max-w-md mx-auto mb-8 leading-relaxed">
-            We've sent a confirmation to your email. We look forward to hosting you at Lassi Lounge.
+            We've sent a confirmation to your email. We look forward to hosting you at Bhatura &amp; Co.
           </p>
           <button 
             type="button"

@@ -575,10 +575,10 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 </div>
               </div>
               <div className="space-y-2.5">
-                <div title={!order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com' ? 'Email not provided' : ''} className={`flex items-center gap-2 ${(!order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com') ? 'opacity-50' : ''}`}>
+                <div title={!order.customerEmail || order.customerEmail === 'admin@bhaturaco.com' ? 'Email not provided' : ''} className={`flex items-center gap-2 ${(!order.customerEmail || order.customerEmail === 'admin@bhaturaco.com') ? 'opacity-50' : ''}`}>
                   <Mail className="w-4 h-4 text-admin-text-secondary/70" /> 
                   <span className="text-[13px] font-medium text-admin-text">
-                    {order.customerEmail === 'admin@lassiloungeny.com' ? 'No Email' : (order.customerEmail || 'No Email')}
+                    {order.customerEmail === 'admin@bhaturaco.com' ? 'No Email' : (order.customerEmail || 'No Email')}
                   </span>
                 </div>
                 <div className="flex gap-2 mt-4">
@@ -991,9 +991,9 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 {isRemakingOrder ? 'Creating…' : 'Remake Order ($0)'}
               </button>
 
-              <button onClick={handleSendInvoice} disabled={isSendingInvoice || !order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com'}
-                title={(!order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com') ? 'Email not provided' : 'Email Invoice'}
-                className={`border rounded-xl py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${(!order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com') && !isSendingInvoice ? 'border-admin-border bg-admin-card/50 text-admin-text-secondary/50' : 'border-admin-border bg-admin-card hover:bg-admin-surface-hover text-admin-text'}`}>
+              <button onClick={handleSendInvoice} disabled={isSendingInvoice || !order.customerEmail || order.customerEmail === 'admin@bhaturaco.com'}
+                title={(!order.customerEmail || order.customerEmail === 'admin@bhaturaco.com') ? 'Email not provided' : 'Email Invoice'}
+                className={`border rounded-xl py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${(!order.customerEmail || order.customerEmail === 'admin@bhaturaco.com') && !isSendingInvoice ? 'border-admin-border bg-admin-card/50 text-admin-text-secondary/50' : 'border-admin-border bg-admin-card hover:bg-admin-surface-hover text-admin-text'}`}>
                 {isSendingInvoice ? (
                   <div className="w-4 h-4 border-2 border-admin-text-secondary border-t-transparent rounded-full animate-spin" />
                 ) : (

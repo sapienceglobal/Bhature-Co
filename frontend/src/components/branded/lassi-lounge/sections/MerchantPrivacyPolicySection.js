@@ -27,7 +27,7 @@ export default function MerchantPrivacyPolicySection() {
       content: (
         <div className="space-y-3 text-[#4b5563] leading-relaxed">
           <p>
-            This <strong>Merchant &amp; Partner Privacy Policy</strong> applies specifically to the operations, services, mobile applications (including the <strong>Lassi Lounge Merchant / Partner App</strong> on Android/Google Play), and web management dashboards operated by <strong>Lassi Lounge NY</strong>.
+            This <strong>Merchant &amp; Partner Privacy Policy</strong> applies specifically to the operations, services, mobile applications (including the <strong>Bhatura &amp; Co Merchant / Partner App</strong> on Android/Google Play), and web management dashboards operated by <strong>Bhatura &amp; Co</strong>.
           </p>
           <p>
             This document outlines how restaurant owners, store managers, kitchen supervisors, and authorized staff members' data is collected, stored, processed, and safeguarded when using our merchant technology ecosystem.
@@ -58,7 +58,7 @@ export default function MerchantPrivacyPolicySection() {
       content: (
         <div className="space-y-3 text-[#4b5563] leading-relaxed">
           <p>
-            When customers place orders with Lassi Lounge, our Merchant App displays essential fulfillment information (customer name, delivery address, phone number for driver coordination, and itemized menu orders).
+            When customers place orders with Bhatura &amp; Co, our Merchant App displays essential fulfillment information (customer name, delivery address, phone number for driver coordination, and itemized menu orders).
           </p>
           <div className="bg-[#faf9f8] p-4 rounded-xl border border-[#e5e7eb] text-sm">
             <p className="font-semibold text-[#1a1a1a] mb-1">Strict Confidentiality Requirement:</p>
@@ -76,7 +76,7 @@ export default function MerchantPrivacyPolicySection() {
       content: (
         <div className="space-y-4 text-[#4b5563] leading-relaxed">
           <p>
-            To provide automated kitchen operations and order alerts, the <strong>Lassi Lounge Merchant App</strong> requests specific device permissions. We adhere strictly to the principle of least privilege:
+            To provide automated kitchen operations and order alerts, the <strong>Bhatura &amp; Co Merchant App</strong> requests specific device permissions. We adhere strictly to the principle of least privilege:
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="p-4 rounded-2xl bg-white border border-[#e5e7eb] shadow-sm">
@@ -145,7 +145,7 @@ export default function MerchantPrivacyPolicySection() {
       content: (
         <div className="space-y-3 text-[#4b5563] leading-relaxed">
           <p>
-            Merchant profile data, store configurations, and active employee credentials are retained for the duration of the restaurant's operational partnership with Lassi Lounge.
+            Merchant profile data, store configurations, and active employee credentials are retained for the duration of the restaurant's operational partnership with Bhatura &amp; Co.
           </p>
           <p>
             Completed transaction records, sales summaries, and tax invoices are retained for up to <strong>7 years</strong> in compliance with United States Internal Revenue Service (IRS) regulations and New York State commercial auditing requirements.
@@ -173,8 +173,8 @@ export default function MerchantPrivacyPolicySection() {
               </li>
               <li>
                 <strong>Web Deletion Request:</strong> Visit our dedicated web portal at{' '}
-                <Link href="/delete-account" className="underline font-bold text-[#b91c1c] hover:text-[#7f1d1d]">
-                  lassiloungeny.com/delete-account
+                <Link href="/merchant-account-deletion" className="underline font-bold text-[#b91c1c] hover:text-[#7f1d1d]">
+                  bhaturaandco.com/merchant-account-deletion
                 </Link>{' '}
                 to request account and data removal from any web browser without logging into the app.
               </li>
@@ -201,7 +201,7 @@ export default function MerchantPrivacyPolicySection() {
   ];
 
   return (
-    <section className="relative py-20 bg-[#faf9f8] overflow-hidden">
+    <section className="relative py-20 bg-[#FDF8EE] overflow-hidden">
       {/* Background Glows */}
       <div className="absolute top-10 left-0 w-96 h-96 bg-[#cd131b]/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-0 w-96 h-96 bg-[#e8a020]/10 rounded-full blur-3xl pointer-events-none" />
@@ -219,7 +219,7 @@ export default function MerchantPrivacyPolicySection() {
           </h1>
 
           <p className="text-lg text-[#4b5563] leading-relaxed">
-            Transparent data management guidelines for restaurant owners, kitchen managers, and team members using the Lassi Lounge Merchant platform and mobile applications.
+            Transparent data management guidelines for restaurant owners, kitchen managers, and team members using the Bhatura &amp; Co Merchant platform and mobile applications.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium text-[#6b7280] mt-6">
@@ -269,20 +269,20 @@ export default function MerchantPrivacyPolicySection() {
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4">
               <a
-                href="mailto:info@lassilounge.com"
+                href="mailto:info@bhaturaandco.com"
                 className="bg-[#e8b93d] hover:bg-[#d68f13] text-[#0e0d0c] font-bold py-3 px-7 rounded-xl shadow-md transition-colors"
               >
-                Email Privacy Team (info@lassilounge.com)
+                Email Privacy Team (info@bhaturaandco.com)
               </a>
               <Link
-                href="/delete-account"
+                href="/merchant-account-deletion"
                 className="bg-white/10 hover:bg-white/20 text-white font-bold py-3 px-7 rounded-xl border border-white/20 transition-colors"
               >
                 Request Account Deletion
               </Link>
             </div>
             <p className="text-xs text-white/60 mt-6">
-              Lassi Lounge NY &bull; 9408 118th St, South Richmond Hill, NY 11419 &bull; Tel: +1 347-233-3733
+              Bhatura &amp; Co &bull; 123 Main Street, New York, NY 10001, USA &bull; Tel: +1 (212) 555-7890
             </p>
           </div>
         </div>

@@ -4,7 +4,7 @@ export default function SupportCard({ isSingleRestaurantMode, restaurant }) {
   // use real backend data if available, fallback to hardcoded if not
   // prioritize restaurant.phone / restaurant.email as these are what SettingsView updates
   let phoneValue = restaurant?.phone || restaurant?.businessInfo?.businessPhone || (isSingleRestaurantMode ? '5166120300' : '18005550199');
-  let emailValue = restaurant?.email || restaurant?.businessInfo?.businessEmail || (isSingleRestaurantMode ? 'info@lassilounge.com' : 'support@daasplatform.com');
+  let emailValue = restaurant?.email || restaurant?.businessInfo?.businessEmail || (isSingleRestaurantMode ? 'info@bhaturaandco.com' : 'support@daasplatform.com');
   
   // format phone if it's 10 or 11 digits
   const numericPhone = phoneValue.replace(/\D/g, '');

@@ -3,8 +3,8 @@ import ItemDetailContent from '@/components/menu-detail/ItemDetailContent';
 import { resolveImageUrl, getItemSlug, cleanUrl } from '@/lib/slugUtils';
 import { fetchItemData } from '@/lib/menuData';
 
-const siteUrl = cleanUrl(process.env.NEXT_PUBLIC_SITE_URL) || 'https://www.lassiloungeny.com';
-const restaurantId = (process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'lassi-lounge').trim().replace(/[\r\n]/g, '');
+const siteUrl = cleanUrl(process.env.NEXT_PUBLIC_SITE_URL) || 'https://www.bhaturaandco.com';
+const restaurantId = (process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'bhatura-and-co').trim().replace(/[\r\n]/g, '');
 
 /**
  * Generates dynamic SEO metadata for Google, WhatsApp, Facebook, Twitter, etc.
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }) {
 
   const rawTitleString = hasCustomTitle
     ? item.seoTitle.trim()
-    : `${item.name} - Order Online | Lassi Lounge NY`;
+    : `${item.name} - Order Online | Bhatura & Co`;
 
   const pageTitle = { absolute: rawTitleString };
 
@@ -44,7 +44,7 @@ export async function generateMetadata({ params }) {
     item.seoDescription?.trim() ||
     (item.description && item.description.length > 0
       ? item.description.slice(0, 155)
-      : `Order fresh, delicious ${item.name} online from Lassi Lounge NY. Authentic Indian recipes prepared fresh.`);
+      : `Order fresh, delicious ${item.name} online from Bhatura & Co. Authentic North Indian recipes prepared fresh.`);
 
   // OpenGraph Image Priority:
   // 1. seoImage (agar explicitly set ho)
@@ -70,7 +70,7 @@ export async function generateMetadata({ params }) {
       title: rawTitleString,
       description,
       url: canonicalUrl,
-      siteName: 'Lassi Lounge NY',
+      siteName: 'Bhatura & Co',
       type: 'website',
       images: [
         {
@@ -108,10 +108,10 @@ export default async function BrandedItemDetailPage({ params }) {
   const rawImage =
     item.image ||
     (Array.isArray(item.images) && item.images[0]) ||
-    '/assets/images/branded/lassi-lounge/og-image.png';
+    '/assets/images/branded/bhatura-and-co/logo-full.png';
   const resolvedImage = resolveImageUrl(
     rawImage,
-    `${siteUrl}/assets/images/branded/lassi-lounge/og-image.png`
+    `${siteUrl}/assets/images/branded/bhatura-and-co/logo-full.png`
   );
   const fullImageUrl = resolvedImage.startsWith('http')
     ? resolvedImage
@@ -125,7 +125,7 @@ export default async function BrandedItemDetailPage({ params }) {
     description:
       item.seoDescription?.trim() ||
       item.description ||
-      `Fresh and authentic ${item.name} from Lassi Lounge NY.`,
+      `Fresh and authentic ${item.name} from Bhatura & Co.`,
     image: [fullImageUrl],
     offers: {
       '@type': 'Offer',

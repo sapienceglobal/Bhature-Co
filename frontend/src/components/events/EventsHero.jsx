@@ -55,7 +55,7 @@ export default function EventsHero() {
             className="text-[28px] md:text-[38px] text-[#dc2626] leading-none mb-6"
             style={{ fontFamily: "'Dancing Script', 'Great Vibes', cursive, serif" }}
           >
-            with Lassi Lounge
+            with Bhatura &amp; Co
           </h3>
           
           <p className="text-[14px] md:text-[15px] text-[#d1d5db] mb-10 max-w-[480px] leading-relaxed font-medium">

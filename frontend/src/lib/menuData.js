@@ -2,7 +2,7 @@ import { cache } from 'react';
 import { cleanUrl } from '@/lib/slugUtils';
 
 const apiUrl = cleanUrl(process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5001';
-const restaurantId = (process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'lassi-lounge').trim().replace(/[\r\n]/g, '');
+const restaurantId = (process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'bhatura-and-co').trim().replace(/[\r\n]/g, '');
 const appSecret = (process.env.APP_SECRET || process.env.NEXT_PUBLIC_APP_SECRET || 'mobile_app_secure_key_2026').trim().replace(/[\r\n]/g, '');
 
 /**
@@ -25,7 +25,7 @@ export const fetchItemData = cache(async (itemId) => {
         cache: 'no-store',
         headers: {
           'x-app-secret': appSecret,
-          'x-tenant-id': 'lassi-lounge',
+          'x-tenant-id': 'bhatura-and-co',
           'x-platform': 'web',
         },
       }

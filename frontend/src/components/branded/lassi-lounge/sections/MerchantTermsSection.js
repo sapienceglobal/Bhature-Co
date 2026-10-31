@@ -23,10 +23,10 @@ export default function MerchantTermsSection() {
       content: (
         <div className="space-y-3 text-[#4b5563] leading-relaxed">
           <p>
-            These <strong>Merchant Terms of Service</strong> constitute a legally binding commercial agreement between <strong>Lassi Lounge NY</strong> and the restaurant entity, authorized merchant, store manager, or franchisee operating our restaurant management technology.
+            These <strong>Merchant Terms of Service</strong> constitute a legally binding commercial agreement between <strong>Bhatura &amp; Co</strong> and the restaurant entity, authorized merchant, store manager, or franchisee operating our restaurant management technology.
           </p>
           <p>
-            By logging into the <strong>Lassi Lounge Merchant Mobile App</strong> or accessing the partner web dashboard, you agree to abide by these operating standards and terms.
+            By logging into the <strong>Bhatura &amp; Co Merchant Mobile App</strong> or accessing the partner web dashboard, you agree to abide by these operating standards and terms.
           </p>
         </div>
       ),
@@ -79,7 +79,7 @@ export default function MerchantTermsSection() {
       content: (
         <div className="space-y-3 text-[#4b5563] leading-relaxed">
           <p>
-            Online sales transactions collected through Lassi Lounge customer portals are settled directly to the designated merchant bank account on the agreed weekly/bi-weekly schedule via Stripe Connect.
+            Online sales transactions collected through Bhatura &amp; Co customer portals are settled directly to the designated merchant bank account on the agreed weekly/bi-weekly schedule via Stripe Connect.
           </p>
           <p>
             All applicable sales taxes, city surcharges, and tip allocations are itemized in real-time within the Merchant App Analytics and Reporting dashboard.
@@ -107,10 +107,10 @@ export default function MerchantTermsSection() {
       content: (
         <div className="space-y-3 text-[#4b5563] leading-relaxed">
           <p>
-            Lassi Lounge reserves the right to suspend or terminate merchant portal access in the event of repeated health inspection violations, high cancellation rates (&gt;5%), fraudulent transactions, or failure to maintain consistent quality.
+            Bhatura &amp; Co reserves the right to suspend or terminate merchant portal access in the event of repeated health inspection violations, high cancellation rates (&gt;5%), fraudulent transactions, or failure to maintain consistent quality.
           </p>
           <p>
-            Merchants may terminate their partnership at any time by clearing pending order balances and providing 14 days written notice to <em>info@lassilounge.com</em>.
+            Merchants may terminate their partnership at any time by clearing pending order balances and providing 14 days written notice to <em>info@bhaturaandco.com</em>.
           </p>
         </div>
       ),
@@ -118,7 +118,7 @@ export default function MerchantTermsSection() {
   ];
 
   return (
-    <section className="relative py-20 bg-[#faf9f8] overflow-hidden">
+    <section className="relative py-20 bg-[#FDF8EE] overflow-hidden">
       <div className="container mx-auto px-4 max-w-4xl relative z-10">
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
@@ -132,7 +132,7 @@ export default function MerchantTermsSection() {
           </h1>
 
           <p className="text-lg text-[#4b5563] leading-relaxed">
-            Operating guidelines, service levels, and commercial standards for restaurants and staff utilizing Lassi Lounge merchant applications.
+            Operating guidelines, service levels, and commercial standards for restaurants and staff utilizing Bhatura &amp; Co merchant applications.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium text-[#6b7280] mt-6">
@@ -178,7 +178,7 @@ export default function MerchantTermsSection() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a
-              href="mailto:info@lassilounge.com"
+              href="mailto:info@bhaturaandco.com"
               className="bg-[#7a0b10] hover:bg-[#5e080c] text-white font-bold py-3 px-8 rounded-xl shadow-md transition-colors"
             >
               Contact Operations Desk

@@ -43,7 +43,7 @@ const PhonePreview = ({ title, message, imageUrl }) => {
               <div className="w-5 h-5 bg-primary rounded-lg flex items-center justify-center shadow-sm">
                 <span className="text-[11px] text-white font-black leading-none font-outfit">L</span>
               </div>
-              <span className="text-[11px] font-bold text-white tracking-wide font-outfit">LASSI LOUNGE</span>
+              <span className="text-[11px] font-bold text-white tracking-wide font-outfit">BHATURA &amp; CO</span>
             </div>
             <span className="text-[10px] text-white/60 font-medium">now</span>
           </div>

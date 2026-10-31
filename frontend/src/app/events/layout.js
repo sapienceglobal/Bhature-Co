@@ -1,9 +1,9 @@
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.bhaturaandco.com';
 
 export const metadata = {
-  title: 'Events & Parties | Lassi Lounge NY',
+  title: 'Events & Parties | Bhatura & Co',
   description:
-    'Host special events and private parties at Lassi Lounge NY. Enjoy authentic Indian catering in an elegant setting.',
+    'Host special events and private parties at Bhatura & Co. Enjoy authentic North Indian catering in an elegant setting.',
   alternates: {
     canonical: `${siteUrl}/events`,
   },
@@ -12,9 +12,9 @@ export const metadata = {
     follow: true,
   },
   openGraph: {
-    title: 'Events & Parties | Lassi Lounge NY',
+    title: 'Events & Parties | Bhatura & Co',
     description:
-      'Celebrate special moments with authentic Indian cuisine at Lassi Lounge NY.',
+      'Celebrate special moments with authentic North Indian cuisine at Bhatura & Co.',
     url: `${siteUrl}/events`,
   },
 };

@@ -76,7 +76,7 @@ export default function MerchantAccountDeletionSection() {
   };
 
   return (
-    <section className="relative py-20 bg-[#faf9f8] text-[#1a1a1a] font-sans overflow-hidden">
+    <section className="relative py-20 bg-[#FDF8EE] text-[#1a1a1a] font-sans overflow-hidden">
       {/* Decorative Glow */}
       <div className="absolute top-10 left-1/4 w-96 h-96 bg-[#cd131b]/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-[#e8a020]/10 rounded-full blur-3xl pointer-events-none" />
@@ -206,7 +206,7 @@ export default function MerchantAccountDeletionSection() {
                     <input
                       type="email"
                       required
-                      placeholder="manager@lassilounge.com"
+                      placeholder="merchant@bhaturaco.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl border border-[#d1d5db] bg-white text-[#111827] placeholder:text-[#9ca3af] font-medium focus:ring-2 focus:ring-[#cd131b] focus:border-[#cd131b] outline-none transition-all"
@@ -305,7 +305,7 @@ export default function MerchantAccountDeletionSection() {
                 In-App Merchant Account Deletion
               </h3>
               <p className="text-sm text-[#4b5563] leading-relaxed mb-3">
-                If you have the <strong>Lassi Lounge Merchant App</strong> installed on your restaurant Android device:
+                If you have the <strong>Bhatura &amp; Co Merchant App</strong> installed on your restaurant Android device:
               </p>
               <div className="text-sm font-semibold text-[#111827] bg-[#faf9f8] p-4 rounded-xl border border-[#e5e7eb]">
                 Open Merchant App &rarr; Tap Drawer / Settings &rarr; Select <span className="text-[#cd131b]">Delete Account</span> &rarr; Enter your password to instantly wipe credentials.

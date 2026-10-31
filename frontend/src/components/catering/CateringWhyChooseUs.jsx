@@ -48,7 +48,7 @@ export default function CateringWhyChooseUs() {
   return (
     <div className="w-full bg-[#fdfbf7] rounded-2xl border border-[#eadfdb] p-8 shadow-sm h-full">
       <h3 className="text-[20px] md:text-[24px] font-serif font-black text-[#7a0b10] leading-tight mb-8">
-        Why Choose<br/>Lassi Lounge Catering?
+        Why Choose<br/>Bhatura &amp; Co Catering?
       </h3>
       
       <div className="space-y-6 mb-8">

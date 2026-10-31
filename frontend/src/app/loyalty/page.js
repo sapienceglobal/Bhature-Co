@@ -1,10 +1,10 @@
 import LassiLoyaltyPage from '@/components/branded/lassi-lounge/LassiLoyaltyPage';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.bhaturaandco.com';
 
 export const metadata = {
-  title: 'Loyalty Rewards | Lassi Lounge NY',
-  description: 'Join Lassi Rewards to earn points, free drinks, and exclusive discounts on every order.',
+  title: 'Loyalty Rewards | Bhatura & Co',
+  description: 'Join Bhatura & Co Rewards to earn points, free treats, and exclusive discounts on every order.',
   alternates: {
     canonical: `${siteUrl}/loyalty`,
   },

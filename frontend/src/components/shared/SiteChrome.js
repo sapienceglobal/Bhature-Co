@@ -3,8 +3,8 @@
 import { usePathname } from 'next/navigation';
 import { Header } from './Header';
 import { Footer } from './Footer';
-import LassiLoungeHeader from '@/components/branded/lassi-lounge/LassiLoungeHeader';
-import LassiLoungeFooter from '@/components/branded/lassi-lounge/LassiLoungeFooter';
+import BhaturaHeader from '@/components/branded/bhatura-and-co/BhaturaHeader';
+import BhaturaFooter from '@/components/branded/bhatura-and-co/BhaturaFooter';
 import CartSidebar from '@/components/ui/CartSidebar';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 
@@ -31,11 +31,11 @@ export default function SiteChrome({ children }) {
   if (SINGLE_MODE && !isAdminOrMerchant) {
     return (
       <div className="flex flex-col min-h-screen pb-16 lg:pb-0 relative">
-        <LassiLoungeHeader />
+        <BhaturaHeader />
         <CartSidebar />
         <MobileBottomNav />
         {children}
-        <LassiLoungeFooter />
+        <BhaturaFooter />
         <WhatsAppWidget />
       </div>
     );

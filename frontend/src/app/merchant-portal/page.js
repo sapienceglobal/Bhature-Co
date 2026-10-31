@@ -4,8 +4,8 @@ import MerchantPublicFooter from '@/components/merchant-public/MerchantPublicFoo
 import MerchantPortalSection from '@/components/branded/lassi-lounge/sections/MerchantPortalSection';
 
 export const metadata = {
-  title: 'Merchant & Restaurant Operations Hub - Lassi Lounge NY',
-  description: 'Official portal and Android application overview for Lassi Lounge restaurant managers, chefs, and partner dispatchers.',
+  title: 'Merchant & Restaurant Operations Hub | Bhatura & Co',
+  description: 'Official portal and Android application overview for Bhatura & Co restaurant managers, chefs, and partner dispatchers.',
   alternates: {
     canonical: '/merchant-portal',
   },
@@ -13,7 +13,7 @@ export const metadata = {
 
 export default function MerchantPortalPage() {
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#faf9f8]">
+    <div className="min-h-screen flex flex-col font-sans bg-[#FDF8EE]">
       <MerchantPublicHeader />
       <main className="flex-1">
         <MerchantPortalSection />

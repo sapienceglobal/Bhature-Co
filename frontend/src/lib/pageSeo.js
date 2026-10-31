@@ -1,42 +1,42 @@
 import { cache } from 'react';
 import { cleanUrl } from '@/lib/slugUtils';
 
-const siteUrl = cleanUrl(process.env.NEXT_PUBLIC_SITE_URL) || 'https://www.lassiloungeny.com';
-const apiUrl = cleanUrl(process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5001';
+const siteUrl = cleanUrl(process.env.NEXT_PUBLIC_SITE_URL) || 'https://www.bhaturaandco.com';
+const apiUrl = cleanUrl(process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5002';
 
 /**
  * Hardcoded fallback metadata for static pages when database has no entry.
  */
 const DEFAULT_PAGE_META = {
   '/': {
-    title: 'Lassi Lounge NY | Indian Restaurant & Delivery',
+    title: 'Bhatura & Co | Chhole Bhature & More',
     description:
-      'Experience authentic Indian cuisine at Lassi Lounge in New York. Order fresh biryani, savory curries, and mango lassi online.',
-    ogImage: `${siteUrl}/assets/images/branded/lassi-lounge/og-image.png`,
+      'Experience authentic North Indian cuisine at Bhatura & Co. Order fresh Chhole Bhature, stuffed parathas, savory curries, and lassi online.',
+    ogImage: `${siteUrl}/assets/images/branded/bhatura-and-co/logo-full.png`,
   },
   '/menu': {
-    title: 'Our Menu | Authentic Indian Cuisine | Lassi Lounge NY',
+    title: 'Our Menu | Authentic North Indian Cuisine | Bhatura & Co',
     description:
-      'Explore our authentic Indian menu — signature biryanis, rich curries, tandoori specialties, and refreshing lassis in NY.',
-    ogImage: `${siteUrl}/assets/images/branded/lassi-lounge/og-image.png`,
+      'Explore our authentic North Indian menu — signature Chhole Bhature, stuffed parathas, rich curries, biryanis, and refreshing lassis.',
+    ogImage: `${siteUrl}/assets/images/branded/bhatura-and-co/logo-full.png`,
   },
   '/about-us': {
-    title: 'About Us | Heritage & Story | Lassi Lounge NY',
+    title: 'About Us | Heritage & Story | Bhatura & Co',
     description:
-      'Discover our heritage, chefs, and culinary passion bringing traditional authentic Indian recipes to New York.',
-    ogImage: `${siteUrl}/assets/images/branded/lassi-lounge/og-image.png`,
+      'Discover our heritage, chefs, and culinary passion bringing traditional authentic North Indian recipes to you.',
+    ogImage: `${siteUrl}/assets/images/branded/bhatura-and-co/logo-full.png`,
   },
   '/contact-us': {
-    title: 'Contact Us & Reservations | Lassi Lounge NY',
+    title: 'Contact Us & Reservations | Bhatura & Co',
     description:
-      'Get in touch with Lassi Lounge NY for dine-in reservations, catering orders, and general inquiries.',
-    ogImage: `${siteUrl}/assets/images/branded/lassi-lounge/og-image.png`,
+      'Get in touch with Bhatura & Co for dine-in reservations, catering orders, and general inquiries.',
+    ogImage: `${siteUrl}/assets/images/branded/bhatura-and-co/logo-full.png`,
   },
   '/catering': {
-    title: 'Catering Services & Events | Lassi Lounge NY',
+    title: 'Catering Services & Events | Bhatura & Co',
     description:
-      'Host unforgettable events with authentic Indian catering by Lassi Lounge NY. Custom menus for parties and weddings.',
-    ogImage: `${siteUrl}/assets/images/branded/lassi-lounge/og-image.png`,
+      'Host unforgettable events with authentic North Indian catering by Bhatura & Co. Custom menus for parties and weddings.',
+    ogImage: `${siteUrl}/assets/images/branded/bhatura-and-co/logo-full.png`,
   },
 };
 
@@ -55,7 +55,7 @@ export const fetchPageSeo = cache(async (path) => {
         cache: 'no-store',
         headers: {
           'x-app-secret': appSecret,
-          'x-tenant-id': 'lassi-lounge',
+          'x-tenant-id': 'bhatura-and-co',
           'x-platform': 'web',
         },
       }
@@ -99,14 +99,14 @@ export async function getPageMetadata(path) {
       title: rawTitle,
       description,
       url: canonicalUrl,
-      siteName: 'Lassi Lounge NY',
+      siteName: 'Bhatura & Co',
       type: 'website',
       images: [
         {
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: `${rawTitle} | Lassi Lounge NY`,
+          alt: `${rawTitle} | Bhatura & Co`,
         },
       ],
     },
@@ -138,7 +138,7 @@ export const fetchGlobalScripts = cache(async () => {
       cache: 'no-store',
       headers: {
         'x-app-secret': appSecret,
-        'x-tenant-id': 'lassi-lounge',
+        'x-tenant-id': 'bhatura-and-co',
         'x-platform': 'web',
       },
     });

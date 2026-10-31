@@ -444,7 +444,7 @@ export default function MenuManagementModal({
                       maxLength={155}
                       value={itemForm.seoDescription || ''}
                       onChange={(e) => setItemForm(f => ({ ...f, seoDescription: e.target.value }))}
-                      placeholder={`e.g. Order delicious ${itemForm.name || 'Mango Lassi'} online from Lassi Lounge NY. Made fresh daily with authentic ingredients.`}
+                      placeholder={`e.g. Order delicious ${itemForm.name || 'Chhole Bhature'} online from Bhatura & Co. Made fresh daily with authentic ingredients.`}
                       className="w-full rounded-xl bg-admin-surface border border-admin-border text-xs sm:text-sm text-admin-text px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
                     />
                     <p className="text-[11px] text-admin-text-muted mt-1">
@@ -460,7 +460,7 @@ export default function MenuManagementModal({
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 rounded-full bg-brand flex items-center justify-center text-[9px] text-white font-bold shrink-0">
-                        LL
+                        BC
                       </div>
                       <a
                         href={`/item/${itemForm.slug || (itemForm.name ? itemForm.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') : (item?._id || 'item-preview'))}`}
@@ -469,8 +469,8 @@ export default function MenuManagementModal({
                         className="text-xs text-admin-text leading-tight truncate hover:underline"
                         title="Open live dish page in new tab"
                       >
-                        <span className="font-medium text-admin-text">Lassi Lounge NY</span>
-                        <span className="text-admin-text-muted ml-1">· https://www.lassiloungeny.com › item › {
+                        <span className="font-medium text-admin-text">Bhatura &amp; Co</span>
+                        <span className="text-admin-text-muted ml-1">· https://www.bhaturaandco.com › item › {
                           itemForm.slug || (itemForm.name ? itemForm.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') : 'dish-item')
                         }</span>
                       </a>
@@ -482,10 +482,10 @@ export default function MenuManagementModal({
                       className="text-[15px] sm:text-[17px] font-normal text-blue-500 hover:underline cursor-pointer leading-snug line-clamp-1 pt-0.5 block"
                       title="Open live dish page in new tab"
                     >
-                      {itemForm.seoTitle?.trim() || `${itemForm.name || 'Dish Name'} - Order Online`} | Lassi Lounge NY
+                      {itemForm.seoTitle?.trim() || `${itemForm.name || 'Dish Name'} - Order Online`} | Bhatura &amp; Co
                     </a>
                     <p className="text-xs sm:text-[13px] text-admin-text-secondary leading-relaxed line-clamp-2">
-                      {itemForm.seoDescription?.trim() || (itemForm.description ? itemForm.description.slice(0, 155) : 'Order fresh and authentic Indian cuisine online from Lassi Lounge NY. Fast delivery and easy pickup in New York.')}
+                      {itemForm.seoDescription?.trim() || (itemForm.description ? itemForm.description.slice(0, 155) : 'Order fresh and authentic North Indian cuisine online from Bhatura & Co. Fast delivery and easy pickup.')}
                     </p>
                   </div>
                 </div>

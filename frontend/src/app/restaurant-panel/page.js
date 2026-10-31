@@ -130,7 +130,7 @@ function ForgotPasswordModal({ isOpen, onClose, defaultEmail = '' }) {
                       type="email"
                       value={fpEmail}
                       onChange={e => { setFpEmail(e.target.value); setFpError(''); }}
-                      placeholder="admin@lassilounge.com"
+                      placeholder="merchant@bhaturaco.com"
                       autoFocus
                       className="flex-1 bg-transparent border-none px-4 py-3.5 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
                     />
@@ -166,7 +166,7 @@ export default function AdminLoginPage() {
   // Auto-login: if already authenticated as merchant, immediately go to /merchant dashboard
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
-      if (user.role === 'merchant') {
+      if (user.role === 'merchant' || user.role === 'admin') {
         const redirectUrl = searchParams.get('redirect') || '/merchant';
         router.replace(redirectUrl);
       }
@@ -233,7 +233,7 @@ export default function AdminLoginPage() {
         return;
       }
 
-      if (userRole === 'merchant') {
+      if (userRole === 'merchant' || userRole === 'admin') {
         const redirectUrl = searchParams.get('redirect') || '/merchant';
         router.push(redirectUrl);
       } else if (userRole === 'admin') {
@@ -262,7 +262,7 @@ export default function AdminLoginPage() {
     try {
       const userRes = await verify2FA(tempToken, twoFactorCode, rememberMe);
       const userRole = userRes?.role || userRes?.user?.role;
-      if (userRole === 'merchant') {
+      if (userRole === 'merchant' || userRole === 'admin') {
         const redirectUrl = searchParams.get('redirect') || '/merchant';
         router.push(redirectUrl);
       } else if (userRole === 'admin') {
@@ -296,7 +296,7 @@ export default function AdminLoginPage() {
         <div className="relative hidden lg:flex w-full lg:w-[50%] h-full flex-col justify-center items-center text-center px-8 pt-12 pb-32 overflow-hidden bg-[#4a090b]">
           <div className="absolute inset-0 z-0">
             <Image
-              src="/images/branded/lassi-lounge/hero-spread-auth.png"
+              src="/assets/images/branded/bhatura-and-co/auth_hero.jpg"
               alt="Indian Cuisine Spread"
               fill
               className="object-cover object-bottom"
@@ -316,8 +316,8 @@ export default function AdminLoginPage() {
             <div className="mb-6 flex flex-col items-center">
               <div className="relative w-[480px] h-[180px]">
                 <Image
-                  src="/assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png"
-                  alt="Lassi Lounge"
+                  src="/assets/images/branded/bhatura-and-co/logo-emblem.png"
+                  alt="Bhatura & Co"
                   fill
                   className="object-contain"
                   priority
@@ -367,8 +367,8 @@ export default function AdminLoginPage() {
             <div className="flex flex-col items-center mb-6 lg:hidden">
               <div className="relative w-[240px] h-[90px]">
                 <Image
-                  src="/assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png"
-                  alt="Lassi Lounge"
+                  src="/assets/images/branded/bhatura-and-co/logo-emblem.png"
+                  alt="Bhatura & Co"
                   fill
                   className="object-contain"
                   priority
@@ -386,7 +386,7 @@ export default function AdminLoginPage() {
                 <div className="w-10 h-[1px] bg-[#c99742]"></div>
               </div>
               <p className="text-[#6b7280] text-[15px]">
-                {requires2fa ? 'Enter the 6-digit code from your authenticator app.' : 'Sign in to your Lassi Lounge Admin Account'}
+                {requires2fa ? 'Enter the 6-digit code from your authenticator app.' : 'Sign in to your Bhatura & Co Admin Account'}
               </p>
             </div>
 
@@ -562,7 +562,7 @@ export default function AdminLoginPage() {
             </div>
 
             <div className="mt-6 text-center text-[11px] text-[#9ca3af] font-medium">
-              © {new Date().getFullYear()} Lassi Lounge. All Rights Reserved.
+              © {new Date().getFullYear()} Bhatura &amp; Co. All Rights Reserved.
             </div>
           </div>
         </div>

@@ -9,7 +9,7 @@ class ApiService {
   // Use the same fallback IP or a defined environment variable
   static const String _configuredBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://api.lassiloungeny.com',
+    defaultValue: 'http://195.35.20.207:5005',
     // defaultValue: 'http://192.168.1.3:5001',
   );
   

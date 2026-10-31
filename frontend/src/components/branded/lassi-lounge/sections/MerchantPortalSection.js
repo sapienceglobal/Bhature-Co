@@ -60,9 +60,9 @@ export default function MerchantPortalSection() {
   ];
 
   return (
-    <div className="bg-[#faf9f8] text-[#1a1a1a] overflow-hidden">
+    <div className="bg-[#FDF8EE] text-[#1a1a1a] overflow-hidden">
       {/* Hero Section */}
-      <section className="relative pt-24 pb-20 overflow-hidden bg-gradient-to-b from-[#0e0d0c] via-[#1a1817] to-[#0e0d0c] text-white">
+      <section className="relative pt-24 pb-20 overflow-hidden bg-gradient-to-b from-[#3B060A] via-[#5C0612] to-[#3B060A] text-white">
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#cd131b]/15 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-[#e8a020]/10 rounded-full blur-[140px] pointer-events-none" />
 
@@ -70,7 +70,7 @@ export default function MerchantPortalSection() {
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 text-[#e8b93d] text-xs font-bold uppercase tracking-wider mb-6 border border-white/10 backdrop-blur-md">
               <Store className="w-4 h-4" />
-              <span>Official Restaurant Operations Hub &bull; Lassi Lounge NY</span>
+              <span>Official Restaurant Operations Hub &bull; Bhatura &amp; Co</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold font-serif tracking-tight leading-tight mb-6">
@@ -81,12 +81,12 @@ export default function MerchantPortalSection() {
             </h1>
 
             <p className="text-lg sm:text-xl text-[#d8d4cf] leading-relaxed mb-10 max-w-2xl mx-auto">
-              Purpose-built Android tablet and mobile technology for Lassi Lounge store managers, chefs, and dispatchers to fulfill orders with precision.
+              Purpose-built Android tablet and mobile technology for Bhatura &amp; Co store managers, chefs, and dispatchers to fulfill orders with precision.
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-4">
               <a
-                href="/login"
+                href="/restaurant-panel"
                 className="bg-[#cd131b] hover:bg-[#a30f16] text-white font-bold py-4 px-8 rounded-2xl shadow-xl hover:shadow-[#cd131b]/30 transition-all flex items-center gap-2 text-base"
               >
                 <span>Launch Merchant Web Portal</span>
@@ -200,7 +200,7 @@ export default function MerchantPortalSection() {
       </section>
 
       {/* App Download / Store Link Section */}
-      <section id="download" className="py-20 bg-[#faf9f8]">
+      <section id="download" className="py-20 bg-[#FDF8EE]">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="bg-[#4a090b] rounded-3xl p-8 sm:p-12 text-white text-center shadow-2xl relative overflow-hidden">
             <div className="max-w-2xl mx-auto relative z-10">
@@ -209,7 +209,7 @@ export default function MerchantPortalSection() {
               </div>
 
               <h2 className="text-3xl sm:text-4xl font-bold font-serif mb-4">
-                Download Lassi Lounge Merchant App
+                Download Bhatura &amp; Co Merchant App
               </h2>
 
               <p className="text-white/80 text-base leading-relaxed mb-8">
@@ -218,7 +218,7 @@ export default function MerchantPortalSection() {
 
               <div className="flex flex-wrap items-center justify-center gap-4">
                 <a
-                  href="https://play.google.com/store/apps/details?id=com.lassilounge.merchant_mobile"
+                  href="https://play.google.com/store/apps/details?id=com.bhaturaandco.merchant_mobile"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-[#e8b93d] hover:bg-[#d68f13] text-[#0e0d0c] font-bold py-3.5 px-8 rounded-2xl shadow-lg transition-colors flex items-center gap-3"
@@ -228,7 +228,7 @@ export default function MerchantPortalSection() {
                 </a>
 
                 <a
-                  href="/login"
+                  href="/restaurant-panel"
                   className="bg-white/10 hover:bg-white/20 text-white font-bold py-3.5 px-8 rounded-2xl border border-white/20 transition-colors flex items-center gap-2"
                 >
                   <ExternalLink className="w-5 h-5" />
@@ -245,7 +245,7 @@ export default function MerchantPortalSection() {
                   Merchant Terms of Service
                 </Link>
                 <span>&bull;</span>
-                <Link href="/delete-account" className="hover:text-white underline">
+                <Link href="/merchant-account-deletion" className="hover:text-white underline">
                   Account Deletion Portal
                 </Link>
               </div>
@@ -267,10 +267,10 @@ export default function MerchantPortalSection() {
             Available 7 days a week for hardware configuration, printer troubleshooting, and live menu assistance.
           </p>
           <p className="text-sm font-semibold text-[#1a1a1a]">
-            Phone: <a href="tel:+13472333733" className="text-[#cd131b] hover:underline">+1 347-233-3733</a> &bull; Email: <a href="mailto:info@lassilounge.com" className="text-[#cd131b] hover:underline">info@lassilounge.com</a>
+            Phone: <a href="tel:+12125557890" className="text-[#cd131b] hover:underline">+1 (212) 555-7890</a> &bull; Email: <a href="mailto:info@bhaturaandco.com" className="text-[#cd131b] hover:underline">info@bhaturaandco.com</a>
           </p>
           <p className="text-xs text-[#9ca3af] mt-1">
-            Lassi Lounge NY &bull; 9408 118th St, South Richmond Hill, NY 11419
+            Bhatura &amp; Co &bull; 123 Main Street, New York, NY 10001, USA
           </p>
         </div>
       </section>

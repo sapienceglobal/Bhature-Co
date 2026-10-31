@@ -21,7 +21,7 @@ export default function TermsConditionsSection() {
     {
       icon: <AlertCircle className="w-8 h-8 text-primary-600" />,
       title: "4. Modifications to Service",
-      content: "Lassi Lounge reserves the right at any time and from time to time to modify or discontinue, temporarily or permanently, the Service (or any part thereof) with or without notice.",
+      content: "Bhatura & Co reserves the right at any time and from time to time to modify or discontinue, temporarily or permanently, the Service (or any part thereof) with or without notice.",
     },
     {
       icon: <CheckCircle className="w-8 h-8 text-primary-600" />,
@@ -31,7 +31,7 @@ export default function TermsConditionsSection() {
   ];
 
   return (
-    <section className="relative py-24 bg-[#faf9f8] overflow-hidden">
+    <section className="relative py-20 bg-[#FDF8EE] overflow-hidden">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary-100/50 rounded-full blur-3xl opacity-50 pointer-events-none" />
       <div className="absolute bottom-20 left-10 w-[500px] h-[500px] bg-secondary-100/50 rounded-full blur-3xl opacity-50 pointer-events-none" />
@@ -45,7 +45,7 @@ export default function TermsConditionsSection() {
             Terms & Conditions
           </h1>
           <p className="text-lg text-[#4b5563] leading-relaxed">
-            Please read these terms and conditions carefully before using our service. They outline your rights and responsibilities when using Lassi Lounge.
+            Please read these terms and conditions carefully before using our service. They outline your rights and responsibilities when using Bhatura &amp; Co.
           </p>
           <p className="text-sm text-[#9ca3af] mt-4">Last Updated: September 2026</p>
         </div>

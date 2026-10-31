@@ -7,7 +7,7 @@ export default function ReferralWelcomeModal({
   isOpen,
   onClose,
   programInfo,
-  restaurantName = 'Lassi Lounge',
+  restaurantName = 'Bhatura & Co',
   onComplete,
 }) {
   useEffect(() => {

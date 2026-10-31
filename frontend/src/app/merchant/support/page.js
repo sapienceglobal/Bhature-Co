@@ -69,7 +69,7 @@ export default function HelpSupportPage() {
       subtitle: "Send us an email anytime",
       icon: <Mail className="w-5 h-5 text-rose-500" />,
       action: "Email Us",
-      onClick: () => window.location.href = "mailto:lassiloungeny@gmail.com"
+      onClick: () => window.location.href = "mailto:info@bhaturaandco.com"
     },
     {
       title: "WhatsApp Merchant Care",

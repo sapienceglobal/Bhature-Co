@@ -87,7 +87,7 @@ export default function ResetPasswordPage({ params }) {
         <div className="relative hidden lg:flex w-full lg:w-[50%] h-full flex-col justify-center items-center text-center px-8 pt-12 pb-32 overflow-hidden bg-[#4a090b]">
           <div className="absolute inset-0 z-0">
             <Image
-              src="/images/branded/lassi-lounge/hero-spread-auth.png"
+              src="/assets/images/branded/bhatura-and-co/auth_hero.jpg"
               alt="Indian Cuisine Spread"
               fill
               className="object-cover object-bottom"
@@ -107,8 +107,8 @@ export default function ResetPasswordPage({ params }) {
             <div className="mb-6 flex flex-col items-center">
               <div className="relative w-[480px] h-[180px]">
                 <Image
-                  src="/assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png"
-                  alt="Lassi Lounge"
+                  src="/assets/images/branded/bhatura-and-co/logo-emblem.png"
+                  alt="Bhatura & Co"
                   fill
                   className="object-contain"
                   priority
@@ -126,7 +126,7 @@ export default function ResetPasswordPage({ params }) {
             </div>
 
             <p className="text-white/90 text-[15px] leading-relaxed mb-10">
-              Choose a strong password to protect your<br />Lassi Lounge profile.
+              Choose a strong password to protect your<br />Bhatura &amp; Co profile.
             </p>
 
             <div className="grid grid-cols-3 gap-y-10 gap-x-6 w-full max-w-[380px] mt-6">
@@ -157,8 +157,8 @@ export default function ResetPasswordPage({ params }) {
             <div className="flex flex-col items-center mb-6 lg:hidden">
               <div className="relative w-[240px] h-[90px]">
                 <Image
-                  src="/assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png"
-                  alt="Lassi Lounge"
+                  src="/assets/images/branded/bhatura-and-co/logo-emblem.png"
+                  alt="Bhatura & Co"
                   fill
                   className="object-contain"
                   priority

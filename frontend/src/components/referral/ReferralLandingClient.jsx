@@ -106,10 +106,10 @@ export default function ReferralLandingClient({ referralCode }) {
           </div>
 
           <h1 className="text-[32px] sm:text-[44px] md:text-[50px] font-black text-[#1a1a1a] tracking-tight leading-tight">
-            You're Invited to <span className="text-[#7a0b10]">Lassi Lounge</span>
+            You're Invited to <span className="text-[#7a0b10]">Bhatura &amp; Co</span>
           </h1>
           <p className="text-[15px] sm:text-[17px] text-[#4b5563] mt-2 max-w-lg mx-auto leading-relaxed">
-            A friend shared an exclusive invitation with you! Enjoy authentic fruit lassis, signature rolls &amp; flavorful treats with special savings.
+            A friend shared an exclusive invitation with you! Enjoy authentic Punjabi Chole Bhature, stuffed parathas, royal thalis &amp; kulhad lassi with special savings.
           </p>
         </div>
 
@@ -303,7 +303,7 @@ export default function ReferralLandingClient({ referralCode }) {
             <div className="w-10 h-10 rounded-xl bg-[#ecfdf5] text-[#047857] flex items-center justify-center mx-auto mb-3">
               <Award className="w-5 h-5" />
             </div>
-            <h5 className="text-[14px] font-bold text-[#111827]">Lassi Rewards</h5>
+            <h5 className="text-[14px] font-bold text-[#111827]">Royal Rewards</h5>
             <p className="text-[12px] text-[#6b7280] mt-1">
               Earn reward points on every order you complete.
             </p>
