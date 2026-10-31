@@ -11,8 +11,8 @@ import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SupportActions {
-  static const String defaultPhone = '+1 347-233-3733';
-  static const String defaultEmail = 'lassiloungeny@gmail.com';
+  static const String defaultPhone = '+1 (201) 555-0199';
+  static const String defaultEmail = 'info@bhaturaco.com';
 
   static Future<void> makePhoneCall(BuildContext context, [String? phone]) async {
     final target = (phone != null && phone.trim().isNotEmpty) ? phone : defaultPhone;
@@ -62,7 +62,7 @@ class SupportActions {
     final Uri launchUri = Uri(
       scheme: 'mailto',
       path: target,
-      query: 'subject=Support Inquiry - Lassi Lounge',
+      query: 'subject=Support Inquiry - Bhatura & Co',
     );
     final targetCtx = NavigationService.navigatorKey.currentContext ?? context;
     try {

@@ -61,7 +61,7 @@ class AboutStorySection extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         const Text(
-          'Lassi Lounge was born from a simple idea – to bring the rich, diverse and soulful flavors of India to the heart of New York. From the bustling streets of Delhi to the royal kitchens of Punjab, our recipes are crafted with love, tradition and the finest ingredients.',
+          'Bhatura & Co was born from a simple idea – to bring the rich, diverse and soulful flavors of India to the heart of New Jersey. From the bustling streets of Delhi to the royal kitchens of Punjab, our recipes are crafted with love, tradition and the finest ingredients.',
           style: TextStyle(
             fontSize: 15,
             color: Colors.black87,

@@ -199,7 +199,7 @@ export const updateRestaurant = asyncHandler(async (req, response) => {
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
   // ensure merchant can only update their own restaurant
-  if (req.user.role === 'merchant' && restaurant.ownerId?.toString() !== req.user._id.toString()) {
+  if (!canReadRestaurant(restaurant, req.user)) {
     throw new AppError('You can only update your own restaurant', 403);
   }
 
@@ -235,7 +235,7 @@ export const updateBanner = asyncHandler(async (req, response) => {
   const restaurant = await Restaurant.findById(req.params.id);
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
-  if (req.user.role === 'merchant' && restaurant.ownerId?.toString() !== req.user._id.toString()) {
+  if (!canReadRestaurant(restaurant, req.user)) {
     throw new AppError('Forbidden', 403);
   }
 
@@ -253,7 +253,7 @@ export const updateOperatingHours = asyncHandler(async (req, response) => {
   const restaurant = await Restaurant.findById(req.params.id);
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
-  if (req.user.role === 'merchant' && restaurant.ownerId?.toString() !== req.user._id.toString()) {
+  if (!canReadRestaurant(restaurant, req.user)) {
     throw new AppError('Forbidden', 403);
   }
 
@@ -276,7 +276,7 @@ export const toggleActive = asyncHandler(async (req, response) => {
   const restaurant = await Restaurant.findById(req.params.id);
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
-  if (req.user.role === 'merchant' && restaurant.ownerId?.toString() !== req.user._id.toString()) {
+  if (!canReadRestaurant(restaurant, req.user)) {
     throw new AppError('Forbidden', 403);
   }
 

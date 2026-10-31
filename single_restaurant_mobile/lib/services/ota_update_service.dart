@@ -4,7 +4,7 @@ import 'package:in_app_update/in_app_update.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class OtaUpdateService {
-  static const String packageName = 'com.lassilounge.customer';
+  static const String packageName = 'com.bhaturaco.customer';
   static bool _hasCheckedForUpdate = false;
 
   /// Check for app updates using Google Play official In-App Updates
@@ -258,7 +258,7 @@ class _UpdateDialogState extends State<_UpdateDialog> {
         msg = 'Connecting to Google Play Store to check for the latest version...';
         break;
       case _UpdateStep.upToDate:
-        msg = 'Lassi Lounge is running the latest official version. No update required.';
+        msg = 'Bhatura & Co is running the latest official version. No update required.';
         break;
       case _UpdateStep.updateAvailable:
         msg = 'A new version with performance improvements and bug fixes is ready to install.';

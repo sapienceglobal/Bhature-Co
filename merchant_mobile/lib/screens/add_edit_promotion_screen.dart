@@ -258,7 +258,7 @@ class _AddEditPromotionScreenState extends State<AddEditPromotionScreen> {
               ),
             ),
             Text(
-              'Lassi Lounge Deals & Discounts',
+              'Bhatura & Co Deals & Discounts',
               style: GoogleFonts.inter(
                 fontSize: 12,
                 color: const Color(0xFF64748B),

@@ -4,7 +4,7 @@ import 'package:in_app_update/in_app_update.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class OtaUpdateService {
-  static const String packageName = 'com.lassilounge.merchant_mobile';
+  static const String packageName = 'com.bhaturaco.merchant_mobile';
   static bool _hasCheckedForUpdate = false;
 
   /// Check for app updates using official Google Play In-App Updates

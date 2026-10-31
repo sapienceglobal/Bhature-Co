@@ -29,7 +29,7 @@ class OtpHeader extends StatelessWidget {
             height: 96,
             fit: BoxFit.contain,
             errorBuilder: (c, e, s) => const Text(
-              'LASSI LOUNGE',
+              'BHATURA & CO',
               style: TextStyle(
                 color: AppColors.primary,
                 fontSize: 28,

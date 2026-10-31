@@ -97,7 +97,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     AnalyticsData data,
     ReportType type,
     String timeframeLabel, {
-    String restaurantName = 'Lassi Lounge',
+    String restaurantName = 'Bhatura & Co',
   }) async {
     try {
       final buffer = StringBuffer();
@@ -261,7 +261,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     BuildContext context,
     AnalyticsData data,
     String timeframeLabel, {
-    String restaurantName = 'Lassi Lounge',
+    String restaurantName = 'Bhatura & Co',
   }) {
     showModalBottomSheet(
       context: context,
@@ -674,7 +674,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               final provider = context.read<AnalyticsProvider>();
               if (provider.reportsData != null) {
                 final label = _getCurrentTimeframeLabel(provider);
-                final restName = auth.user?['restaurantName'] ?? 'Lassi Lounge';
+                final restName = auth.user?['restaurantName'] ?? 'Bhatura & Co';
                 _showExportReportsModal(
                   context,
                   provider.reportsData!,
@@ -2280,7 +2280,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Widget _buildReportShortcuts(BuildContext context, AnalyticsData data) {
     final provider = context.read<AnalyticsProvider>();
     final auth = context.read<AuthProvider>();
-    final restaurantName = auth.user?['restaurantName'] ?? 'Lassi Lounge';
+    final restaurantName = auth.user?['restaurantName'] ?? 'Bhatura & Co';
     final timeframeLabel = _getCurrentTimeframeLabel(provider);
 
     return Column(

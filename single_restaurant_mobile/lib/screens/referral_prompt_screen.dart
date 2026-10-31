@@ -108,7 +108,7 @@ class _ReferralPromptScreenState extends State<ReferralPromptScreen> {
   @override
   Widget build(BuildContext context) {
     final restProv = Provider.of<RestaurantProvider>(context, listen: false);
-    final restaurantName = restProv.restaurant?['name']?.toString() ?? 'Lassi Lounge';
+    final restaurantName = restProv.restaurant?['name']?.toString() ?? 'Bhatura & Co';
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final isKeyboardOpen = keyboardHeight > 0;
 

@@ -2,16 +2,11 @@
 
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
-import { Home, UtensilsCrossed, ShoppingBag, Calendar } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { usePathname } from 'next/navigation';
+import { Home, UtensilsCrossed, Bike, CalendarDays, PhoneCall } from 'lucide-react';
 
-// 1. Inner component that uses hooks
 function NavContent() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const mode = searchParams.get('mode');
-  const { isAuthenticated } = useAuth();
 
   const tabs = [
     {
@@ -28,15 +23,21 @@ function NavContent() {
     },
     {
       id: 'order',
-      label: 'Order',
-      icon: ShoppingBag,
+      label: 'Order Online',
+      icon: Bike,
       href: '/order-online',
     },
     {
       id: 'reserve',
-      label: 'Reserve',
-      icon: Calendar,
+      label: 'Book Table',
+      icon: CalendarDays,
       href: '/book-a-table',
+    },
+    {
+      id: 'contact',
+      label: 'Contact Us',
+      icon: PhoneCall,
+      href: '/contact-us',
     },
   ];
 
@@ -44,32 +45,25 @@ function NavContent() {
     <div className="flex justify-around items-center">
       {tabs.map((tab) => {
         const Icon = tab.icon;
-        let isActive = false;
-        
-        if (tab.href.includes('?mode=')) {
-          const [base, query] = tab.href.split('?mode=');
-          isActive = pathname === base && mode === query;
-        } else {
-          // special case: If we are on /menu but mode=delivery, the plain /menu link should NOT be active
-          if (pathname === '/menu' && tab.href === '/menu' && mode === 'delivery') {
-            isActive = false;
-          } else {
-            isActive = tab.href === '/' ? pathname === tab.href : pathname.startsWith(tab.href);
-          }
-        }
+        const isActive =
+          tab.href === '/'
+            ? pathname === '/'
+            : tab.id === 'contact'
+            ? pathname?.startsWith('/contact')
+            : tab.id === 'reserve'
+            ? pathname?.startsWith('/book-a-table') || pathname?.startsWith('/book-table')
+            : pathname?.startsWith(tab.href);
 
         return (
           <Link
-            key={tab.label}
+            key={tab.id}
             href={tab.href}
-            className={`flex flex-col items-center justify-center w-16 h-12 transition-colors ${
-              isActive ? 'text-primary-600' : 'text-text hover:text-accent-500'
+            className={`flex flex-col items-center justify-center py-0.5 px-2 rounded-xl transition-colors ${
+              isActive ? 'text-[#C0262D]' : 'text-[#57534E] hover:text-[#C0262D]'
             }`}
           >
-            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className="mb-1" />
-            <span className={`text-[10px] ${isActive ? 'font-bold' : 'font-medium'}`}>
-              {tab.label}
-            </span>
+            <Icon size={19} strokeWidth={isActive ? 2.4 : 1.8} />
+            <span className="text-[10px] font-bold mt-0.5">{tab.label}</span>
           </Link>
         );
       })}
@@ -77,11 +71,10 @@ function NavContent() {
   );
 }
 
-// 2. Wrap main component in Suspense
 export default function MobileBottomNav() {
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 w-full bg-background border-t border-border z-[90] pb-safe pt-2 px-2 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-      <Suspense fallback={<div className="h-12 w-full"></div>}>
+    <div className="md:hidden fixed bottom-0 inset-x-0 bg-[#FCF3E8]/98 backdrop-blur-md border-t border-[#E5D4C0] z-[90] py-1.5 px-1.5 shadow-[0_-4px_20px_rgba(60,10,10,0.1)]">
+      <Suspense fallback={<div className="h-12 w-full" />}>
         <NavContent />
       </Suspense>
     </div>

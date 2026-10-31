@@ -112,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         centerTitle: true,
         title: Image.asset(
           'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-          height: 84,
+          height: 50,
           fit: BoxFit.contain,
           errorBuilder: (c, e, s) => const SizedBox.shrink(),
         ),

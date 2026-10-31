@@ -3,10 +3,12 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, ChevronLeft, ChevronRight, Heart, Plus, Minus } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { restaurantAPI, authAPI } from '@/lib/api';
+import { getItemSlug } from '@/lib/slugUtils';
 import toast from 'react-hot-toast';
 
 const RESTAURANT_ID = process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'bhatura-and-co';
@@ -15,46 +17,52 @@ const defaultDishes = [
   {
     _id: '6ae0af85c3e1fc7e6e12be0a',
     name: 'Chole Bhature',
+    slug: 'chole-bhature',
     price: 12.99,
-    description: 'Classic punjabi chole with fluffy bhature',
-    image: '/assets/images/branded/bhatura-and-co/dish_chole_bhature_exact.png',
+    description: 'Traditional Punjabi chole with fluffy bhature, served with onions, pickle and green chilli.',
+    image: '/assets/images/branded/bhatura-and-co/dish_chole_bhature.jpg',
     isVeg: true,
   },
   {
     _id: '6ae0af85c3e1fc7e6e12be0b',
     name: 'Aloo Paratha',
+    slug: 'aloo-paratha',
     price: 9.99,
-    description: 'Stuffed with spiced potatoes, served with curd',
-    image: '/assets/images/branded/bhatura-and-co/dish_aloo_paratha_exact.png',
+    description: 'Stuffed with spiced potatoes, served with curd and pickle.',
+    image: '/assets/images/branded/bhatura-and-co/dish_aloo_paratha.jpg',
     isVeg: true,
   },
   {
     _id: '6ae0af85c3e1fc7e6e12be0c',
     name: 'Paneer Butter Masala',
+    slug: 'paneer-butter-masala',
     price: 13.99,
     description: 'Rich, creamy and full of flavour',
-    image: '/assets/images/branded/bhatura-and-co/dish_paneer_butter_masala_exact.png',
+    image: '/assets/images/branded/bhatura-and-co/dish_paneer_butter_masala.jpg',
     isVeg: true,
   },
   {
     _id: '6ae0af85c3e1fc7e6e12be0d',
     name: 'Veg Biryani',
+    slug: 'veg-biryani',
     price: 11.99,
     description: 'Aromatic basmati rice with mixed vegetables',
-    image: '/assets/images/branded/bhatura-and-co/dish_veg_biryani_exact.png',
+    image: '/assets/images/branded/bhatura-and-co/dish_veg_biryani.jpg',
     isVeg: true,
   },
   {
     _id: '6ae0af85c3e1fc7e6e12be0e',
     name: 'Samosa (2 pcs)',
+    slug: 'samosa-2-pcs',
     price: 6.99,
     description: 'Crispy pastry with spiced potato filling',
-    image: '/assets/images/branded/bhatura-and-co/dish_samosa_exact.png',
+    image: '/assets/images/branded/bhatura-and-co/dish_samosa.jpg',
     isVeg: true,
   },
 ];
 
 export default function BhaturaMostLovedDishes() {
+  const router = useRouter();
   const [dishes, setDishes] = useState(defaultDishes);
   const [restaurantData, setRestaurantData] = useState(null);
   const [favorites, setFavorites] = useState({});
@@ -62,7 +70,7 @@ export default function BhaturaMostLovedDishes() {
   const { isAuthenticated, user } = useAuth();
   const scrollRef = useRef(null);
 
-  // Sync with live backend menu items so IDs and prices always match the Menu page & DB
+  // Sync with live backend menu items so IDs, slugs, and prices always match the Menu page & DB
   useEffect(() => {
     let alive = true;
     restaurantAPI
@@ -77,12 +85,14 @@ export default function BhaturaMostLovedDishes() {
               const match = allBackendItems.find(
                 (bi) =>
                   String(bi._id) === String(d._id) ||
+                  (bi.slug && bi.slug === d.slug) ||
                   (bi.name && bi.name.toLowerCase().trim() === d.name.toLowerCase().trim())
               );
               if (!match) return d;
               return {
                 ...d,
                 _id: match._id,
+                slug: match.slug || d.slug || getItemSlug(match),
                 price: Number(match.price ?? d.price),
                 description: match.description || d.description,
                 isVeg: match.isVeg !== false,
@@ -107,7 +117,8 @@ export default function BhaturaMostLovedDishes() {
     }
   }, [user?.favoriteItems]);
 
-  const toggleFavorite = async (id) => {
+  const toggleFavorite = async (e, id) => {
+    e?.stopPropagation();
     const nextState = !favorites[id];
     setFavorites((prev) => ({ ...prev, [id]: nextState }));
     toast.success(nextState ? 'Saved to favorites ❤️' : 'Removed from favorites', { duration: 1500 });
@@ -120,7 +131,8 @@ export default function BhaturaMostLovedDishes() {
     }
   };
 
-  const handleAddToCart = (dish) => {
+  const handleAddToCart = (e, dish) => {
+    e?.stopPropagation();
     const prevQty = getItemQuantity(dish);
     incrementItem(
       {
@@ -139,8 +151,14 @@ export default function BhaturaMostLovedDishes() {
     }
   };
 
-  const handleDecrement = (dish) => {
+  const handleDecrement = (e, dish) => {
+    e?.stopPropagation();
     decrementItem(dish);
+  };
+
+  const handleCardClick = (dish) => {
+    const slug = dish.slug || getItemSlug(dish);
+    router.push(`/item/${slug}`);
   };
 
   const scroll = (direction) => {
@@ -182,21 +200,12 @@ export default function BhaturaMostLovedDishes() {
           </Link>
         </div>
 
-        {/* Carousel Container with Far Left & Far Right Arrow Buttons */}
-        <div className="relative">
-          {/* Far Left Arrow Button */}
-          <button
-            onClick={() => scroll('left')}
-            className="hidden md:flex absolute -left-4 lg:-left-5 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white shadow-md border border-[#E5DED4] hover:bg-[#8B1E1E] hover:text-white text-[#1C1917] items-center justify-center transition-all duration-200"
-            aria-label="Previous dishes"
-          >
-            <ChevronLeft size={18} />
-          </button>
-
+        {/* Carousel Container */}
+        <div className="relative isolate">
           {/* Dishes Cards Grid */}
           <div
             ref={scrollRef}
-            className="flex overflow-x-auto snap-x snap-mandatory sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-5 scrollbar-none scroll-smooth pb-2 -mx-4 px-4 sm:mx-0 sm:px-0"
+            className="relative z-10 flex overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-5 scrollbar-none scroll-smooth py-8 px-6 -my-8 -mx-6"
           >
             {dishes.map((dish) => {
               const qty = getItemQuantity(dish);
@@ -204,12 +213,21 @@ export default function BhaturaMostLovedDishes() {
               return (
                 <div
                   key={dish._id}
-                  className="w-[220px] shrink-0 snap-start sm:w-auto bg-white rounded-2xl overflow-hidden border border-[#EBE3D7] shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col group min-w-[215px] sm:min-w-0"
+                  onClick={() => handleCardClick(dish)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleCardClick(dish);
+                    }
+                  }}
+                  className="w-[220px] shrink-0 snap-start sm:w-auto bg-white rounded-2xl overflow-hidden border border-[#EBE3D7] shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col group min-w-[215px] sm:min-w-0 cursor-pointer"
                 >
                   {/* Dish Photo Box */}
                   <div
                     className="relative w-full overflow-hidden bg-neutral-900"
-                    style={{ height: '142px', position: 'relative' }}
+                    style={{ height: '142px' }}
                   >
                     <Image
                       src={dish.image}
@@ -222,8 +240,8 @@ export default function BhaturaMostLovedDishes() {
                     {/* Red Circle Heart Favorite Button */}
                     <button
                       type="button"
-                      onClick={() => toggleFavorite(dish._id)}
-                      className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-[#8B1E1E] text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform z-10"
+                      onClick={(e) => toggleFavorite(e, dish._id)}
+                      className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-[#8B1E1E] text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform z-10 cursor-pointer"
                       aria-label="Favorite"
                     >
                       <Heart
@@ -260,11 +278,14 @@ export default function BhaturaMostLovedDishes() {
                       </span>
 
                       {qty > 0 ? (
-                        <div className="flex items-center h-8 rounded-lg bg-[#8B1E1E] text-white overflow-hidden shadow-sm">
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center h-8 rounded-lg bg-[#8B1E1E] text-white overflow-hidden shadow-sm"
+                        >
                           <button
                             type="button"
-                            onClick={() => handleDecrement(dish)}
-                            className="w-7 h-full flex items-center justify-center hover:bg-black/20 transition-colors"
+                            onClick={(e) => handleDecrement(e, dish)}
+                            className="w-7 h-full flex items-center justify-center hover:bg-black/20 transition-colors cursor-pointer"
                             aria-label={`Remove one ${dish.name}`}
                           >
                             <Minus size={13} strokeWidth={3} />
@@ -274,8 +295,8 @@ export default function BhaturaMostLovedDishes() {
                           </span>
                           <button
                             type="button"
-                            onClick={() => handleAddToCart(dish)}
-                            className="w-7 h-full flex items-center justify-center hover:bg-black/20 transition-colors"
+                            onClick={(e) => handleAddToCart(e, dish)}
+                            className="w-7 h-full flex items-center justify-center hover:bg-black/20 transition-colors cursor-pointer"
                             aria-label={`Add one ${dish.name}`}
                           >
                             <Plus size={13} strokeWidth={3} />
@@ -284,8 +305,8 @@ export default function BhaturaMostLovedDishes() {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => handleAddToCart(dish)}
-                          className="px-3.5 py-1.5 rounded-lg bg-[#8B1E1E] hover:bg-[#701515] text-white text-xs font-bold uppercase tracking-wider shadow-sm transition-all transform active:scale-95"
+                          onClick={(e) => handleAddToCart(e, dish)}
+                          className="px-3.5 py-1.5 rounded-lg bg-[#8B1E1E] hover:bg-[#701515] text-white text-xs font-bold uppercase tracking-wider shadow-sm transition-all transform active:scale-95 cursor-pointer"
                         >
                           Add +
                         </button>
@@ -297,10 +318,22 @@ export default function BhaturaMostLovedDishes() {
             })}
           </div>
 
-          {/* Far Right Arrow Button */}
+          {/* Both Left & Right Arrow Buttons Placed AFTER Grid with z-30 so Neither Ever Gets Covered */}
           <button
+            type="button"
+            onClick={() => scroll('left')}
+            style={{ zIndex: 30 }}
+            className="hidden md:flex absolute -left-4 lg:-left-5 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-white shadow-[0_4px_14px_rgba(28,25,23,0.18)] border border-[#E5DED4] hover:bg-[#8B1E1E] hover:border-[#8B1E1E] hover:text-white text-[#1C1917] items-center justify-center transition-all duration-200 cursor-pointer"
+            aria-label="Previous dishes"
+          >
+            <ChevronLeft size={18} />
+          </button>
+
+          <button
+            type="button"
             onClick={() => scroll('right')}
-            className="hidden md:flex absolute -right-4 lg:-right-5 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white shadow-md border border-[#E5DED4] hover:bg-[#8B1E1E] hover:text-white text-[#1C1917] items-center justify-center transition-all duration-200"
+            style={{ zIndex: 30 }}
+            className="hidden md:flex absolute -right-4 lg:-right-5 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-white shadow-[0_4px_14px_rgba(28,25,23,0.18)] border border-[#E5DED4] hover:bg-[#8B1E1E] hover:border-[#8B1E1E] hover:text-white text-[#1C1917] items-center justify-center transition-all duration-200 cursor-pointer"
             aria-label="Next dishes"
           >
             <ChevronRight size={18} />

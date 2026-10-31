@@ -96,16 +96,11 @@ export default function MerchantSidebar({ collapsed = false, onToggle }) {
           <div className="flex items-center justify-between w-full">
             <Link href="/merchant" className="flex items-center gap-2.5 group">
               <img
-                src="/assets/images/branded/bhatura-and-co/logo-emblem.png"
+                src="/assets/images/branded/bhatura-and-co/logo-full.png"
                 alt="Bhatura & Co"
-                className="h-11 sm:h-12 w-auto max-w-[175px] object-contain group-hover:scale-105 transition-transform drop-shadow"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const fallback = e.currentTarget.parentElement?.querySelector('.logo-fallback');
-                  if (fallback) fallback.classList.remove('hidden');
-                }}
+                className="h-11 w-11 object-contain group-hover:scale-105 transition-transform drop-shadow shrink-0"
               />
-              <div className="logo-fallback hidden flex flex-col">
+              <div className="flex flex-col">
                 <span className="font-heading font-black text-sm tracking-wider text-white">BHATURA &amp; CO</span>
                 <span className="text-[9px] font-bold text-brand uppercase tracking-widest">Admin Workspace</span>
               </div>
@@ -133,7 +128,7 @@ export default function MerchantSidebar({ collapsed = false, onToggle }) {
               aria-label="Expand Sidebar"
             >
               <img
-                src="/assets/images/branded/bhatura-and-co/logo-emblem.png"
+                src="/assets/images/branded/bhatura-and-co/logo-full.png"
                 alt="Bhatura & Co"
                 className="w-full h-full object-contain filter drop-shadow group-hover:scale-110 transition-transform"
                 onError={(e) => {

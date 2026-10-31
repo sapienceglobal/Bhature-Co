@@ -23,7 +23,7 @@ class ReferralScreen extends StatefulWidget {
 }
 
 class _ReferralScreenState extends State<ReferralScreen> {
-  static const String _defaultCode = 'LASSI7K92';
+  static const String _defaultCode = 'BHATURA25';
   final _referralService = ReferralService();
   Map<String, dynamic>? _referralData;
   bool _isLoading = true;
@@ -89,21 +89,21 @@ class _ReferralScreenState extends State<ReferralScreen> {
   String _buildShareMessage(String code) {
     final d = _refereeDiscount.toInt();
     return '''
-🎁 Claim \$$d OFF your first order at Lassi Lounge!
+🎁 Claim \$$d OFF your first order at Bhatura & Co!
 
 Hey! Use my referral code *$code* to get \$$d OFF your first order.
 
 📲 Download the App from Google Play Store:
-https://play.google.com/store/apps/details?id=com.lassilounge.customer
+https://play.google.com/store/apps/details?id=com.bhaturaco.customer
 
 📝 Steps to get your \$$d OFF:
-1️⃣ Install Lassi Lounge app from Google Play Store.
+1️⃣ Install Bhatura & Co app from Google Play Store.
 2️⃣ Sign up via Social Login or Manual Registration (verify OTP).
 3️⃣ Right after signup / OTP verification, enter referral code: *$code* on the referral screen.
 4️⃣ Done! Your \$$d OFF discount will be unlocked automatically.
 
 🌐 Website:
-https://lassiloungeny.com
+https://bhaturaandco.com
 '''.trim();
   }
 
@@ -164,7 +164,7 @@ https://lassiloungeny.com
     // ignore: deprecated_member_use
     await Share.share(
       text,
-      subject: 'Claim \$$d OFF at Lassi Lounge - Use Code $code',
+      subject: 'Claim \$$d OFF at Bhatura & Co - Use Code $code',
     );
   }
 

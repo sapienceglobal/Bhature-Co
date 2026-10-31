@@ -203,10 +203,10 @@ class _BookTableScreenState extends State<BookTableScreen> {
   }
 
   Future<void> _callRestaurant(String rawPhone) async {
-    final phoneToDial = rawPhone.trim().isNotEmpty ? rawPhone.trim() : '+1 (347) 233-3733';
+    final phoneToDial = rawPhone.trim().isNotEmpty ? rawPhone.trim() : '+1 (201) 555-0199';
     // Clean to valid digits with optional leading plus
     final clean = phoneToDial.replaceAll(RegExp(r'[^\d+]'), '');
-    final dialNumber = clean.isNotEmpty ? clean : '+13472333733';
+    final dialNumber = clean.isNotEmpty ? clean : '+12015550199';
 
     final phoneUri = Uri.parse('tel:$dialNumber');
     bool launched = false;
@@ -273,7 +273,7 @@ class _BookTableScreenState extends State<BookTableScreen> {
       if (mounted) {
         ToastUtils.showError(
           context,
-          'Lassi Lounge is closed on ${DateFormat('EEEE, MMM d').format(picked)}. Please pick another date.',
+          'Bhatura & Co is closed on ${DateFormat('EEEE, MMM d').format(picked)}. Please pick another date.',
         );
       }
     } else if (RestaurantScheduleUtils.isToday(picked, restaurant)) {

@@ -34,7 +34,7 @@ class ProfileGoGreenBanner extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Go Green with Lassi Lounge',
+                    'Go Green with Bhatura & Co',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,

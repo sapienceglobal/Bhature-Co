@@ -10,10 +10,10 @@ class LoginBrandingHeader extends StatelessWidget {
   });
 
   Widget _buildLogo(bool isCompact) {
-    if (!isCompact) {
+    if (true) {
       return Image.asset(
         'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-        height: 120,
+        height: isCompact ? (isSignIn ? 64.0 : 52.0) : 92.0,
         fit: BoxFit.contain,
       );
     }
@@ -95,8 +95,8 @@ class LoginBrandingHeader extends StatelessWidget {
                   SizedBox(height: isCompact ? 2 : 3),
                   Text(
                     isSignIn
-                        ? 'Sign in to your Lassi Lounge account\nand enjoy your favorite food.'
-                        : 'Join Lassi Lounge and enjoy\ndelicious food & exclusive offers.',
+                        ? 'Sign in to your Bhatura & Co account\nand enjoy your favorite food.'
+                        : 'Join Bhatura & Co and enjoy\ndelicious food & exclusive offers.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: const Color(0xFF6B7280),

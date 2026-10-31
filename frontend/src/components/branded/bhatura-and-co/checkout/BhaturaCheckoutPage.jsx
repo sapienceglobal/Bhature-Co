@@ -68,24 +68,24 @@ const TIME_SLOTS = [
 const getDishImage = (itemName = '') => {
   const name = itemName.toLowerCase();
   if (name.includes('bhatur') || name.includes('chole') || name.includes('chhole')) {
-    return `${IMG}/dish_chole_bhature_exact.png`;
+    return `${IMG}/dish_chole_bhature.jpg`;
   }
   if (name.includes('paratha') || name.includes('kulcha') || name.includes('naan') || name.includes('roti')) {
-    return `${IMG}/dish_aloo_paratha_exact.png`;
+    return `${IMG}/dish_aloo_paratha.jpg`;
   }
   if (name.includes('paneer') || name.includes('curr') || name.includes('masala') || name.includes('dal')) {
-    return `${IMG}/dish_paneer_butter_masala_exact.png`;
+    return `${IMG}/dish_paneer_butter_masala.jpg`;
   }
   if (name.includes('biryani') || name.includes('rice') || name.includes('pulao')) {
-    return `${IMG}/dish_veg_biryani_exact.png`;
+    return `${IMG}/dish_veg_biryani.jpg`;
   }
   if (name.includes('samosa') || name.includes('snack') || name.includes('chaat')) {
-    return `${IMG}/dish_samosa_exact.png`;
+    return `${IMG}/dish_samosa.jpg`;
   }
   if (name.includes('chai') || name.includes('lassi') || name.includes('drink') || name.includes('bever')) {
     return `${IMG}/cat_beverages.png`;
   }
-  return `${IMG}/dish_chole_bhature_exact.png`;
+  return `${IMG}/dish_chole_bhature.jpg`;
 };
 
 const formatCardNumber = (val = '') => {
@@ -259,8 +259,52 @@ export default function BhaturaCheckoutPage() {
     c.handleContinueToReview();
   };
 
-  // Sync user's DB savedAddresses when logged in
+  // Sync user's DB savedAddresses & hero/order-online selected address
   useEffect(() => {
+    let heroAddrEntry = null;
+    try {
+      const rawHeroAddr = localStorage.getItem('bhatura_selected_address');
+      if (rawHeroAddr) {
+        const parsed = JSON.parse(rawHeroAddr);
+        const fullAddr =
+          parsed?.formattedAddress ||
+          parsed?.address ||
+          [parsed?.street || parsed?.addressLine1, parsed?.city, parsed?.state, parsed?.zipCode]
+            .filter(Boolean)
+            .join(', ');
+        if (fullAddr) {
+          heroAddrEntry = {
+            label: parsed.label || 'Delivery Address',
+            address: fullAddr,
+            street: parsed.street || parsed.addressLine1 || '',
+            addressLine1: parsed.addressLine1 || parsed.street || '',
+            addressLine2: parsed.addressLine2 || '',
+            city: parsed.city || '',
+            state: parsed.state || 'NJ',
+            zipCode: parsed.zipCode || '',
+            displayLine1:
+              parsed.displayLine1 ||
+              parsed.street ||
+              parsed.addressLine1 ||
+              fullAddr.split(',')[0],
+            displayLine2:
+              parsed.displayLine2 ||
+              ([parsed.city, [parsed.state, parsed.zipCode].filter(Boolean).join(' ')]
+                .filter(Boolean)
+                .join(', ')
+                ? `${[parsed.city, [parsed.state, parsed.zipCode].filter(Boolean).join(' ')]
+                    .filter(Boolean)
+                    .join(', ')}, USA`
+                : 'New Jersey, USA'),
+            lat: parsed.lat ?? null,
+            lng: parsed.lng ?? null,
+          };
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
     if (c.user?.savedAddresses?.length > 0) {
       const mapped = c.user.savedAddresses.map((a) => {
         const parts = (a.address || '').split(',').map((p) => p.trim());
@@ -275,10 +319,27 @@ export default function BhaturaCheckoutPage() {
           isDefault: a.isDefault,
         };
       });
-      setSessionAddresses(mapped);
-      const defIdx = Math.max(0, mapped.findIndex((a) => a.isDefault));
+      const combined = heroAddrEntry
+        ? [
+            heroAddrEntry,
+            ...mapped.filter(
+              (m) => m.address?.toLowerCase().trim() !== heroAddrEntry.address?.toLowerCase().trim()
+            ),
+          ]
+        : mapped;
+      setSessionAddresses(combined);
+      const defIdx = heroAddrEntry ? 0 : Math.max(0, combined.findIndex((a) => a.isDefault));
       setSelectedAddressIdx(defIdx);
-      c.handleSelectSavedAddress(mapped[defIdx]);
+      c.handleSelectSavedAddress(combined[defIdx]);
+    } else if (heroAddrEntry) {
+      setSessionAddresses((prev) => {
+        const filtered = prev.filter(
+          (p) => p.address?.toLowerCase().trim() !== heroAddrEntry.address?.toLowerCase().trim()
+        );
+        return [heroAddrEntry, ...filtered];
+      });
+      setSelectedAddressIdx(0);
+      c.handleSelectSavedAddress(heroAddrEntry);
     } else if (!c.addressLine1 && sessionAddresses.length > 0) {
       // Pre-populate the default address so delivery quote & fields are ready immediately
       c.handleSelectSavedAddress(sessionAddresses[0]);
@@ -343,6 +404,23 @@ export default function BhaturaCheckoutPage() {
       return updated;
     });
     setSelectedAddressIdx(0);
+    try {
+      localStorage.setItem(
+        'bhatura_selected_address',
+        JSON.stringify({
+          ...newEntry,
+          formattedAddress: fullAddr,
+          street: c.addressLine1,
+          addressLine1: c.addressLine1,
+          addressLine2: c.addressLine2 || '',
+          city: c.city,
+          state: c.state,
+          zipCode: c.zipCode,
+        })
+      );
+    } catch {
+      /* ignore */
+    }
     await c.handleSaveAddressToProfile(newAddressLabel);
     setShowAddressForm(false);
   };

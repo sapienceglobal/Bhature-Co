@@ -13,7 +13,7 @@ class ImageHelper {
     // Always use the production URL for static fallback images.
     // This avoids issues where the local Next.js server on port 3000 is not 
     // accessible from the mobile device due to localhost binding or firewalls.
-    final String basePath = 'https://lassiloungeny.com/images/branded/lassi-lounge/dishes';
+    final String basePath = 'https://bhaturaandco.com/assets/images/branded/lassi-lounge/dishes';
     
     if (name.contains('butter chicken')) return '$basePath/butter-chicken.png';
     if (name.contains('cheese naan')) return '$basePath/cheese-naan.jpg';

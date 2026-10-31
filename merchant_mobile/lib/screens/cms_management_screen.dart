@@ -80,9 +80,9 @@ class _CmsManagementScreenState extends State<CmsManagementScreen> with SingleTi
       return trimmed;
     }
     if (trimmed.startsWith('/')) {
-      return 'https://lassiloungeny.com$trimmed';
+      return 'https://bhaturaandco.com$trimmed';
     }
-    return 'https://lassiloungeny.com/$trimmed';
+    return 'https://bhaturaandco.com/$trimmed';
   }
 
   Future<void> _pickAndUploadImage({

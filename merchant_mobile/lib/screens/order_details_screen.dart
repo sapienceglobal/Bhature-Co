@@ -37,7 +37,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   void _launchURL(String path) async {
-    const siteUrl = String.fromEnvironment('SITE_URL', defaultValue: 'https://www.lassiloungeny.com');
+    const siteUrl = String.fromEnvironment('SITE_URL', defaultValue: 'https://www.bhaturaandco.com');
     final url = Uri.parse('$siteUrl$path');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
@@ -1004,7 +1004,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                       (_isSendingInvoice ||
                                           order.customerEmail == null ||
                                           order.customerEmail ==
-                                              'admin@lassiloungeny.com')
+                                              'admin@bhaturaco.com')
                                       ? 0.4
                                       : 1.0,
                                   child: OutlinedButton.icon(
@@ -1012,7 +1012,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                         (_isSendingInvoice ||
                                             order.customerEmail == null ||
                                             order.customerEmail ==
-                                                'admin@lassiloungeny.com')
+                                                'admin@bhaturaco.com')
                                         ? null
                                         : () => _handleSendInvoice(order),
                                     icon: _isSendingInvoice
@@ -1054,7 +1054,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                             order.customerPhone == '0000000000')
                                         ? null
                                         : () {
-                                            const siteUrl = String.fromEnvironment('SITE_URL', defaultValue: 'https://www.lassiloungeny.com');
+                                            const siteUrl = String.fromEnvironment('SITE_URL', defaultValue: 'https://www.bhaturaandco.com');
                                             final message =
                                                 'Hi ${order.customerName}! 👋\n\nHere is the official invoice file for your order #${order.orderNumber}:\n$siteUrl/api/orders/${order.id}/invoice-pdf\n\nThank you for your order!';
                                             final digits = order.customerPhone!

@@ -35,8 +35,8 @@ class MenuLoyaltyBanner extends StatelessWidget {
                   children: [
                     Text(
                       isLoggedIn
-                          ? 'Lassi Lounge Rewards'
-                          : 'Join Lassi Lounge Loyalty',
+                          ? 'Bhatura & Co Rewards'
+                          : 'Join Bhatura & Co Loyalty',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.red.shade900,

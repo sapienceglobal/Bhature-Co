@@ -74,15 +74,15 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                         scale: logoScaleAnimation,
                         child: Align(
                           alignment: Alignment.topCenter,
-                          heightFactor: 0.75,
+                          heightFactor: 1.0,
                           child: Transform.translate(
-                            offset: const Offset(0, -8),
+                            offset: const Offset(0, 0),
                             child: Image.asset(
                               'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-                              height: 90,
+                              height: 54,
                               fit: BoxFit.contain,
                               errorBuilder: (c, e, s) => const Text(
-                                'LASSI LOUNGE',
+                                'BHATURA & CO',
                                 style: TextStyle(
                                   color: AppColors.primary,
                                   fontSize: 18,

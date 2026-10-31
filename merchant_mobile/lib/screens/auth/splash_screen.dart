@@ -152,8 +152,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     duration: const Duration(milliseconds: 1400),
                     curve: Curves.easeOutBack,
                     child: Image.asset(
-                      'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-                      height: 130,
+                      'assets/images/branded/lassi-lounge/Lassi-Lounge-icon.png',
+                      height: 135,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => const Icon(
                         Icons.restaurant_menu,

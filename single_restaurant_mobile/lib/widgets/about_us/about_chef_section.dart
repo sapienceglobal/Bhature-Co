@@ -52,7 +52,7 @@ class AboutChefSection extends StatelessWidget {
               children: [
                 TextSpan(text: 'The Heart Behind\n'),
                 TextSpan(
-                  text: 'Lassi Lounge',
+                  text: 'Bhatura & Co',
                   style: TextStyle(color: AppColors.secondary),
                 ),
               ],

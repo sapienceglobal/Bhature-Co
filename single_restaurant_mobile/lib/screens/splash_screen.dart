@@ -198,7 +198,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
                                     // Headline: "Lassi Lounge"
                                     Text(
-                                      'Lassi Lounge',
+                                      'Bhatura & Co',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: const Color(0xFF800A12),

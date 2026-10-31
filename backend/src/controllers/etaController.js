@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Restaurant from '../models/Restaurant.js';
 import { getBestDeliveryQuote } from '../services/deliveryAggregatorService.js';
 import logger from '../utils/logger.js';
@@ -18,11 +19,23 @@ export const getRestaurantETA = async (req, res, next) => {
     const { id } = req.params;
     const { address, lat, lng } = req.query;
 
+    const RestaurantModel = req.getModel?.('Restaurant') || Restaurant;
+    const isObjectId = mongoose.Types.ObjectId.isValid(id) && String(id).length === 24;
+
     let restaurant;
-    if (id === 'lassi-lounge') {
-      restaurant = await Restaurant.findOne({ name: { $regex: /^lassi lounge$/i } }).select('prepTime preparationTime address location deliveryRadius');
+    if (isObjectId) {
+      restaurant = await RestaurantModel.findById(id).select('prepTime preparationTime address location deliveryRadius');
+    } else if (id === 'lassi-lounge') {
+      restaurant = await RestaurantModel.findOne({ name: { $regex: /^lassi lounge$/i } }).select('prepTime preparationTime address location deliveryRadius');
+    } else if (id === 'bhatura-and-co') {
+      restaurant = await RestaurantModel.findOne({
+        $or: [{ slug: 'bhatura-and-co' }, { name: { $regex: /bhatura/i } }]
+      }).select('prepTime preparationTime address location deliveryRadius');
     } else {
-      restaurant = await Restaurant.findById(id).select('prepTime preparationTime address location deliveryRadius');
+      restaurant = await RestaurantModel.findOne({ slug: id }).select('prepTime preparationTime address location deliveryRadius');
+    }
+    if (!restaurant) {
+      restaurant = await RestaurantModel.findOne({ status: 'approved' }).select('prepTime preparationTime address location deliveryRadius');
     }
 
     if (!restaurant) {

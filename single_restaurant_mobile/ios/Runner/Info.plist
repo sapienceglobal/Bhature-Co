@@ -7,7 +7,7 @@
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
-		<string>Single Restaurant Mobile</string>
+		<string>Bhatura &amp; Co</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>
@@ -71,8 +71,8 @@
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
 		<key>NSLocationWhenInUseUsageDescription</key>
-		<string>Lassi Lounge needs your location to display available delivery options, calculate delivery time, and find nearby stores.</string>
+		<string>Bhatura &amp; Co needs your location to display available delivery options, calculate delivery time, and find nearby stores.</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-		<string>Lassi Lounge uses your location to deliver orders accurately to your address.</string>
+		<string>Bhatura &amp; Co uses your location to deliver orders accurately to your address.</string>
 	</dict>
 </plist>

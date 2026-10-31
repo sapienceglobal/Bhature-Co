@@ -127,7 +127,7 @@ class CateringProvider extends ChangeNotifier {
       eventDate: DateTime(2026, 9, 12),
       eventType: 'Corporate Event',
       guestCount: 250,
-      message: 'Require high tea and lunch buffet with live lassi counter.',
+      message: 'Require high tea and lunch buffet with live chole bhature counter.',
       status: 'new',
       packagePreference: 'Lunch + High Tea',
       budgetRange: '',

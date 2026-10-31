@@ -155,9 +155,9 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
         title: Image.asset(
           'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-          height: 88,
+          height: 52,
           errorBuilder: (c, e, s) =>
-              const Text('LASSI LOUNGE', style: TextStyle(color: Colors.black)),
+              const Text('BHATURA & CO', style: TextStyle(color: Colors.black)),
         ),
         actions: [
           IconButton(

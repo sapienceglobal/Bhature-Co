@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import BhaturaHeader from './BhaturaHeader';
-import BhaturaHeroSection from './BhaturaHeroSection';
+import BhaturaHeroSection, { parseAddressString } from './BhaturaHeroSection';
 import BhaturaCategoriesSection from './BhaturaCategoriesSection';
 import BhaturaMostLovedDishes from './BhaturaMostLovedDishes';
 import BhaturaSpecialOfferBanner from './BhaturaSpecialOfferBanner';
@@ -56,8 +56,29 @@ export default function BhaturaLanding() {
         <AddressModal
           isOpen={isAddressModalOpen}
           onClose={() => setIsAddressModalOpen(false)}
-          onSelectAddress={(addr) => {
-            console.log('Selected address:', addr);
+          onSelect={(locationData) => {
+            const { address, lat, lng, addressDetails, flatNo } = locationData || {};
+            if (address) {
+              const addr = addressDetails || {};
+              const streetBase = `${addr.house_number || ''} ${addr.road || ''}`.trim();
+              const parsed = parseAddressString(address, {
+                street: streetBase || undefined,
+                addressLine2: flatNo || undefined,
+                city: addr.city || addr.town || addr.village || addr.suburb || undefined,
+                state: addr.state ? addr.state.substring(0, 2).toUpperCase() : undefined,
+                zipCode: addr.postcode ? addr.postcode.substring(0, 5) : undefined,
+                lat: lat ?? null,
+                lng: lng ?? null,
+                label: 'Pinned Location',
+              });
+              try {
+                localStorage.setItem('bhatura_selected_address', JSON.stringify(parsed));
+                localStorage.setItem('bhatura_order_mode', 'delivery');
+                window.dispatchEvent(new Event('bhatura-address-updated'));
+              } catch {
+                /* ignore */
+              }
+            }
             setIsAddressModalOpen(false);
           }}
         />

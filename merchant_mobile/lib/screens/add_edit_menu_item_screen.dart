@@ -851,7 +851,7 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
           _buildTextField(
             controller: _imageUrlController,
             focusNode: _imageFocus,
-            hintText: 'https://api.lassiloungeny.com/uploads/... or paste URL',
+            hintText: 'https://api.bhaturaandco.com/uploads/... or paste URL',
             prefixIcon: Icons.link_rounded,
             suffixIcon: hasUrl
                 ? IconButton(
@@ -1493,7 +1493,7 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
               ),
             ),
             Text(
-              'Lassi Lounge Catalog & Inventory',
+              'Bhatura & Co Catalog & Inventory',
               style: GoogleFonts.inter(
                 color: const Color(0xFFEA580C),
                 fontWeight: FontWeight.w600,
@@ -1539,7 +1539,7 @@ class _AddEditMenuItemScreenState extends State<AddEditMenuItemScreen> {
                         _buildTextField(
                           controller: _nameController,
                           focusNode: _nameFocus,
-                          hintText: 'e.g. Mango Mastani Lassi',
+                          hintText: 'e.g. Royal Chole Bhature Platter',
                           prefixIcon: Icons.fastfood_outlined,
                         ),
                         const SizedBox(height: 16),

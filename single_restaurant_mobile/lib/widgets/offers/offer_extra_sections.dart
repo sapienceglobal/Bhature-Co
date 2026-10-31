@@ -118,7 +118,7 @@ class MoreWaysToSaveCard extends StatelessWidget {
                 _buildTile(
                   context,
                   Icons.workspace_premium_outlined,
-                  'Lassi Lounge Club',
+                  'Bhatura & Co Club',
                   'Join our club & get exclusive member benefits',
                   iconBgColor: const Color(0xFFFEF3C7),
                   iconColor: const Color(0xFFB45309),

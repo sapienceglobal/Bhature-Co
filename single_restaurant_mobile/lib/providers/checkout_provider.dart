@@ -660,7 +660,7 @@ class CheckoutProvider with ChangeNotifier {
             paymentIntentClientSecret: clientSecret,
             customerId: customerId,
             customerEphemeralKeySecret: ephemeralKeySecret,
-            merchantDisplayName: 'Lassi Lounge',
+            merchantDisplayName: 'Bhatura & Co',
             style: ThemeMode.light,
             linkDisplayParams: const LinkDisplayParams(linkDisplay: LinkDisplay.never),
             billingDetails: BillingDetails(
@@ -712,7 +712,7 @@ class CheckoutProvider with ChangeNotifier {
           confirmParams: const PlatformPayConfirmParams.googlePay(
             googlePay: GooglePayParams(
               testEnv: true,
-              merchantName: 'Lassi Lounge',
+              merchantName: 'Bhatura & Co',
               merchantCountryCode: 'US',
               currencyCode: 'USD',
             ),
@@ -733,7 +733,7 @@ class CheckoutProvider with ChangeNotifier {
               currencyCode: 'USD',
               cartItems: [
                 ApplePayCartSummaryItem.immediate(
-                  label: 'Lassi Lounge Order',
+                  label: 'Bhatura & Co Order',
                   amount: getTotal(cart, restaurant).toStringAsFixed(2),
                 ),
               ],

@@ -23,7 +23,7 @@
 
     <!-- Removed OTA Permissions for Play Store compliance -->
     <application
-        android:label="Lassi Lounge"
+        android:label="Bhatura &amp; Co"
         android:name="${applicationName}"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher">
@@ -89,7 +89,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="lassilounge" android:host="stripe-redirect" />
+                <data android:scheme="bhaturaco" android:host="stripe-redirect" />
             </intent-filter>
         </activity>
         <!-- Disable Impeller to prevent black screen on devices with buggy Vulkan drivers -->

@@ -2193,7 +2193,7 @@ class _PosScreenState extends State<PosScreen> {
             paymentIntentClientSecret: pData['clientSecret'],
             customerEphemeralKeySecret: pData['ephemeralKey'],
             customerId: pData['customerId'] ?? pData['customer'],
-            merchantDisplayName: 'Lassi Lounge NY',
+            merchantDisplayName: 'Bhatura & Co',
             appearance: const PaymentSheetAppearance(
               colors: PaymentSheetAppearanceColors(
                 primary: Color(0xFF8B0000),
@@ -3184,7 +3184,7 @@ class _PosScreenState extends State<PosScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Lassi Lounge',
+              'Bhatura & Co',
               style: GoogleFonts.inter(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,

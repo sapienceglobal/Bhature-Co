@@ -21,7 +21,7 @@ const ensureOwner = async (restaurantId, user, RestaurantModel) => {
   if (user.role === 'admin') return;
   const restaurant = await RestaurantModel.findById(restaurantId);
   if (!restaurant) throw new AppError('Restaurant not found', 404);
-  if (restaurant.ownerId?.toString() !== user._id.toString()) {
+  if (restaurant.ownerId?.toString() !== user._id.toString() && user.restaurantId?.toString() !== restaurant._id.toString()) {
     throw new AppError('You can only manage your own restaurant menu', 403);
   }
 };

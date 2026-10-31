@@ -132,13 +132,13 @@ class ProfileMenuList extends StatelessWidget {
           _buildMenuItem(
             Icons.system_update_alt_outlined,
             'Check for Updates',
-            'Find new versions of Lassi Lounge',
+            'Find new versions of Bhatura & Co',
             onTap: () => OtaUpdateService().checkForUpdate(context, isManual: true),
           ),
           _buildDivider(),
           _buildMenuItem(
             Icons.info_outline,
-            'About Lassi Lounge',
+            'About Bhatura & Co',
             'Version ${appVersion.split('+').first}',
             onTap: () => Navigator.push(
               context,
@@ -151,7 +151,7 @@ class ProfileMenuList extends StatelessWidget {
             'Privacy Policy',
             'Data security & privacy details',
             onTap: () async {
-              final uri = Uri.parse('https://lassiloungeny.com/privacy-policy');
+              final uri = Uri.parse('https://bhaturaandco.com/privacy-policy');
               if (await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
               }
@@ -163,7 +163,7 @@ class ProfileMenuList extends StatelessWidget {
             'Terms of Service',
             'Terms & conditions',
             onTap: () async {
-              final uri = Uri.parse('https://lassiloungeny.com/terms');
+              final uri = Uri.parse('https://bhaturaandco.com/terms');
               if (await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
               }

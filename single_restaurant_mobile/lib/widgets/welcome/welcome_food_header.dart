@@ -69,7 +69,7 @@ class WelcomeFoodHeader extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 10.0),
                 child: Center(
                   child: Image.asset(
-                    'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
+                    'assets/images/branded/lassi-lounge/Lassi-Lounge-icon.png',
                     height: height < 260 ? 110.0 : 142.0,
                     fit: BoxFit.contain,
                   ),

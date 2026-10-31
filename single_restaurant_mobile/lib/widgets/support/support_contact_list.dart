@@ -37,7 +37,7 @@ class SupportContactList extends StatelessWidget {
     final Uri launchUri = Uri(
       scheme: 'mailto',
       path: emailAddress,
-      query: 'subject=Support Inquiry - Lassi Lounge',
+      query: 'subject=Support Inquiry - Bhatura & Co',
     );
     try {
       if (await canLaunchUrl(launchUri)) {
@@ -74,8 +74,8 @@ class SupportContactList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayPhone = phone.trim().isNotEmpty ? phone : '+1 347-233-3733';
-    final displayEmail = email.trim().isNotEmpty ? email : 'lassiloungeny@gmail.com';
+    final displayPhone = phone.trim().isNotEmpty ? phone : '+1 (201) 555-0199';
+    final displayEmail = email.trim().isNotEmpty ? email : 'info@bhaturaco.com';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

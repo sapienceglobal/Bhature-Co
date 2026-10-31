@@ -173,7 +173,7 @@ class PushNotificationService {
     final notification = message.notification;
     final data = message.data;
 
-    final String title = notification?.title ?? data['title'] ?? 'Lassi Lounge';
+    final String title = notification?.title ?? data['title'] ?? 'Bhatura & Co';
     final String body = notification?.body ?? data['body'] ?? '';
     final String? imageUrl = notification?.android?.imageUrl ?? data['image'] ?? data['imageUrl'];
 
@@ -225,7 +225,7 @@ class PushNotificationService {
           playSound: true,
           enableVibration: true,
           channelShowBadge: true,
-          groupKey: data['type'] ?? 'lassi_lounge_marketing',
+          groupKey: data['type'] ?? 'bhatura_co_marketing',
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,

@@ -11,8 +11,8 @@ import '../services/ota_update_service.dart';
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
-  static const String privacyPolicyUrl = 'https://lassiloungeny.com/merchant-privacy-policy';
-  static const String termsOfServiceUrl = 'https://lassiloungeny.com/terms';
+  static const String privacyPolicyUrl = 'https://bhaturaandco.com/merchant-privacy-policy';
+  static const String termsOfServiceUrl = 'https://bhaturaandco.com/merchant-terms';
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
@@ -61,11 +61,11 @@ class AppDrawer extends StatelessWidget {
     final user = context.watch<AuthProvider>().user;
     final name = (user?['name'] as String?)?.isNotEmpty == true
         ? user!['name'] as String
-        : 'Lassi Lounge Admin';
+        : 'Bhatura & Co Admin';
     final email = (user?['email'] as String?)?.isNotEmpty == true
         ? user!['email'] as String
-        : 'admin@lassiloungeny.com';
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'L';
+        : 'admin@bhaturaco.com';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'B';
 
     return Drawer(
       width: drawerWidth,
@@ -96,10 +96,10 @@ class AppDrawer extends StatelessWidget {
                   children: [
                     Image.asset(
                       'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-                      height: 88,
+                      height: 54,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => Text(
-                        'Lassi Lounge',
+                        'Bhatura & Co',
                         style: GoogleFonts.outfit(
                           color: const Color(0xFFE63946),
                           fontSize: 36,

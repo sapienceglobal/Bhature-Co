@@ -27,24 +27,24 @@ const IMG = '/assets/images/branded/bhatura-and-co';
 const getDishImage = (itemName = '') => {
   const name = itemName.toLowerCase();
   if (name.includes('bhatur') || name.includes('chole') || name.includes('chhole')) {
-    return `${IMG}/dish_chole_bhature_exact.png`;
+    return `${IMG}/dish_chole_bhature.jpg`;
   }
   if (name.includes('paratha') || name.includes('kulcha') || name.includes('naan') || name.includes('roti')) {
-    return `${IMG}/dish_aloo_paratha_exact.png`;
+    return `${IMG}/dish_aloo_paratha.jpg`;
   }
   if (name.includes('paneer') || name.includes('curr') || name.includes('masala') || name.includes('dal')) {
-    return `${IMG}/dish_paneer_butter_masala_exact.png`;
+    return `${IMG}/dish_paneer_butter_masala.jpg`;
   }
   if (name.includes('biryani') || name.includes('rice') || name.includes('pulao')) {
-    return `${IMG}/dish_veg_biryani_exact.png`;
+    return `${IMG}/dish_veg_biryani.jpg`;
   }
   if (name.includes('samosa') || name.includes('snack') || name.includes('chaat') || name.includes('pakora')) {
-    return `${IMG}/dish_samosa_exact.png`;
+    return `${IMG}/dish_samosa.jpg`;
   }
   if (name.includes('lassi') || name.includes('chai') || name.includes('drink') || name.includes('bever')) {
     return `${IMG}/cat_beverages.png`;
   }
-  return `${IMG}/dish_chole_bhature_exact.png`;
+  return `${IMG}/dish_chole_bhature.jpg`;
 };
 
 export default function CartSidebar() {

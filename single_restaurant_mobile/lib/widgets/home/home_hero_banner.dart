@@ -39,9 +39,9 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> {
     },
     {
       'tag': 'Refreshing',
-      'title': 'SIGNATURE\nLASSI & DRINKS',
-      'subtitle': 'Chilled thick mango lassi &\ntraditional hand-churned blends!',
-      'cta': 'ORDER DRINKS',
+      'title': 'ROYAL CHOLE\nBHATURE & LASSI',
+      'subtitle': 'Fluffy hand-rolled bhature &\ntraditional hand-churned lassi!',
+      'cta': 'ORDER NOW',
       'image': 'assets/images/branded/lassi-lounge/hero-lassi.jpg',
     },
   ];

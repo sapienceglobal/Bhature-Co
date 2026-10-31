@@ -140,8 +140,24 @@ export function useCheckoutState() {
   const [addressLat, setAddressLat] = useState(null);
   const [addressLng, setAddressLng] = useState(null);
 
-  const [orderType, setOrderType] = useState('delivery');
+  const [orderType, setOrderType] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedMode = localStorage.getItem('bhatura_order_mode');
+      if (savedMode === 'pickup' || savedMode === 'delivery') return savedMode;
+    }
+    return 'delivery';
+  });
   const [paymentMethod, setPaymentMethod] = useState('stripe_online');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (orderType === 'delivery' || orderType === 'pickup')) {
+      try {
+        localStorage.setItem('bhatura_order_mode', orderType);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [orderType]);
 
   // Delivery Time state (ASAP vs Schedule for Later)
   const [deliveryTimeOption, setDeliveryTimeOption] = useState('asap'); // 'asap' | 'scheduled'
@@ -257,6 +273,19 @@ export function useCheckoutState() {
     setZipCode('');
 
     const cleanAddr = addrObj.address.replace(/,?\s*USA$/i, '').trim();
+    if (addrObj.street || addrObj.addressLine1) {
+      setAddressLine1(addrObj.addressLine1 || addrObj.street || cleanAddr);
+      if (addrObj.addressLine2) setAddressLine2(addrObj.addressLine2);
+      if (addrObj.city) setCity(addrObj.city);
+      if (addrObj.state) setState(addrObj.state.toUpperCase());
+      if (addrObj.zipCode) setZipCode(String(addrObj.zipCode).slice(0, 5));
+      setAddressLat(addrObj.lat ?? null);
+      setAddressLng(addrObj.lng ?? null);
+      setAddressVerified(true);
+      setQuoteError(null);
+      setQuoteTrigger((prev) => prev + 1);
+      return;
+    }
     const zipRegex = /([A-Za-z]{2})(?:,)?\s+(\d{5})(?:-\d{4})?$/;
     const match = cleanAddr.match(zipRegex);
 

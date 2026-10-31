@@ -34,13 +34,13 @@ class _MarketingScreenState extends State<MarketingScreen> with SingleTickerProv
     {
       'name': 'Weekend Special',
       'title': 'Weekend Feast: 20% OFF! 🎉',
-      'message': 'Treat yourself and your family with delicious Biryani, Curries, and fresh Mango Lassi. Use code WEEKEND20 at checkout!',
+      'message': 'Treat yourself and your family with delicious Chole Bhature, Parathas, and Kulhad Lassi. Use code WEEKEND20 at checkout!',
       'actionUrl': '/menu',
     },
     {
-      'name': 'Free Lassi Offer',
-      'title': 'Free Mango Lassi Today! 🥭',
-      'message': 'Order your favorite meal today and get a complimentary chilled Mango Lassi on orders over \$25. Limited time offer!',
+      'name': 'Free Kulhad Lassi Offer',
+      'title': 'Free Kulhad Lassi Today! 🥛',
+      'message': 'Order your favorite meal today and get a complimentary chilled Kulhad Lassi on orders over \$25. Limited time offer!',
       'actionUrl': '/menu',
     },
     {
@@ -705,11 +705,11 @@ class _MarketingScreenState extends State<MarketingScreen> with SingleTickerProv
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: const Center(
-                                        child: Text('L', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                        child: Text('B', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
                                       ),
                                     ),
                                     const SizedBox(width: 6),
-                                    Text('LASSI LOUNGE', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 11, color: const Color(0xFF1E293B))),
+                                    Text('BHATURA & CO', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 11, color: const Color(0xFF1E293B))),
                                   ],
                                 ),
                                 Text('now', style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 11)),

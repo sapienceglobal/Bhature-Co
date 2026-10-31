@@ -54,9 +54,9 @@ export default function BhaturaFooter() {
           {/* Col 1: Brand Emblem & Tagline (4 cols) */}
           <div className="col-span-2 lg:col-span-4 flex flex-col items-start">
             <Link href="/" className="inline-block mb-4">
-              <div className="relative w-56 h-36">
+              <div className="relative w-36 h-36">
                 <Image
-                  src="/assets/images/branded/bhatura-and-co/logo-emblem.png"
+                  src="/assets/images/branded/bhatura-and-co/logo-full.png"
                   alt="Bhatura & Co Logo"
                   fill
                   className="object-contain object-left"
@@ -139,7 +139,8 @@ export default function BhaturaFooter() {
                     if (subscribed) setSubscribed(false);
                   }}
                   placeholder="Enter your email"
-                  className="w-full px-4 py-3 text-sm text-[#1C1917] placeholder:text-gray-400 focus:outline-none"
+                  className="w-full px-4 py-3 text-sm bg-white !bg-white text-[#1C1917] placeholder:text-gray-400 focus:outline-none [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1C1917]"
+                  style={{ backgroundColor: '#FFFFFF', color: '#1C1917', colorScheme: 'light' }}
                 />
                 <button
                   type="submit"

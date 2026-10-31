@@ -150,7 +150,7 @@ class ReferralHeroSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  'Invite your friends to Lassi Lounge!',
+                  'Invite your friends to Bhatura & Co!',
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,

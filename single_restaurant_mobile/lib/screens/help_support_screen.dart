@@ -94,10 +94,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     final restaurant = restaurantProvider.restaurant;
     final phone = restaurant?['phone'] as String? ??
         restaurant?['contactPhone'] as String? ??
-        '+1 347-233-3733';
+        '+1 (201) 555-0199';
     final email = restaurant?['email'] as String? ??
         restaurant?['contactEmail'] as String? ??
-        'lassiloungeny@gmail.com';
+        'info@bhaturaco.com';
 
     final isSearching = _searchQuery.trim().isNotEmpty;
     final searchResultsCount = isSearching ? SupportFaqData.search(_searchQuery).length : 0;

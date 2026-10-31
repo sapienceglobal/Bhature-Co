@@ -329,7 +329,7 @@ class CheckoutBillDetails extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'LASSI LOUNGE REWARDS',
+                              'BHATURA & CO REWARDS',
                               style: TextStyle(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w800,

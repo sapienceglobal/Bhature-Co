@@ -15,9 +15,9 @@ export default function Loading() {
 
         {/* Center Logo */}
         <img
-          src="/assets/images/branded/bhatura-and-co/logo-emblem.png"
+          src="/assets/images/branded/bhatura-and-co/logo-full.png"
           alt=""
-          className="w-9 h-9 object-contain animate-pulse"
+          className="w-11 h-11 object-contain animate-pulse"
         />
       </div>
 

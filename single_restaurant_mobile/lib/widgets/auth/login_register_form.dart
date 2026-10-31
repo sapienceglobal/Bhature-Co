@@ -60,14 +60,14 @@ class _LoginRegisterFormState extends State<LoginRegisterForm> {
   }
 
   Future<void> _openTerms() async {
-    final uri = Uri.parse('https://lassiloungeny.com/terms');
+    final uri = Uri.parse('https://bhaturaandco.com/terms');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
   Future<void> _openPrivacyPolicy() async {
-    final uri = Uri.parse('https://lassiloungeny.com/privacy-policy');
+    final uri = Uri.parse('https://bhaturaandco.com/privacy-policy');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }

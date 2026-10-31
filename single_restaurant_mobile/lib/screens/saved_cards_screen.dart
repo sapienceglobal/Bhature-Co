@@ -52,7 +52,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
           customerId: customerId,
           customerEphemeralKeySecret: ephemeralKeySecret,
           style: ThemeMode.light,
-          merchantDisplayName: 'Lassi Lounge',
+          merchantDisplayName: 'Bhatura & Co',
           linkDisplayParams: const LinkDisplayParams(linkDisplay: LinkDisplay.never),
           billingDetails: BillingDetails(
             email: authProvider.user?.email,

@@ -27,7 +27,7 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Image.asset(
         'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-        height: 85,
+        height: 50,
         fit: BoxFit.contain,
       ),
       centerTitle: false,

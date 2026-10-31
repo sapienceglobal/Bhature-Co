@@ -9,7 +9,7 @@ class CartRestaurantInfoSheet {
   static void show(BuildContext context, Map<String, dynamic>? restaurant) {
     if (restaurant == null) return;
 
-    final name = restaurant['name'] ?? 'Lassi Lounge';
+    final name = restaurant['name'] ?? 'Bhatura & Co';
     final address = restaurant['address'] ?? '123 Main St, City';
     final phone = restaurant['phone'] ?? '';
     final email = restaurant['email'] ?? '';

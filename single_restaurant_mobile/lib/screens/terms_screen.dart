@@ -26,7 +26,7 @@ class TermsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Lassi Lounge - Order Cancellation & Refund Policy',
+                'Bhatura & Co - Order Cancellation & Refund Policy',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 16),

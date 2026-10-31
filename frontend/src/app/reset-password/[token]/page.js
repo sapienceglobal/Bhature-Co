@@ -105,9 +105,9 @@ export default function ResetPasswordPage({ params }) {
 
           <div className="relative z-10 w-full max-w-md flex flex-col items-center">
             <div className="mb-6 flex flex-col items-center">
-              <div className="relative w-[480px] h-[180px]">
+              <div className="relative w-[190px] h-[190px]">
                 <Image
-                  src="/assets/images/branded/bhatura-and-co/logo-emblem.png"
+                  src="/assets/images/branded/bhatura-and-co/logo-full.png"
                   alt="Bhatura & Co"
                   fill
                   className="object-contain"

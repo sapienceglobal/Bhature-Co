@@ -14,7 +14,7 @@ class CartPickupLocation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final restaurant = cart.restaurant;
-    final name = restaurant?['name'] ?? 'Lassi Lounge';
+    final name = restaurant?['name'] ?? 'Bhatura & Co';
     final address = restaurant?['address'] ?? '123 Main St, City';
 
     return GestureDetector(

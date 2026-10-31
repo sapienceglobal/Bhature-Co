@@ -32,12 +32,12 @@ const getCategoryImage = (name = '') => {
 
 const getDishImage = (name = '') => {
   const n = name.toLowerCase();
-  if (n.includes('paratha') || n.includes('kulcha')) return `${IMG}/dish_aloo_paratha.png`;
-  if (n.includes('paneer') || n.includes('curr') || n.includes('masala')) return `${IMG}/dish_paneer_butter_masala.png`;
-  if (n.includes('biryani') || n.includes('rice')) return `${IMG}/dish_veg_biryani.png`;
-  if (n.includes('samosa')) return `${IMG}/dish_samosa.png`;
+  if (n.includes('paratha') || n.includes('kulcha')) return `${IMG}/dish_aloo_paratha.jpg`;
+  if (n.includes('paneer') || n.includes('curr') || n.includes('masala')) return `${IMG}/dish_paneer_butter_masala.jpg`;
+  if (n.includes('biryani') || n.includes('rice')) return `${IMG}/dish_veg_biryani.jpg`;
+  if (n.includes('samosa')) return `${IMG}/dish_samosa.jpg`;
   if (n.includes('lassi') || n.includes('drink')) return `${IMG}/cat_beverages.png`;
-  return `${IMG}/dish_chole_bhature.png`;
+  return `${IMG}/dish_chole_bhature.jpg`;
 };
 
 /* ── Small decorative squiggle like the mockup ── */
@@ -191,7 +191,7 @@ export default function BhaturaMenuPage() {
         </section>
 
         {/* ═══ 2. CATEGORY STRIP ═══ */}
-        <section className="sticky top-16 md:static z-30 bg-[#FDF7EE]/95 md:bg-[#FDF7EE] backdrop-blur-md md:backdrop-blur-none pt-3 sm:pt-4 pb-3.5 sm:pb-6 border-b border-[#EFE2CF]">
+        <section className="relative z-30 bg-[#FDF7EE] pt-3 sm:pt-4 pb-3.5 sm:pb-6 border-b border-[#EFE2CF]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <button onClick={() => scrollStrip(-1)} aria-label="Previous categories" className="hidden md:flex absolute left-0 lg:left-2 top-[42px] z-10 w-9 h-9 rounded-full bg-white shadow-md border border-[#EADFCF] items-center justify-center hover:bg-[#8B1E1E] hover:text-white transition-colors">
               <ChevronLeft size={18} />
@@ -200,7 +200,7 @@ export default function BhaturaMenuPage() {
               <ChevronRight size={18} />
             </button>
 
-            <div ref={stripRef} className="flex gap-5 sm:gap-7 overflow-x-auto scroll-smooth px-1 md:px-12 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div ref={stripRef} className="flex gap-5 sm:gap-7 overflow-x-auto scroll-smooth px-2 md:px-12 pt-2.5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {loading
                 ? Array.from({ length: 8 }).map((_, i) => (
                     <div key={i} className="flex flex-col items-center shrink-0">
@@ -315,7 +315,7 @@ export default function BhaturaMenuPage() {
                 <p className="text-sm text-[#78716C] mt-1">Please try again in a moment.</p>
               </div>
             ) : (
-              <div key={activeCategory._id} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+              <div key={activeCategory._id} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 max-h-[680px] overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:#D8C4AB_transparent] md:max-h-none md:overflow-visible md:pr-0">
                 {activeCategory.items.map((item, idx) => {
                   const qty = getQty(item);
                   const isFav = user?.favoriteItems?.some((f) => (f._id || f) === item._id);

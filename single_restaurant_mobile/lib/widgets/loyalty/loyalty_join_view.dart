@@ -76,7 +76,7 @@ class LoyaltyJoinView extends StatelessWidget {
           textBaseline: TextBaseline.alphabetic,
           children: [
             const Text(
-              'Lassi ',
+              'Bhatura ',
               style: TextStyle(
                 fontFamily: 'serif',
                 fontSize: 30,
@@ -89,7 +89,7 @@ class LoyaltyJoinView extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 const Text(
-                  'Lounge',
+                  '& Co',
                   style: TextStyle(
                     fontFamily: 'serif',
                     fontSize: 30,
@@ -289,7 +289,7 @@ class LoyaltyJoinView extends StatelessWidget {
                             children: const [
                               TextSpan(text: 'Join '),
                               TextSpan(
-                                text: 'Lassi Lounge Rewards',
+                                text: 'Bhatura & Co Rewards',
                                 style: TextStyle(
                                   color: Color(0xFF8B0D18),
                                 ),

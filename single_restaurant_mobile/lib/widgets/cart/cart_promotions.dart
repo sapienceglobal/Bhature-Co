@@ -230,7 +230,7 @@ class CartPromotions extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Lassi Lounge Rewards',
+                        'Bhatura & Co Rewards',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,

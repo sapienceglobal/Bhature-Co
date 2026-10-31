@@ -14,9 +14,9 @@ export default function MerchantPublicFooter() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand Col */}
           <div className="md:col-span-2 space-y-4">
-            <Link href="/" className="inline-block relative w-52 h-16">
+            <Link href="/" className="inline-block relative w-28 h-28">
               <Image
-                src="/assets/images/branded/bhatura-and-co/logo-emblem.png"
+                src="/assets/images/branded/bhatura-and-co/logo-full.png"
                 alt="Bhatura & Co"
                 fill
                 unoptimized

@@ -388,7 +388,7 @@ class WelcomeBannerText extends StatelessWidget {
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          'Lassi Lounge',
+                          'Bhatura & Co',
                           style: GoogleFonts.inter(
                             color: const Color(0xFF0F265C),
                             fontSize: 21,

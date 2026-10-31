@@ -122,7 +122,7 @@ class DeliveryPartnersScreen extends StatelessWidget {
         const SizedBox(width: 8),
         const Flexible(
           child: Text(
-            'Order from Lassi Lounge on your favorite platform',
+            'Order from Bhatura & Co on your favorite platform',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
           ),
@@ -155,7 +155,7 @@ class DeliveryPartnersScreen extends StatelessWidget {
                 children: [
                   Icon(Icons.shopping_bag, size: 80, color: Colors.amber.shade200),
                   const Text(
-                    'Lassi\nLounge',
+                    'Bhatura\n& Co',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.brown),
                   ),

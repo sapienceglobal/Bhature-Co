@@ -125,8 +125,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           // Brand Logo
                           Center(
                             child: Image.asset(
-                              'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-                              height: 120,
+                              'assets/images/branded/lassi-lounge/Lassi-Lounge-icon.png',
+                              height: 115,
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) => const Icon(
                                 Icons.local_drink_rounded,
@@ -152,7 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 28.0),
                             child: Text(
-                              'Welcome back! Please sign in to access\nyour Lassi Lounge admin panel.',
+                              'Welcome back! Please sign in to access\nyour Bhatura & Co admin panel.',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.inter(
                                 fontSize: 13,

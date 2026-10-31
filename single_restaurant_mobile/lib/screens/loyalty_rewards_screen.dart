@@ -362,7 +362,7 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Lassi Coins Balance',
+                            'Royal Coins Balance',
                             style: TextStyle(
                               color: Color(0xFFFFDFBA),
                               fontSize: 11.5,

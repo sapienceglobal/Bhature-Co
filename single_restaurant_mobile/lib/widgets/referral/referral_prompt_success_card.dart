@@ -11,7 +11,7 @@ class ReferralPromptSuccessCard extends StatelessWidget {
   const ReferralPromptSuccessCard({
     super.key,
     required this.appliedResult,
-    this.restaurantName = 'Lassi Lounge',
+    this.restaurantName = 'Bhatura & Co',
     required this.onContinue,
   });
 

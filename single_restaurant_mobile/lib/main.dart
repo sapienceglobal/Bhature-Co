@@ -108,8 +108,8 @@ Future<void> _initStripe() async {
   Stripe.publishableKey =
       'pk_live_51U0Oy3FY8ihGsgg4uTvqPaO7SHZHn9kwl0cb08mLmelJxJGBpV2U8OCR6JiTbipPlivdKqjmcCnrOlzcATl12x7G004CSSZ3AT';
 
-  Stripe.merchantIdentifier = 'merchant.com.lassilounge';
-  Stripe.urlScheme = 'lassilounge';
+  Stripe.merchantIdentifier = 'merchant.com.bhaturaco';
+  Stripe.urlScheme = 'bhaturaco';
   await Stripe.instance.applySettings();
 }
 
@@ -208,21 +208,21 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => SearchProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
-      child: LassiLoungeApp(isLoggedIn: isLoggedIn),
+      child: BhaturaAndCoApp(isLoggedIn: isLoggedIn),
     ),
   );
 }
 
-class LassiLoungeApp extends StatelessWidget {
+class BhaturaAndCoApp extends StatelessWidget {
   final bool isLoggedIn;
 
-  const LassiLoungeApp({super.key, required this.isLoggedIn});
+  const BhaturaAndCoApp({super.key, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: NavigationService.navigatorKey,
-      title: 'Lassi Lounge',
+      title: 'Bhatura & Co',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       builder: (context, child) {

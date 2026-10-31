@@ -35,7 +35,7 @@ class OtpInfoCards extends StatelessWidget {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'To confirm this email is really yours and keep your\nLassi Lounge account safe and secure.',
+                      'To confirm this email is really yours and keep your\nBhatura & Co account safe and secure.',
                       style: TextStyle(
                         color: Colors.black54,
                         fontSize: 12,
@@ -67,7 +67,7 @@ class OtpInfoCards extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 8),
               ),
               const Text(
-                'Powered by Lassi Lounge',
+                'Powered by Bhatura & Co',
                 style: TextStyle(color: Colors.grey, fontSize: 11),
               ),
             ],

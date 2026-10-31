@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import BhaturaHeader from '../BhaturaHeader';
 import BhaturaFooter from '../BhaturaFooter';
+import { evaluateDeliveryEta, parseAddressString } from '../BhaturaHeroSection';
 import AddressModal from '@/components/shared/AddressModal';
 import { ItemDetailModal, PortalModal } from '@/components/ui';
 import { restaurantAPI, authAPI, couponAPI } from '@/lib/api';
@@ -119,6 +120,9 @@ function OrderOnlineInner() {
   const [searchQuery, setSearchQuery] = useState('');
   const [orderMode, setOrderMode] = useState('delivery'); // 'delivery' | 'pickup'
   const [deliveryAddress, setDeliveryAddress] = useState('123 Main Street, New York, NY 10001');
+  const [selectedCoords, setSelectedCoords] = useState({ lat: null, lng: null });
+  const [eta, setEta] = useState({ pickup: 15, delivery: 35, isOutOfRange: false, reason: '' });
+  const [loadingEta, setLoadingEta] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
   const [copiedCode, setCopiedCode] = useState(false);
@@ -143,28 +147,70 @@ function OrderOnlineInner() {
 
   /* ── Hydrate saved address & orderMode ── */
   useEffect(() => {
-    try {
-      const savedMode = localStorage.getItem('bhatura_order_mode');
-      if (savedMode === 'pickup' || savedMode === 'delivery') setOrderMode(savedMode);
-      const savedAddr = localStorage.getItem('bhatura_selected_address');
-      if (savedAddr) {
-        const parsed = JSON.parse(savedAddr);
-        if (parsed?.street || parsed?.address || parsed?.formattedAddress) {
-          setDeliveryAddress(
-            parsed.formattedAddress ||
-              [parsed.street || parsed.address, parsed.city, parsed.state, parsed.zipCode].filter(Boolean).join(', ')
-          );
+    const syncFromStorage = () => {
+      try {
+        const savedMode = localStorage.getItem('bhatura_order_mode');
+        if (savedMode === 'pickup' || savedMode === 'delivery') setOrderMode(savedMode);
+        const savedAddr = localStorage.getItem('bhatura_selected_address');
+        if (savedAddr) {
+          const parsed = JSON.parse(savedAddr);
+          if (parsed?.street || parsed?.address || parsed?.formattedAddress) {
+            setDeliveryAddress(
+              parsed.formattedAddress ||
+                [parsed.street || parsed.address, parsed.city, parsed.state, parsed.zipCode].filter(Boolean).join(', ')
+            );
+            setSelectedCoords({
+              lat: parsed.lat ?? null,
+              lng: parsed.lng ?? null,
+            });
+          }
+        } else if (user?.addresses?.length > 0) {
+          const def = user.addresses.find((a) => a.isDefault) || user.addresses[0];
+          if (def) {
+            setDeliveryAddress(
+              [def.street || def.address, def.city, def.state, def.zipCode].filter(Boolean).join(', ')
+            );
+            setSelectedCoords({
+              lat: def.lat ?? def.latitude ?? null,
+              lng: def.lng ?? def.longitude ?? null,
+            });
+          }
         }
-      } else if (user?.addresses?.length > 0) {
-        const def = user.addresses.find((a) => a.isDefault) || user.addresses[0];
-        if (def) {
-          setDeliveryAddress([def.street || def.address, def.city, def.state, def.zipCode].filter(Boolean).join(', '));
-        }
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* ignore */
-    }
+    };
+
+    syncFromStorage();
+    window.addEventListener('bhatura-address-updated', syncFromStorage);
+    return () => window.removeEventListener('bhatura-address-updated', syncFromStorage);
   }, [user]);
+
+  /* ── Live ETA & Delivery Serviceability Check (same flow as Lassi Lounge OrderOnlineHero) ── */
+  useEffect(() => {
+    let alive = true;
+    if (!deliveryAddress) {
+      setEta({ pickup: 15, delivery: 35, isOutOfRange: false, reason: '' });
+      return;
+    }
+    setLoadingEta(true);
+    evaluateDeliveryEta({
+      address: deliveryAddress,
+      lat: selectedCoords?.lat,
+      lng: selectedCoords?.lng,
+      restaurant,
+    })
+      .then((res) => {
+        if (!alive) return;
+        setEta(res);
+      })
+      .finally(() => {
+        if (alive) setLoadingEta(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [deliveryAddress, selectedCoords?.lat, selectedCoords?.lng, restaurant?._id]);
 
   /* ── Load Restaurant & Menu from Backend (same flow as Lassi Lounge) ── */
   useEffect(() => {
@@ -586,6 +632,111 @@ function OrderOnlineInner() {
                 </svg>
                 <span className="h-[1px] flex-1 bg-gradient-to-l from-[#E5B84B]/40 to-[#E5B84B]" />
               </div>
+
+              {/* Lassi-Lounge-style Delivery & Pickup Live ETA Cards + Serviceability Check */}
+              <div className="mt-5 w-full max-w-md">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full">
+                  {/* Delivery Box */}
+                  <div
+                    onClick={() => {
+                      handleModeChange('delivery');
+                      setIsAddressModalOpen(true);
+                    }}
+                    className={`relative flex items-center gap-3 px-3.5 sm:px-4 py-3 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
+                      eta.isOutOfRange
+                        ? 'bg-[#374151]/95 border-red-400/50 text-white shadow-md hover:bg-[#434d5b]'
+                        : orderMode === 'delivery'
+                        ? 'bg-gradient-to-r from-[#8B1E1E] to-[#5C0612] border-[#F5C253]/60 text-white shadow-lg hover:brightness-110'
+                        : 'bg-black/55 backdrop-blur-sm border-white/25 text-white hover:border-[#F5C253]/50'
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                      <Bike className={`w-5 h-5 ${eta.isOutOfRange ? 'text-red-300' : 'text-[#F5C253]'}`} />
+                    </div>
+                    <div className="flex flex-col text-left min-w-0">
+                      <span className="font-bold text-sm leading-tight tracking-wide">Delivery</span>
+                      <span
+                        className={`text-[11.5px] font-medium tracking-wide mt-0.5 truncate ${
+                          eta.isOutOfRange ? 'text-red-300 font-bold' : 'text-white/85'
+                        }`}
+                      >
+                        {loadingEta ? (
+                          <span className="inline-block w-12 h-3 bg-white/20 rounded animate-pulse" />
+                        ) : eta.isOutOfRange ? (
+                          'Out of range'
+                        ) : deliveryAddress ? (
+                          `${eta.delivery || 35} mins`
+                        ) : (
+                          'Set Address'
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Pickup Box */}
+                  <div
+                    onClick={() => handleModeChange('pickup')}
+                    className={`flex items-center gap-3 px-3.5 sm:px-4 py-3 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
+                      orderMode === 'pickup'
+                        ? 'bg-gradient-to-r from-[#8B1E1E] to-[#5C0612] border-[#F5C253]/60 text-white shadow-lg'
+                        : 'bg-white/95 border-[#E5D7C3] text-[#1C1917] shadow-sm hover:border-[#F5C253]'
+                    }`}
+                  >
+                    <div
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                        orderMode === 'pickup' ? 'bg-white/15 text-[#F5C253]' : 'bg-[#8B1E1E]/10 text-[#8B1E1E]'
+                      }`}
+                    >
+                      <Store className="w-5 h-5" />
+                    </div>
+                    <div className="flex flex-col text-left min-w-0">
+                      <span className="font-bold text-sm leading-tight tracking-wide">Pickup</span>
+                      <span
+                        className={`text-[11.5px] font-medium tracking-wide mt-0.5 ${
+                          orderMode === 'pickup' ? 'text-white/85' : 'text-[#57534E]'
+                        }`}
+                      >
+                        {loadingEta ? (
+                          <span className="inline-block w-12 h-3 bg-stone-200 rounded animate-pulse" />
+                        ) : (
+                          `${eta.pickup || 15} mins`
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Address Serviceability Prompt Below Boxes */}
+                <div className="min-h-[22px] mt-2 flex items-center">
+                  {deliveryAddress && eta.isOutOfRange ? (
+                    <div className="flex items-center gap-2 max-w-full flex-wrap">
+                      <p className="text-[11px] text-red-400 font-bold uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping inline-block" />
+                        Out of range — Too far for delivery
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddressModalOpen(true)}
+                        className="text-[11px] text-[#F5C253] hover:text-white font-bold uppercase tracking-wider underline cursor-pointer shrink-0"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddressModalOpen(true)}
+                      className="text-[11.5px] text-white/90 hover:text-[#F5C253] font-medium flex items-center gap-1.5 transition-colors truncate max-w-full cursor-pointer"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-[#F5C253] shrink-0" />
+                      <span className="truncate">
+                        Delivering to: <strong className="text-white font-semibold">{deliveryAddress}</strong>
+                      </span>
+                      <span className="text-[#F5C253] underline font-bold ml-1 shrink-0">Change</span>
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -601,13 +752,13 @@ function OrderOnlineInner() {
         </section>
 
         {/* ═══════════════════════════════════════════════════════════════════
-            2. HIGH Z-INDEX (z-[85]) STICKY CATEGORY CAROUSEL STRIP
-            Never hides behind any dishes, cards or images when scrolling!
+            2. HIGH Z-INDEX (z-[85]) CATEGORY CAROUSEL STRIP
+            Non-sticky on mobile (<md), sticky on desktop (md:)
         ═══════════════════════════════════════════════════════════════════ */}
         <section
-          className={`sticky top-16 sm:top-[70px] z-[85] transition-all duration-200 border-b border-[#EADBC8] ${
+          className={`relative md:sticky md:top-[70px] z-[85] transition-all duration-200 border-b border-[#EADBC8] ${
             isStripStuck
-              ? 'bg-[#FDF6EA] py-2 shadow-[0_6px_20px_rgba(92,6,18,0.12)]'
+              ? 'bg-[#FDF6EA] py-2 md:shadow-[0_6px_20px_rgba(92,6,18,0.12)]'
               : 'bg-[#FDF6EA] pt-2 sm:pt-3 pb-3.5 sm:pb-5'
           }`}
         >
@@ -634,7 +785,7 @@ function OrderOnlineInner() {
 
             <div
               ref={stripRef}
-              className="flex items-center justify-between gap-4 sm:gap-6 overflow-x-auto scroll-smooth px-1 md:px-10 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className="flex items-center justify-between gap-4 sm:gap-6 overflow-x-auto scroll-smooth px-2 md:px-10 pt-2 pb-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
               {loading
                 ? Array.from({ length: 9 }).map((_, i) => (
@@ -906,8 +1057,8 @@ function OrderOnlineInner() {
                           )}
                         </div>
 
-                        {/* 3-Column Dish Cards Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {/* 3-Column Dish Cards Grid (Scrollable box on mobile when expanded with >6 items) */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 max-h-[680px] overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:#D8C4AB_transparent] md:max-h-none md:overflow-visible md:pr-0">
                           {visibleItems.map((item) => {
                             const inCartQty = getItemQuantity(item);
                             const isFav = user?.favoriteItems?.some((f) => (f._id || f) === item._id);
@@ -1073,12 +1224,33 @@ function OrderOnlineInner() {
             <aside ref={rightColRef} className="w-full lg:w-[350px] xl:w-[365px] shrink-0">
               
               {/* 1. Top "Deliver to" Address Pill Card */}
-              <div className="bg-[#FAF0E1] rounded-xl border border-[#E8D8C3] px-3.5 py-2.5 mb-3 flex items-center justify-between gap-2 shadow-2xs">
+              <div
+                className={`rounded-xl border px-3.5 py-2.5 mb-3 flex items-center justify-between gap-2 shadow-2xs ${
+                  orderMode === 'delivery' && eta.isOutOfRange
+                    ? 'bg-red-50 border-red-300'
+                    : 'bg-[#FAF0E1] border-[#E8D8C3]'
+                }`}
+              >
                 <div className="flex items-start gap-2 min-w-0">
-                  <MapPin size={16} className="text-[#9E141D] shrink-0 mt-0.5 fill-[#9E141D]/15" />
+                  <MapPin
+                    size={16}
+                    className={`shrink-0 mt-0.5 ${
+                      orderMode === 'delivery' && eta.isOutOfRange
+                        ? 'text-red-600 fill-red-600/15'
+                        : 'text-[#9E141D] fill-[#9E141D]/15'
+                    }`}
+                  />
                   <div className="min-w-0">
-                    <span className="block text-[11px] font-bold text-[#1C1917] leading-tight">
-                      {orderMode === 'pickup' ? 'Pickup from' : 'Deliver to'}
+                    <span
+                      className={`block text-[11px] font-bold leading-tight ${
+                        orderMode === 'delivery' && eta.isOutOfRange ? 'text-red-700' : 'text-[#1C1917]'
+                      }`}
+                    >
+                      {orderMode === 'pickup'
+                        ? `Pickup from (~${eta.pickup || 15} mins)`
+                        : eta.isOutOfRange
+                        ? 'Out of range — Too far for delivery'
+                        : `Deliver to${eta.delivery ? ` (~${eta.delivery} mins)` : ''}`}
                     </span>
                     <span className="block text-[11.5px] text-[#57534E] truncate">
                       {orderMode === 'pickup'
@@ -1248,6 +1420,11 @@ function OrderOnlineInner() {
                       toast.error('Please add at least one dish to proceed to checkout');
                       return;
                     }
+                    if (orderMode === 'delivery' && eta.isOutOfRange) {
+                      toast.error('Selected address is out of delivery range. Please change address or select Pickup.');
+                      setIsAddressModalOpen(true);
+                      return;
+                    }
                     router.push('/checkout');
                   }}
                   className="mt-3.5 w-full h-11 rounded-xl bg-gradient-to-b from-[#A61922] to-[#7A1218] hover:from-[#8B1E1E] hover:to-[#5C0612] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-[0_6px_16px_rgba(158,20,29,0.28)] transition-all cursor-pointer"
@@ -1299,8 +1476,24 @@ function OrderOnlineInner() {
                   <div className="flex items-start gap-2.5">
                     <Clock size={16} className="text-[#9E141D] shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-bold text-[#1C1917] leading-tight">Estimated Delivery Time</p>
-                      <p className="text-[#57534E] text-[11px] mt-0.5">30 - 45 mins</p>
+                      <p className="font-bold text-[#1C1917] leading-tight">
+                        {orderMode === 'pickup' ? 'Estimated Pickup Time' : 'Estimated Delivery Time'}
+                      </p>
+                      <p
+                        className={`text-[11px] mt-0.5 font-medium ${
+                          orderMode === 'delivery' && eta.isOutOfRange ? 'text-red-600 font-bold' : 'text-[#57534E]'
+                        }`}
+                      >
+                        {loadingEta
+                          ? 'Checking ETA...'
+                          : orderMode === 'pickup'
+                          ? `${eta.pickup || 15} - ${(eta.pickup || 15) + 5} mins`
+                          : eta.isOutOfRange
+                          ? 'Out of range — Too far for delivery'
+                          : eta.delivery
+                          ? `~${eta.delivery} mins`
+                          : '30 - 45 mins'}
+                      </p>
                     </div>
                   </div>
 
@@ -1310,7 +1503,7 @@ function OrderOnlineInner() {
                       <div className="min-w-0">
                         <p className="font-bold text-[#1C1917] leading-tight">Delivery to</p>
                         <p className="text-[#57534E] text-[11px] mt-0.5 leading-snug">
-                          {deliveryAddress}, USA
+                          {deliveryAddress}
                         </p>
                       </div>
                     </div>
@@ -1366,16 +1559,42 @@ function OrderOnlineInner() {
         <AddressModal
           isOpen={isAddressModalOpen}
           onClose={() => setIsAddressModalOpen(false)}
-          onSelectAddress={(addr) => {
-            if (addr) {
-              const formatted =
-                addr.formattedAddress ||
-                [addr.street || addr.address, addr.city, addr.state, addr.zipCode].filter(Boolean).join(', ');
-              if (formatted) setDeliveryAddress(formatted);
-              try {
-                localStorage.setItem('bhatura_selected_address', JSON.stringify(addr));
-              } catch {
-                /* ignore */
+          onSelect={(locationData) => {
+            if (locationData) {
+              const { address, lat, lng, addressDetails, flatNo } = locationData;
+              const addr = addressDetails || {};
+              const streetBase = `${addr.house_number || ''} ${addr.road || ''}`.trim();
+              const rawText =
+                address ||
+                locationData.formattedAddress ||
+                [locationData.street, locationData.city, locationData.state, locationData.zipCode]
+                  .filter(Boolean)
+                  .join(', ');
+
+              if (rawText) {
+                const parsed = parseAddressString(rawText, {
+                  street: streetBase || locationData.street || undefined,
+                  addressLine2: flatNo || locationData.addressLine2 || undefined,
+                  city: addr.city || addr.town || addr.village || addr.suburb || locationData.city || undefined,
+                  state: addr.state
+                    ? addr.state.substring(0, 2).toUpperCase()
+                    : locationData.state || undefined,
+                  zipCode: addr.postcode
+                    ? addr.postcode.substring(0, 5)
+                    : locationData.zipCode || undefined,
+                  lat: lat ?? null,
+                  lng: lng ?? null,
+                  label: 'Pinned Location',
+                });
+
+                setDeliveryAddress(parsed.formattedAddress || rawText);
+                setSelectedCoords({ lat: parsed.lat, lng: parsed.lng });
+                try {
+                  localStorage.setItem('bhatura_selected_address', JSON.stringify(parsed));
+                  window.dispatchEvent(new Event('bhatura-address-updated'));
+                } catch {
+                  /* ignore */
+                }
               }
             }
             setIsAddressModalOpen(false);
