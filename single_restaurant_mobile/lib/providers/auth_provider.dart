@@ -1,0 +1,270 @@
+import 'package:flutter/material.dart';
+import 'package:single_restaurant_mobile/models/user_model.dart';
+import 'package:single_restaurant_mobile/services/api_service.dart';
+import 'package:single_restaurant_mobile/services/auth_service.dart';
+import 'package:single_restaurant_mobile/services/push_notification_service.dart';
+
+class AuthProvider with ChangeNotifier {
+  final AuthService _authService = AuthService();
+  
+  UserModel? _user;
+  bool _isLoading = false;
+  String? _error;
+
+  UserModel? get user => _user;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+  bool get isAuthenticated => _user != null;
+
+  Future<void> fetchUser() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final userData = await _authService.getMe();
+      if (userData != null) {
+        _user = UserModel.fromJson(userData);
+        // Proactively sync FCM push token to backend for this user
+        PushNotificationService().syncTokenWithBackend();
+      } else {
+        _user = null;
+      }
+    } catch (e) {
+      _error = e.toString();
+      _user = null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> logout() async {
+    _isLoading = true;
+    notifyListeners();
+    
+    final token = PushNotificationService().cachedToken;
+    if (token != null) {
+      try {
+        await ApiService.post('/api/auth/logout', {'fcmToken': token});
+      } catch (_) {}
+    }
+
+    await _authService.logout();
+    _user = null;
+    
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<String?> deleteAccount({String? password, String? confirmation, String? reason}) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final error = await _authService.deleteAccount(
+      password: password,
+      confirmation: confirmation,
+      reason: reason,
+    );
+    if (error == null) {
+      _user = null;
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return error;
+  }
+
+  // Helper to trigger UI updates without full refresh if we just edit a field locally
+  void updateUserLocally(UserModel updatedUser) {
+    _user = updatedUser;
+    notifyListeners();
+  }
+
+  Future<bool> updateProfile({String? name, String? phone, String? imagePath}) async {
+    _isLoading = true;
+    notifyListeners();
+    
+    final updatedData = await _authService.updateProfile(name: name, phone: phone, imagePath: imagePath);
+    if (updatedData != null) {
+      _user = UserModel.fromJson(updatedData);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    }
+    
+    _isLoading = false;
+    _error = 'Failed to update profile';
+    notifyListeners();
+    return false;
+  }
+
+  Future<bool> updateNotificationPreferences(Map<String, dynamic> preferences) async {
+    if (_user == null) return false;
+    
+    // Optimistic update
+    final oldPreferences = _user!.notificationPreferences;
+    _user = UserModel(
+      id: _user!.id,
+      name: _user!.name,
+      email: _user!.email,
+      phone: _user!.phone,
+      role: _user!.role,
+      isEmailVerified: _user!.isEmailVerified,
+      isPhoneVerified: _user!.isPhoneVerified,
+      profilePicture: _user!.profilePicture,
+      addresses: _user!.addresses,
+      savedCards: _user!.savedCards,
+      favoriteItems: _user!.favoriteItems,
+      loyaltyPoints: _user!.loyaltyPoints,
+      referralCode: _user!.referralCode,
+      notificationPreferences: preferences,
+    );
+    notifyListeners();
+
+    final success = await _authService.updateNotificationPreferences(preferences);
+    if (!success) {
+      // Revert if failed
+      _user = UserModel(
+        id: _user!.id,
+        name: _user!.name,
+        email: _user!.email,
+        phone: _user!.phone,
+        role: _user!.role,
+        isEmailVerified: _user!.isEmailVerified,
+        isPhoneVerified: _user!.isPhoneVerified,
+        profilePicture: _user!.profilePicture,
+        addresses: _user!.addresses,
+        savedCards: _user!.savedCards,
+        favoriteItems: _user!.favoriteItems,
+        loyaltyPoints: _user!.loyaltyPoints,
+        referralCode: _user!.referralCode,
+        notificationPreferences: oldPreferences,
+      );
+      notifyListeners();
+    }
+    return success;
+  }
+
+  // --- Saved Cards ---
+
+  Future<bool> addCard({
+    required String cardId,
+    required String brand,
+    required String last4,
+    required int expMonth,
+    required int expYear,
+    String title = 'Personal Card',
+    bool isDefault = false,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final success = await _authService.addCard(
+      cardId: cardId,
+      brand: brand,
+      last4: last4,
+      expMonth: expMonth,
+      expYear: expYear,
+      title: title,
+      isDefault: isDefault,
+    );
+
+    if (success) {
+      await fetchUser(); // Refresh user to get updated savedCards with _id
+    } else {
+      _isLoading = false;
+      _error = 'Failed to add card';
+      notifyListeners();
+    }
+    return success;
+  }
+
+  Future<bool> removeCard(String cardId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final success = await _authService.removeCard(cardId);
+    if (success) {
+      await fetchUser();
+    } else {
+      _isLoading = false;
+      _error = 'Failed to remove card';
+      notifyListeners();
+    }
+    return success;
+  }
+
+  Future<bool> setDefaultCard(String cardId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final success = await _authService.setDefaultCard(cardId);
+    if (success) {
+      await fetchUser();
+    } else {
+      _isLoading = false;
+      _error = 'Failed to set default card';
+      notifyListeners();
+    }
+    return success;
+  }
+
+  // --- Favorites ---
+  bool isFavoriteItem(String itemId) {
+    if (_user?.favoriteItems == null) return false;
+    return _user!.favoriteItems!.any((f) {
+      final id = f is Map ? (f['_id'] ?? f['id']) : f.toString();
+      return id == itemId;
+    });
+  }
+
+  Future<bool> toggleFavoriteItem(String itemId) async {
+    if (_user == null) return false;
+    
+    // Optimistic UI update
+    final favs = List<dynamic>.from(_user!.favoriteItems ?? []);
+    final index = favs.indexWhere((f) {
+      final fId = f is Map ? (f['_id'] ?? f['id']) : f.toString();
+      return fId == itemId;
+    });
+    
+    if (index > -1) {
+      favs.removeAt(index);
+    } else {
+      favs.add(itemId);
+    }
+    _user = UserModel(
+      id: _user!.id,
+      name: _user!.name,
+      email: _user!.email,
+      phone: _user!.phone,
+      role: _user!.role,
+      isEmailVerified: _user!.isEmailVerified,
+      isPhoneVerified: _user!.isPhoneVerified,
+      profilePicture: _user!.profilePicture,
+      addresses: _user!.addresses,
+      savedCards: _user!.savedCards,
+      favoriteItems: favs,
+      loyaltyPoints: _user!.loyaltyPoints,
+      referralCode: _user!.referralCode,
+    );
+    notifyListeners();
+
+    final success = await _authService.toggleFavoriteItem(itemId);
+    if (!success) {
+      // Revert if failed
+      await fetchUser();
+    }
+    return success;
+  }
+
+  Future<void> saveFcmToken(String token) async {
+    if (_user == null) return;
+    try {
+      await _authService.saveFcmToken(token);
+    } catch (e) {
+      debugPrint('Failed to save FCM token: $e');
+    }
+  }
+}

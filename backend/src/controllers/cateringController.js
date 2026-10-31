@@ -1,0 +1,217 @@
+import CateringInquiry from '../models/CateringInquiry.js';
+import Restaurant from '../models/Restaurant.js';
+import { createNotification } from './notificationController.js';
+import { getNotificationImageUrl } from '../utils/imageUrl.js';
+import { sendPushNotification } from '../services/webPushService.js';
+
+const getModels = (req) => ({
+  CateringInquiry: req.getModel?.('CateringInquiry') || CateringInquiry,
+  Restaurant: req.getModel?.('Restaurant') || Restaurant,
+});
+
+// @desc    submit a new catering inquiry
+// @route   POST /api/catering
+// @access  Public
+export const createInquiry = async (req, res) => {
+  try {
+    const { CateringInquiry, Restaurant } = getModels(req);
+    const {
+      restaurantId,
+      customerName,
+      customerEmail,
+      customerPhone,
+      eventType,
+      eventDate,
+      guestCount,
+      packagePreference,
+      additionalNotes
+    } = req.body;
+
+    // verify restaurant exists
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ success: false, message: 'Restaurant not found' });
+    }
+
+    const inquiry = await CateringInquiry.create({
+      restaurantId,
+      customerName,
+      customerEmail,
+      customerPhone,
+      eventType,
+      eventDate,
+      guestCount,
+      packagePreference: packagePreference || 'Custom / Unsure',
+      additionalNotes: additionalNotes || '',
+      budgetRange: req.body.budgetRange || '',
+      status: req.body.status || 'new'
+    });
+
+    // -- Background Notifications --
+    try {
+      const io = req.app?.get('io');
+      const UserModel = req.getModel ? req.getModel('User') : (req.app?.get('tenantModels')?.[req.tenantId]?.User || (await import('../models/User.js')).default);
+      const merchantUsers = await UserModel.find({
+        $or: [
+          { restaurantId: restaurant._id },
+          ...(restaurant.ownerId ? [{ _id: restaurant.ownerId }] : []),
+          { role: { $in: ['admin', 'merchant'] } }
+        ],
+        role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] },
+        fcmTokens: { $exists: true, $not: { $size: 0 } }
+      });
+
+      console.log(`[FCM Catering] Found ${merchantUsers.length} merchant users for restaurant ${restaurant._id}`);
+      
+      const imageUrl = getNotificationImageUrl('catering');
+      
+      for (const mUser of merchantUsers) {
+        await createNotification(
+          mUser._id,
+          'New Catering Inquiry 🍱',
+          `${customerName} inquired for a ${eventType} event for ${guestCount} guests.`,
+          'catering_new',
+          `/catering/${inquiry._id}`,
+          io,
+          req.getModel,
+          imageUrl,
+          { entityType: 'catering', entityId: inquiry._id.toString() }
+        );
+      }
+
+      if (io) {
+        io.to(restaurant._id.toString()).emit('new_catering', inquiry);
+      }
+
+      await sendPushNotification(restaurant, {
+        title: 'New Catering Inquiry 🍱',
+        body: `${customerName} inquired for a ${eventType} event for ${guestCount} guests.`,
+        data: { url: `/merchant/catering/${inquiry._id}` }
+      });
+    } catch (notifErr) {
+      console.error('Error sending background notifications for catering:', notifErr);
+    }
+
+    res.status(201).json({
+      success: true,
+      data: inquiry,
+      message: 'Catering inquiry submitted successfully. We will contact you soon.'
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    get restaurant's catering inquiries
+// @route   GET /api/catering/restaurant/:restaurantId
+// @access  Private (Merchant/Admin)
+export const getRestaurantInquiries = async (req, res) => {
+  try {
+    const { CateringInquiry, Restaurant } = getModels(req);
+    const { restaurantId } = req.params;
+
+    // resolve restaurant by slug or ObjectId
+    let restaurant;
+    if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
+      restaurant = await Restaurant.findById(restaurantId);
+    } else {
+      restaurant = await Restaurant.findOne({ slug: restaurantId });
+    }
+
+    if (!restaurant) {
+      return res.status(404).json({ success: false, message: 'Restaurant not found' });
+    }
+
+    // auth check: Merchant must own this restaurant
+    if (req.user.role === 'merchant') {
+      if (restaurant.ownerId?.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ success: false, message: 'Not authorized to view these inquiries' });
+      }
+    }
+
+    const inquiries = await CateringInquiry.find({ restaurantId: restaurant._id })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: inquiries.length,
+      data: inquiries
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    update inquiry status
+// @route   PUT /api/catering/:id/status
+// @access  Private (Merchant/Admin)
+export const updateInquiryStatus = async (req, res) => {
+  try {
+    const { CateringInquiry, Restaurant } = getModels(req);
+    const { status } = req.body;
+    let inquiry = await CateringInquiry.findById(req.params.id);
+
+    if (!inquiry) {
+      return res.status(404).json({ success: false, message: 'Inquiry not found' });
+    }
+
+    // verify ownership
+    if (req.user.role === 'merchant') {
+      const restaurant = await Restaurant.findById(inquiry.restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ success: false, message: 'Restaurant not found' });
+      }
+      if (restaurant.ownerId?.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ success: false, message: 'Not authorized to update this inquiry' });
+      }
+    }
+
+    inquiry.status = status;
+    await inquiry.save();
+
+    res.status(200).json({
+      success: true,
+      data: inquiry
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    update catering inquiry details
+// @route   PUT /api/catering/:id
+// @access  Private (Merchant/Admin)
+export const updateInquiry = async (req, res) => {
+  try {
+    const { CateringInquiry, Restaurant } = getModels(req);
+    let inquiry = await CateringInquiry.findById(req.params.id);
+
+    if (!inquiry) {
+      return res.status(404).json({ success: false, message: 'Inquiry not found' });
+    }
+
+    if (req.user.role === 'merchant') {
+      const restaurant = await Restaurant.findById(inquiry.restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ success: false, message: 'Restaurant not found' });
+      }
+      if (restaurant.ownerId?.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ success: false, message: 'Not authorized to update this inquiry' });
+      }
+    }
+
+    const updatedInquiry = await CateringInquiry.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      data: updatedInquiry
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+

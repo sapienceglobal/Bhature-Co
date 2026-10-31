@@ -1,0 +1,54 @@
+/**
+ * ============================================================================
+ * BRAND OVERRIDE — Bhatura & Co (Single-Restaurant Branded Mode)
+ * ============================================================================
+ * Scoped under [data-brand="bhatura-and-co"], set on <html> in layout.js
+ * when NEXT_PUBLIC_BRANDED_RESTAURANT_ID=bhatura-and-co.
+ * ============================================================================
+ */
+
+[data-brand="bhatura-and-co"] {
+  /* --- Surfaces & Base Colors --- */
+  --color-background:      #FDFBF7;
+  --color-surface:         #ffffff;
+  --color-card:            #ffffff;
+  --color-border:          #e5ded4;
+  --color-text:            #1c1917;
+  --color-text-secondary:  #57534e;
+  --color-background-alt:  #f5eee3;
+
+  /* --- Primary: Deep Royal Maroon / Burgundy (Logo Base) --- */
+  --color-primary-50:  #fdf2f3;
+  --color-primary-100: #fbe5e7;
+  --color-primary-200: #f7ced2;
+  --color-primary-300: #f0a7af;
+  --color-primary-400: #e47481;
+  --color-primary-500: #d04456;
+  --color-primary-600: #5C0612; /* Base Brand Maroon */
+  --color-primary-700: #4c050f;
+  --color-primary-800: #3e040c;
+  --color-primary-900: #2a0208;
+  --color-primary-hover: #4c050f;
+
+  /* --- Accent: Vintage Warm Gold (Logo Emblem & Accents) --- */
+  --color-accent-50:  #fdfbe7;
+  --color-accent-100: #fbf5c2;
+  --color-accent-200: #f7e887;
+  --color-accent-300: #f0d54c;
+  --color-accent-400: #e5bd21;
+  --color-accent-500: #D4AF37; /* Base Brand Gold */
+  --color-accent-600: #b89228;
+  --color-accent-700: #936e20;
+  --color-accent-800: #6f501b;
+  --color-accent-900: #473212;
+
+  /* --- Typography --- */
+  --font-heading: 'Cinzel', 'Playfair Display', serif;
+  --font-script:  'Dancing Script', cursive;
+  --font-body:    'Poppins', 'Inter', ui-sans-serif, sans-serif;
+
+  /* --- Radius --- */
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}

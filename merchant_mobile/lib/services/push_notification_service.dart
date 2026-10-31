@@ -1,0 +1,323 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../providers/auth_provider.dart';
+import '../providers/order_provider.dart';
+import '../providers/reservation_provider.dart';
+import '../providers/catering_provider.dart';
+import 'api_service.dart';
+import 'package:toastification/toastification.dart';
+
+// Global navigator key to be used in main.dart GoRouter
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
+@pragma('vm:entry-point')
+void _notificationTapBackground(NotificationResponse response) {
+  debugPrint('Background local notification tapped: ${response.payload}');
+}
+
+class PushNotificationService {
+  static final PushNotificationService _instance = PushNotificationService._internal();
+  factory PushNotificationService() => _instance;
+  PushNotificationService._internal();
+
+  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+
+  static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
+    'merchant_orders_channel_v3', // Changed channel ID to register new settings
+    'New Orders & Updates',
+    description: 'Rich notifications for new orders and merchant updates.',
+    importance: Importance.max,
+    playSound: true,
+    sound: RawResourceAndroidNotificationSound('new_order_sound'),
+    enableVibration: true,
+  );
+
+  bool _initialized = false;
+
+  Future<void> initialize(BuildContext context) async {
+    // Always sync token with backend whenever Dashboard loads or user returns
+    _fcm.getToken().then((token) {
+      if (token != null && context.mounted) {
+        _syncTokenWithBackend(context, token);
+      }
+    }).catchError((e) {
+      debugPrint("Error fetching FCM token: $e");
+    });
+
+    if (_initialized) return;
+    _initialized = true;
+
+    NotificationSettings settings = await _fcm.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus != AuthorizationStatus.authorized &&
+        settings.authorizationStatus != AuthorizationStatus.provisional) {
+      return;
+    }
+
+    // You need an icon named @mipmap/ic_launcher or a custom drawable
+    const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@drawable/ic_notification');
+    const DarwinInitializationSettings iosInit = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+    const InitializationSettings initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
+
+    await _localNotifications.initialize(
+      settings: initSettings,
+      onDidReceiveNotificationResponse: _onNotificationTap,
+      onDidReceiveBackgroundNotificationResponse: _notificationTapBackground,
+    );
+
+    final androidImplementation = _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (androidImplementation != null) {
+      await androidImplementation.requestNotificationsPermission();
+      await androidImplementation.createNotificationChannel(_channel);
+    }
+
+    String? token = await _fcm.getToken();
+    if (token != null) _syncTokenWithBackend(context, token);
+    _fcm.onTokenRefresh.listen((newToken) => _syncTokenWithBackend(context, newToken));
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      _showRichNotification(message);
+      
+      final activeContext = rootNavigatorKey.currentContext ?? context;
+      
+      if (activeContext.mounted) {
+        final type = (message.data['type'] ?? '').toString().toLowerCase();
+        if (type.contains('order')) {
+          Provider.of<OrderProvider>(activeContext, listen: false).fetchOrders(force: true);
+        } else if (type.contains('reservation')) {
+          Provider.of<ReservationProvider>(activeContext, listen: false).fetchReservations();
+        } else if (type.contains('catering')) {
+          Provider.of<CateringProvider>(activeContext, listen: false).fetchEnquiries(force: true);
+        }
+        
+        final notification = message.notification;
+        final data = message.data;
+        final title = notification?.title ?? data['title'] ?? 'New Notification!';
+        final body = notification?.body ?? data['body'] ?? '';
+
+        toastification.show(
+          context: activeContext,
+          type: ToastificationType.success,
+          style: ToastificationStyle.flat,
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          description: Text(body),
+          alignment: Alignment.topCenter,
+          autoCloseDuration: const Duration(seconds: 5),
+          showProgressBar: true,
+        );
+      }
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationOpen);
+
+    RemoteMessage? initialMessage = await _fcm.getInitialMessage();
+    if (initialMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _handleNotificationOpen(initialMessage));
+    }
+  }
+
+  // Exposed globally so the background handler in main.dart can call it
+  static Future<void> showRichNotificationFromData(Map<String, dynamic> data) async {
+    final FlutterLocalNotificationsPlugin localNotifications = FlutterLocalNotificationsPlugin();
+    
+    // Ensure channel exists
+    final androidImplementation = localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (androidImplementation != null) {
+      await androidImplementation.createNotificationChannel(_channel);
+    }
+
+    final String title = data['title'] ?? 'New Notification!';
+    final String body = data['body'] ?? '';
+    final String? imageUrl = data['image'] ?? data['imageUrl'];
+    final String type = (data['type'] ?? 'new_order').toString().toLowerCase();
+    final bool isOrder = type.contains('order');
+    final bool isReservation = type.contains('reservation');
+    final bool isCatering = type.contains('catering');
+
+    ByteArrayAndroidBitmap? largeIconBitmap;
+    StyleInformation styleInformation = BigTextStyleInformation(
+      body,
+      htmlFormatBigText: true,
+      contentTitle: '<b>$title</b>',
+      htmlFormatContentTitle: true,
+    );
+
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      try {
+        final response = await http.get(Uri.parse(imageUrl));
+        if (response.statusCode == 200) {
+          final imageBytes = response.bodyBytes;
+          largeIconBitmap = ByteArrayAndroidBitmap(imageBytes);
+          styleInformation = BigPictureStyleInformation(
+            ByteArrayAndroidBitmap(imageBytes),
+            largeIcon: ByteArrayAndroidBitmap(imageBytes),
+            contentTitle: '<b>$title</b>',
+            htmlFormatContentTitle: true,
+            summaryText: body,
+            htmlFormatSummaryText: true,
+          );
+        }
+      } catch (e) {
+        debugPrint('Error downloading background image: $e');
+      }
+    }
+
+    int notificationId = data.hashCode;
+    if (data['orderId'] != null) {
+      notificationId = data['orderId'].hashCode;
+    } else if (data['entityId'] != null) {
+      notificationId = data['entityId'].hashCode;
+    }
+
+    final List<AndroidNotificationAction> actions = [];
+    if (isOrder) {
+      actions.add(const AndroidNotificationAction('view_order', 'View Order', showsUserInterface: true));
+    } else if (isReservation) {
+      actions.add(const AndroidNotificationAction('view_reservation', 'View Reservation', showsUserInterface: true));
+    } else if (isCatering) {
+      actions.add(const AndroidNotificationAction('view_catering', 'View Inquiry', showsUserInterface: true));
+    }
+
+    await localNotifications.show(
+      id: notificationId,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channel.id,
+          _channel.name,
+          channelDescription: _channel.description,
+          icon: '@drawable/ic_notification',
+          largeIcon: largeIconBitmap,
+          color: const Color(0xFFDC2626), 
+          styleInformation: styleInformation,
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          sound: const RawResourceAndroidNotificationSound('new_order_sound'),
+          fullScreenIntent: isOrder,
+          additionalFlags: isOrder ? Int32List.fromList(<int>[4]) : null, // FLAG_INSISTENT loops only for orders
+          actions: actions.isNotEmpty ? actions : null,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+          sound: 'new_order_sound.wav',
+        ),
+      ),
+      payload: jsonEncode(data),
+    );
+  }
+
+  Future<void> _showRichNotification(RemoteMessage message) async {
+    final notification = message.notification;
+    final data = message.data;
+
+    // Merge notification into data so we can reuse the logic
+    final mergedData = Map<String, dynamic>.from(data);
+    if (notification != null) {
+      mergedData['title'] = notification.title ?? mergedData['title'];
+      mergedData['body'] = notification.body ?? mergedData['body'];
+      if (notification.android?.imageUrl != null) {
+        mergedData['image'] = notification.android?.imageUrl;
+      }
+    }
+
+    await showRichNotificationFromData(mergedData);
+  }
+
+
+
+  void _onNotificationTap(NotificationResponse response) {
+    if (response.payload == null || response.payload!.isEmpty) {
+      _navigateFromData({});
+      return;
+    }
+    try {
+      final data = jsonDecode(response.payload!) as Map<String, dynamic>;
+      _navigateFromData(data);
+    } catch (e) {
+      debugPrint('Error parsing notification payload: $e');
+      _navigateFromData({});
+    }
+  }
+
+  void _handleNotificationOpen(RemoteMessage message) {
+    _navigateFromData(message.data);
+  }
+
+  void _navigateFromData(Map<String, dynamic> data) {
+    final context = rootNavigatorKey.currentContext;
+    if (context == null) return;
+    
+    final type = (data['type'] ?? '').toString().toLowerCase();
+    final url = (data['actionUrl'] ?? '').toString();
+    final orderId = data['orderId']?.toString() ?? '';
+
+    // Extract ID from URL if orderId not provided directly
+    String id = orderId;
+    if (id.isEmpty && url.isNotEmpty) {
+      final segments = url.split('/');
+      if (segments.isNotEmpty) {
+        id = segments.last;
+      }
+    }
+
+    if (type.contains('order')) {
+      if (id.isNotEmpty && id.length == 24) {
+        context.push('/order-details/$id');
+      } else {
+        context.push('/live-orders');
+      }
+    } else if (type.contains('reservation')) {
+      context.push('/reservations');
+    } else if (type.contains('catering')) {
+      context.push('/catering');
+    } else {
+      context.push('/live-orders'); // fallback
+    }
+  }
+
+  void _syncTokenWithBackend(BuildContext context, String token) {
+    Future.microtask(() async {
+      if (!context.mounted) return;
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.user?['restaurantId'] != null) {
+        try {
+          final response = await http.post(
+            Uri.parse('${ApiService.baseUrl}/api/auth/me/fcm-token'),
+            headers: ApiService.buildHeaders(),
+            body: jsonEncode({'fcmToken': token}),
+          );
+          debugPrint("FCM Token sync response: ${response.statusCode} - ${response.body}");
+          if (response.statusCode == 200) {
+            debugPrint("✅ Merchant FCM Token saved successfully");
+          } else {
+            debugPrint("❌ FCM Token save failed: ${response.statusCode}");
+          }
+        } catch (e) {
+          debugPrint("❌ Failed to update merchant FCM token: $e");
+        }
+      } else {
+        debugPrint("⚠️ No restaurantId found, skipping FCM token sync");
+      }
+    });
+  }
+}

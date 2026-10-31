@@ -1,0 +1,305 @@
+import mongoose from 'mongoose';
+import crypto from 'crypto';
+import { USER_ROLE_VALUES } from '../config/constants.js';
+
+const UserSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: [true, 'Name is required'],
+    trim: true,
+    maxlength: [100, 'Name cannot exceed 100 characters']
+  },
+  email: {
+    type: String,
+    required: [true, 'Email is required'],
+    unique: true,
+    lowercase: true,
+    trim: true,
+    match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address']
+  },
+  password: {
+    type: String,
+    required: true
+  },
+  salt: {
+    type: String,
+    required: true
+  },
+  passwordAlgorithm: {
+    type: String,
+    enum: ['scrypt', 'scrypt_tuned'],
+    default: undefined
+  },
+  twoFactorSecret: {
+    type: String,
+    default: null
+  },
+  isTwoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
+  phone: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  hasAcceptedTerms: {
+    type: Boolean,
+    default: false
+  },
+  termsAcceptedAt: {
+    type: Date,
+    default: null
+  },
+  avatar: {
+    type: String,
+    default: null
+  },
+  role: {
+    type: String,
+    enum: USER_ROLE_VALUES,
+    default: 'customer'
+  },
+
+  // ── Linked Resources ──────────────────────────────────────────────────
+  restaurantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Restaurant',
+    default: null
+  },
+
+  // ── Addresses ─────────────────────────────────────────────────────────
+  savedAddresses: [{
+    label: { type: String, default: 'Home' },
+    address: { type: String, required: true },
+    lat: { type: Number, default: null },
+    lng: { type: Number, default: null },
+    isDefault: { type: Boolean, default: false }
+  }],
+
+  // ── Favorites ─────────────────────────────────────────────────────────
+  favoriteRestaurants: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Restaurant'
+  }],
+  favoriteItems: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'MenuItem'
+  }],
+
+  // ── Saved Cart ────────────────────────────────────────────────────────
+  savedCart: {
+    tenantId: { type: String, default: 'marketplace' },
+    restaurant: {
+      _id: { type: String, default: null },
+      name: { type: String, default: '' },
+      address: { type: String, default: '' },
+      phone: { type: String, default: '' },
+      deliveryFee: { type: Number, default: 0 },
+      taxRate: { type: Number, default: null }
+    },
+    items: [{
+      menuItemId: { type: String, required: true },
+      name: { type: String, required: true },
+      price: { type: Number, required: true },
+      image: { type: String, default: null },
+      quantity: { type: Number, default: 1, min: 1, max: 99 },
+      qty: { type: Number, default: 1, min: 1, max: 99 },
+      selectedSize: { type: mongoose.Schema.Types.Mixed, default: null },
+      addOns: [{ type: mongoose.Schema.Types.Mixed }],
+      specialInstructions: { type: String, default: '' },
+      lineTotal: { type: Number, default: 0 }
+    }],
+    specialInstructions: { type: String, default: '' },
+    updatedAt: { type: Date, default: null }
+  },
+
+  // ── Loyalty ───────────────────────────────────────────────────────────
+  loyaltyPoints: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  isLoyaltyMember: {
+    type: Boolean,
+    default: false
+  },
+  lastLoginBonusDate: {
+    type: Date,
+    default: null
+  },
+
+  // ── Social Login ──────────────────────────────────────────────────────
+  socialLogin: {
+    googleId: { type: String, default: null },
+    appleId: { type: String, default: null },
+    facebookId: { type: String, default: null }
+  },
+
+  // ── Notification Preferences ──────────────────────────────────────────
+  notificationPreferences: {
+    email: { type: Boolean, default: true },
+    push: { type: Boolean, default: true },
+    sms: { type: Boolean, default: false },
+    marketing: { type: Boolean, default: true }
+  },
+
+  // ── Push Notifications ────────────────────────────────────────────────
+  fcmTokens: [{
+    type: String,
+    default: []
+  }],
+
+  // ── Verification & Security ───────────────────────────────────────────
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailOtp: {
+    type: String,
+    default: null
+  },
+  emailOtpExpiry: {
+    type: Date,
+    default: null
+  },
+  otpAttempts: {
+    type: Number,
+    default: 0
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  lastLogin: {
+    type: Date,
+    default: null
+  },
+  loginPlatforms: [{
+    type: String,
+    enum: ['web', 'app', 'merchant_app']
+  }],
+
+  // ── Login Lockout & Sessions ──────────────────────────────────────────
+  failedLoginAttempts: {
+    type: Number,
+    default: 0
+  },
+  loginLockedUntil: {
+    type: Date,
+    default: null
+  },
+  tokenVersion: {
+    type: Number,
+    default: 0
+  },
+
+  // ── Stripe Customer & Payments ─────────────────────────────────────────
+  stripeCustomerId: {
+    type: String,
+    default: null
+  },
+  savedCards: [{
+    cardId: { type: String, required: true },
+    title: { type: String, default: 'Personal Card' },
+    brand: { type: String, required: true }, // visa, mastercard, etc.
+    last4: { type: String, required: true },
+    expMonth: { type: Number, required: true },
+    expYear: { type: Number, required: true },
+    isDefault: { type: Boolean, default: false }
+  }],
+
+  // ── Referrals ─────────────────────────────────────────────────────────
+  referralCode: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  // 'none' = existing/legacy user, 'pending' = new sign-up that should see the
+  // "Have a referral code?" screen, 'applied' = code redeemed, 'skipped' = dismissed.
+  referralOnboarding: {
+    type: String,
+    enum: ['none', 'pending', 'applied', 'skipped'],
+    default: 'none'
+  },
+  signupIp: { type: String, default: null, select: false },
+
+  // ── Password Reset ───────────────────────────────────────────────────────
+  resetPasswordToken: {
+    type: String,
+    default: null
+  },
+  resetPasswordExpires: {
+    type: Date,
+    default: null
+  }
+}, { timestamps: true });
+
+// ── Indexes ─────────────────────────────────────────────────────────────────
+UserSchema.index({ role: 1 });
+UserSchema.index({ 'socialLogin.googleId': 1 }, { sparse: true });
+UserSchema.index({ 'socialLogin.facebookId': 1 }, { sparse: true });
+UserSchema.index({ 'socialLogin.appleId': 1 }, { sparse: true });
+
+// ── Password hashing (scrypt) ───────────────────────────────────────────────
+const SCRYPT_OPTIONS = { N: 32768, r: 8, p: 1, maxmem: 128 * 1024 * 1024 };
+
+UserSchema.methods.setPassword = function (password) {
+  this.salt = crypto.randomBytes(16).toString('hex');
+  this.password = crypto.scryptSync(password, this.salt, 64, SCRYPT_OPTIONS).toString('hex');
+  this.passwordAlgorithm = 'scrypt_tuned';
+};
+
+UserSchema.methods.validatePassword = function (password) {
+  const storedHash = Buffer.from(this.password, 'hex');
+  const candidateHash = this.passwordAlgorithm === 'scrypt_tuned'
+    ? crypto.scryptSync(password, this.salt, 64, SCRYPT_OPTIONS)
+    : this.passwordAlgorithm === 'scrypt'
+      ? crypto.scryptSync(password, this.salt, 64)
+      : crypto.pbkdf2Sync(password, this.salt, 1000, 64, 'sha512');
+
+  return storedHash.length === candidateHash.length &&
+    crypto.timingSafeEqual(storedHash, candidateHash);
+};
+
+UserSchema.methods.needsPasswordRehash = function () {
+  return this.passwordAlgorithm !== 'scrypt_tuned';
+};
+
+// ── Password Reset Token ────────────────────────────────────────────────────
+UserSchema.methods.createPasswordResetToken = function () {
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  this.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+  this.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 60 minutes
+  return resetToken;
+};
+
+// ── JSON sanitization (remove sensitive fields) ─────────────────────────────
+UserSchema.methods.toSafeJSON = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  delete obj.salt;
+  delete obj.passwordAlgorithm;
+  delete obj.twoFactorSecret;
+  delete obj.resetPasswordToken;
+  delete obj.resetPasswordExpires;
+  delete obj.failedLoginAttempts;
+  delete obj.loginLockedUntil;
+  delete obj.emailOtp;
+  delete obj.signupIp;
+  delete obj.emailOtpExpiry;
+  delete obj.__v;
+  return obj;
+};
+
+const User = mongoose.model('User', UserSchema);
+export default User;

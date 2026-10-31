@@ -1,0 +1,2785 @@
+import mongoose from 'mongoose';
+import xss from 'xss';
+import Order from '../models/Order.js';
+import Restaurant from '../models/Restaurant.js';
+import Table from '../models/Table.js';
+import Payment from '../models/Payment.js';
+import LoyaltyTransaction from '../models/LoyaltyTransaction.js';
+import IdempotencyLock from '../models/IdempotencyLock.js';
+import User from '../models/User.js';
+import AuditLog from '../models/AuditLog.js';
+import { getTenantModel } from '../utils/tenant.js';
+import asyncHandler from '../utils/asyncHandler.js';
+import { AppError } from '../middleware/errorHandler.js';
+import * as res from '../utils/responseFormatter.js';
+import { withOptimisticRetry } from '../utils/optimisticRetry.js';
+import { triggerDelivery, getBestDeliveryQuote, cancelDelivery } from '../services/deliveryAggregatorService.js';
+import { validateDeliveryDistance } from '../utils/distance.js';
+import { buildOrderSocketPayload, syncDeliveryTracking } from '../services/deliverySyncService.js';
+import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
+import { retrievePaymentIntent, refundPayment as refundStripePayment, chargeSavedCard, createCheckoutSession, expireCheckoutSession } from '../services/stripeService.js';
+import { calculateOrderPricing, roundMoney } from '../services/orderPricing.js';
+import { sendOrderConfirmationEmail, sendInvoiceEmail, sendPaymentLinkEmail, sendGuestOrderWelcomeEmail } from '../services/emailService.js';
+import { generateInvoiceHTML, generateKOTHTML } from '../services/documentService.js';
+import { createNotification } from './notificationController.js';
+import { getNotificationImageUrl } from '../utils/imageUrl.js';
+import { sendPushNotification } from '../services/webPushService.js';
+import { sendOrderAlert, sendInvoiceWhatsApp } from '../services/whatsappService.js';
+import logger from '../utils/logger.js';
+import { handleOrderPlaced, handleOrderDelivered, handleOrderReverted } from '../services/referralService.js';
+import { extractDeviceContext } from '../utils/deviceInfo.js';
+import { logAuditEvent } from '../utils/auditLogger.js';
+import { scheduleOrDispatch, dispatchOrder } from '../services/dispatch/dispatchService.js';
+import { emitDispatchUpdated } from '../services/dispatch/dispatchEvents.js';
+import { DISPATCH_BY, DISPATCH_STATUSES } from '../services/dispatch/dispatchConfig.js';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET';
+const CUSTOMER_PAYMENT_METHODS = ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online', 'wallet', 'cash'];
+const STRIPE_REFUND_PAYMENT_METHODS = ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'];
+
+const autoSendInvoice = async (order) => {
+  if (!order) return;
+  if (order.customerEmail) {
+    sendInvoiceEmail(order.customerEmail, order).catch(err => logger.error('Auto invoice email error', err));
+  }
+  if (order.customerPhone && order.customerPhone !== '0000000000') {
+    sendInvoiceWhatsApp(order.customerPhone, order).catch(err => logger.error('Auto invoice WhatsApp error', err));
+  }
+};
+
+/**
+ * pushPaymentEvent — safely appends a structured event to order.paymentEvents.
+ * Does NOT call order.save() — caller is responsible for persistence.
+ *
+ * @param {Object} order  - Mongoose order document
+ * @param {string} event  - event name from PaymentEventSchema enum
+ * @param {Object} extras - optional { amount, stripeRefundId, stripePaymentIntentId, error, reason, triggeredBy, meta }
+ */
+const pushPaymentEvent = (order, event, extras = {}) => {
+  if (!order || !order.paymentEvents) return;
+  order.paymentEvents.push({
+    event,
+    timestamp: new Date(),
+    amount: extras.amount ?? null,
+    stripeRefundId: extras.stripeRefundId ?? null,
+    stripePaymentIntentId: extras.stripePaymentIntentId ?? null,
+    error: extras.error ?? null,
+    reason: extras.reason ?? null,
+    triggeredBy: extras.triggeredBy ?? 'system',
+    meta: extras.meta ?? null
+  });
+};
+
+const canManageRestaurant = (user, restaurantId) => {
+  if (user.role === 'admin') return true;
+  return user.restaurantId?.toString() === restaurantId?.toString();
+};
+
+export const ensureCanManageRestaurant = (user, restaurantId) => {
+  if (!canManageRestaurant(user, restaurantId)) {
+    throw new AppError('You can only manage orders for your own restaurant', 403);
+  }
+};
+
+export const rollbackLoyaltyPoints = async (order, reason = 'cancellation') => {
+  if (!order.userId) return;
+  // referral program: give the friend's coupon back / claw back the referrer reward
+  const referralTenantId = order.constructor.db.name;
+  await handleOrderReverted({ getModel: (name) => getTenantModel(referralTenantId, name), order });
+  if (order.loyaltyRollbackProcessed) return;
+
+  const pointsUsed = order.loyaltyPointsUsed || 0;
+  const pointsEarned = order.loyaltyPointsAwarded ? (order.loyaltyPointsEarned || 0) : 0;
+
+  if (pointsUsed === 0 && pointsEarned === 0) {
+    order.loyaltyRollbackProcessed = true;
+    await order.save();
+    return;
+  }
+
+  try {
+    const tenantId = order.constructor.db.name;
+    const UserModel = getTenantModel(tenantId, 'User');
+    const LoyaltyTransactionModel = getTenantModel(tenantId, 'LoyaltyTransaction');
+
+    const user = await UserModel.findById(order.userId);
+    if (!user) {
+      logger.error('User not found during loyalty rollback', { userId: order.userId, orderId: order._id });
+      return;
+    }
+
+    const currentPoints = user.loyaltyPoints || 0;
+    // pointsUsed is refunded (added back), pointsEarned is revoked (subtracted)
+    let newBalance = currentPoints + pointsUsed - pointsEarned;
+    if (newBalance < 0) newBalance = 0;
+
+    user.loyaltyPoints = newBalance;
+    await user.save();
+
+    // log the rollback transaction(s)
+    if (pointsUsed > 0) {
+      await LoyaltyTransactionModel.create({
+        userId: order.userId,
+        orderId: order._id,
+        type: 'adjustment',
+        points: pointsUsed,
+        balanceAfter: newBalance,
+        description: `Refunded points from cancelled/refunded order #${order.orderNumber || order._id}`
+      });
+    }
+
+    if (pointsEarned > 0) {
+      await LoyaltyTransactionModel.create({
+        userId: order.userId,
+        orderId: order._id,
+        type: 'adjustment',
+        points: -pointsEarned, // negative points to denote subtraction
+        balanceAfter: newBalance,
+        description: `Revoked earned points from cancelled/refunded order #${order.orderNumber || order._id}`
+      });
+    }
+
+    order.loyaltyRollbackProcessed = true;
+    await order.save();
+
+
+    logger.info('Loyalty points rollback completed successfully', {
+      orderId: order._id,
+      userId: order.userId,
+      refunded: pointsUsed,
+      revoked: pointsEarned,
+      newBalance,
+      reason
+    });
+  } catch (err) {
+    logger.error('Error occurred during loyalty points rollback', {
+      orderId: order._id,
+      error: err.message
+    });
+  }
+};
+
+export const awardLoyaltyPoints = async (order) => {
+  if (!order.userId) return;
+  // referral program: pay the referrer once the friend's first order is delivered
+  const referralTenantId = order.constructor.db.name;
+  await handleOrderDelivered({ getModel: (name) => getTenantModel(referralTenantId, name), order });
+  if (order.loyaltyPointsAwarded) return;
+  if ((order.loyaltyPointsEarned || 0) <= 0) return;
+
+  try {
+    const tenantId = order.constructor.db.name;
+    const OrderModel = getTenantModel(tenantId, 'Order');
+
+    // atomic guard: Only one thread will successfully set loyaltyPointsAwarded from false to true
+    const updatedOrder = await OrderModel.findOneAndUpdate(
+      { _id: order._id, loyaltyPointsAwarded: false },
+      { $set: { loyaltyPointsAwarded: true } }
+    );
+
+    if (!updatedOrder) {
+      // points were already awarded concurrently
+      return;
+    }
+    // update local instance so the caller sees the new state
+    order.loyaltyPointsAwarded = true;
+
+    const UserModel = getTenantModel(tenantId, 'User');
+    const LoyaltyTransactionModel = getTenantModel(tenantId, 'LoyaltyTransaction');
+
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      order.userId,
+      { $inc: { loyaltyPoints: order.loyaltyPointsEarned } },
+      { new: true }
+    );
+
+    if (updatedUser) {
+      await LoyaltyTransactionModel.create({
+        userId: order.userId,
+        orderId: order._id,
+        type: 'earned',
+        points: order.loyaltyPointsEarned,
+        balanceAfter: updatedUser.loyaltyPoints,
+        description: `Earned from Order #${order.orderNumber || order._id}`
+      });
+
+      await order.save();
+      logger.info('Loyalty points awarded on delivery', { orderId: order._id, userId: order.userId, points: order.loyaltyPointsEarned });
+    }
+  } catch (err) {
+    logger.error('Error awarding loyalty points', { orderId: order._id, error: err.message });
+  }
+};
+
+const getPaymentModelForOrder = (order, getModel) => {
+  if (typeof getModel === 'function') return getModel('Payment');
+  const tenantId = order.constructor?.db?.name;
+  return tenantId ? getTenantModel(tenantId, 'Payment') : Payment;
+};
+
+const issueStripeRefund = async (paymentIntentId, amount, idempotencyKey = null) => {
+  if (paymentIntentId?.startsWith('pi_test_mock_') && process.env.NODE_ENV !== 'production') {
+    return { id: `re_mock_${Date.now()}` };
+  }
+  return refundStripePayment(paymentIntentId, amount, { idempotencyKey });
+};
+
+const recordPaymentRefund = async ({ order, amount, reason, stripeRefundId, refundedBy = null, getModel }) => {
+  const PaymentModel = getPaymentModelForOrder(order, getModel);
+  const nextRefundedTotal = roundMoney((order.refundAmount || 0) + amount);
+  const nextStatus = nextRefundedTotal >= roundMoney(order.total) ? 'refunded' : 'partially_refunded';
+
+  const payment = await PaymentModel.findOneAndUpdate(
+    { orderId: order._id },
+    {
+      $push: {
+        refunds: {
+          amount,
+          reason,
+          stripeRefundId,
+          refundedBy
+        }
+      },
+      $inc: { totalRefunded: amount },
+      $set: { status: nextStatus }
+    },
+    { new: true }
+  );
+
+  if (!payment) {
+    logger.warn('Payment record not found while recording refund', { orderId: order._id });
+  }
+
+  return { nextRefundedTotal, nextStatus };
+};
+
+export const processAutoRefund = async (order, reason, io, getModel) => {
+  if (order.refunded || order.paymentStatus === 'refunded') {
+    return { processed: false, skipped: true, reason: 'already_refunded' };
+  }
+
+  if (!['paid', 'partially_refunded'].includes(order.paymentStatus)) {
+    return { processed: false, skipped: true, reason: 'not_paid' };
+  }
+
+  const Restaurant = getModel('Restaurant');
+  const restaurant = await Restaurant.findById(order.restaurantId).select('autoRefundEnabled');
+  
+  if (restaurant && restaurant.autoRefundEnabled === false) {
+    logger.info(`Auto-refund skipped for order ${order._id}: autoRefundEnabled is false for restaurant`);
+    
+    // log skipped event
+    pushPaymentEvent(order, 'auto_refund_skipped', {
+      error: 'Auto-refund is disabled in restaurant settings',
+      reason,
+      triggeredBy: 'system'
+    });
+    
+    return { processed: false, skipped: true, reason: 'disabled_in_settings' };
+  }
+
+
+  const remainingAmount = roundMoney((order.total || 0) - (order.refundAmount || 0));
+  if (remainingAmount <= 0) {
+    order.refunded = true;
+    order.paymentStatus = 'refunded';
+    await order.save();
+    return { processed: false, skipped: true, reason: 'no_remaining_amount' };
+  }
+
+  if (!order.stripePaymentIntentId) {
+    logger.error('Cannot auto-refund paid order without Stripe PaymentIntent', { orderId: order._id });
+    return { processed: false, error: 'missing_stripe_payment_intent' };
+  }
+
+  // log: auto_refund_triggered
+  pushPaymentEvent(order, 'auto_refund_triggered', {
+    amount: remainingAmount,
+    stripePaymentIntentId: order.stripePaymentIntentId,
+    reason,
+    triggeredBy: 'system'
+  });
+
+  try {
+    const refund = await issueStripeRefund(
+      order.stripePaymentIntentId,
+      remainingAmount,
+      `auto-refund-${order._id}-${Math.round(remainingAmount * 100)}`
+    );
+    const { nextRefundedTotal, nextStatus } = await recordPaymentRefund({
+      order,
+      amount: remainingAmount,
+      reason,
+      stripeRefundId: refund.id,
+      getModel
+    });
+
+    order.paymentStatus = nextStatus;
+    order.refunded = nextStatus === 'refunded';
+    order.refundAmount = nextRefundedTotal;
+    order.refundReason = reason;
+    order.statusUpdates.push({
+      status: order.status,
+      description: `Auto-refunded $${remainingAmount.toFixed(2)}: ${reason}`
+    });
+
+    // log: auto_refund_succeeded
+    pushPaymentEvent(order, 'auto_refund_succeeded', {
+      amount: remainingAmount,
+      stripeRefundId: refund.id,
+      stripePaymentIntentId: order.stripePaymentIntentId,
+      reason,
+      triggeredBy: 'system'
+    });
+
+    await order.save();
+    logger.info('Auto-refunded order', { orderId: order._id, refundAmount: remainingAmount, stripeRefundId: refund.id });
+    return { processed: true, amount: remainingAmount, stripeRefundId: refund.id };
+  } catch (stripeError) {
+    // log: auto_refund_failed
+    pushPaymentEvent(order, 'auto_refund_failed', {
+      amount: remainingAmount,
+      stripePaymentIntentId: order.stripePaymentIntentId,
+      error: stripeError.message,
+      reason,
+      triggeredBy: 'system'
+    });
+    await order.save().catch(saveErr =>
+      logger.error('Failed to save auto_refund_failed event', { orderId: order._id, error: saveErr.message })
+    );
+    logger.error('Failed to auto-refund order', { orderId: order._id, error: stripeError.message });
+    return { processed: false, error: stripeError.message };
+  }
+};
+
+const verifyCardPayment = async ({ paymentMethod, stripePaymentIntentId, expectedTotal, userId, customerEmail }) => {
+  if (!['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(paymentMethod)) {
+    return { paymentStatus: ['cash', 'payment_link'].includes(paymentMethod) ? 'pending' : 'paid' };
+  }
+
+  if (!stripePaymentIntentId) {
+    throw new AppError('Payment confirmation is required before placing this order', 400);
+  }
+
+  if (stripePaymentIntentId.startsWith('pi_test_mock_')) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new AppError('Test/mock payments are not allowed in production', 400);
+    }
+    return { paymentStatus: 'paid' };
+  }
+
+  const paymentIntent = await retrievePaymentIntent(stripePaymentIntentId);
+  if (paymentIntent.status !== 'succeeded') {
+    throw new AppError('Payment has not been completed', 402);
+  }
+
+  if (paymentIntent.metadata?.userId && paymentIntent.metadata.userId !== 'guest' && userId && paymentIntent.metadata.userId !== userId.toString()) {
+    throw new AppError('Payment does not belong to this customer', 403);
+  }
+
+  if (paymentIntent.metadata?.userId === 'guest' && paymentIntent.metadata?.customerEmail && customerEmail) {
+    if (paymentIntent.metadata.customerEmail.toLowerCase().trim() !== customerEmail.toLowerCase().trim()) {
+      throw new AppError('Payment email mismatch', 403);
+    }
+  }
+
+  const paidAmount = roundMoney(paymentIntent.amount_received / 100);
+  if (paidAmount !== roundMoney(expectedTotal)) {
+    throw new AppError('Paid amount does not match current order total. Please refresh checkout and try again.', 400);
+  }
+
+  return { paymentStatus: 'paid' };
+};
+
+export const createShipdayDeliveryForOrder = async (order, reason = DISPATCH_BY.IMMEDIATE) => {
+  if (order.orderType !== 'delivery' || order.deliveryId) return order;
+  return await dispatchOrder(order._id, reason, { orderDoc: order });
+};
+
+const getTrustedDeliveryQuote = async ({ restaurant, address, subtotal, scheduledTime }) => {
+  if (!address) return { deliveryFee: 0, quote: null };
+
+  try {
+    const quote = await getBestDeliveryQuote(restaurant.address, address, subtotal || 10, scheduledTime);
+    return {
+      deliveryFee: roundMoney(quote.fee || 0),
+      quote
+    };
+  } catch (err) {
+    // Delivery fee is mandatory. Do not fallback to 0 or fixed fee to avoid restaurant loss.
+    throw new AppError('Unable to calculate delivery fee for this address. Please check the address and try again, or contact support.', 400);
+  }
+};
+
+// ── Customer ────────────────────────────────────────────────────────────────
+
+// ─── Payment Link Redirection ───────────────────────────────────────────────
+
+export const redirectToPayment = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const OrderModel = req.getModel('Order');
+
+  const order = await OrderModel.findById(id);
+  if (!order) {
+    return res.status(404).send('Order not found');
+  }
+
+  if (order.paymentStatus === 'paid') {
+    return res.status(400).send('Order is already paid');
+  }
+
+  if (order.paymentLinkUrl) {
+    return res.redirect(order.paymentLinkUrl);
+  }
+
+  // If no link exists, generate one
+  const session = await createCheckoutSession(order, req.tenantId || 'lassi-lounge');
+  order.paymentLinkUrl = session.url;
+  await order.save();
+
+  return res.redirect(session.url);
+});
+
+export const handleStripeWebhookSuccess = async (orderId, paymentIntentId, dbName, io) => {
+  const targetDb = mongoose.connection.useDb(dbName, { useCache: true });
+  const OrderModel = targetDb.model('Order', Order.schema);
+  const RestaurantModel = targetDb.model('Restaurant', Restaurant.schema);
+
+  const order = await OrderModel.findById(orderId);
+  if (!order || order.status !== 'pending') return;
+
+  const restaurant = await RestaurantModel.findById(order.restaurantId);
+  const shouldAutoAccept = restaurant?.autoAcceptOrders || order.orderSource === 'merchant_app' || order.paymentMethod === 'payment_link';
+
+  order.paymentStatus = 'paid';
+  if (paymentIntentId) {
+    order.stripePaymentIntentId = paymentIntentId;
+  }
+
+  if (shouldAutoAccept) {
+    order.status = 'accepted';
+    order.statusUpdates.push({
+      status: 'accepted',
+      description: 'Order auto-accepted after successful payment link checkout',
+      timestamp: new Date()
+    });
+  }
+
+  // Auto-send invoice on successful payment
+  autoSendInvoice(order);
+
+  await order.save();
+
+  if (io) {
+    io.to(order.restaurantId.toString()).emit('order_updated', order);
+    io.to(order.restaurantId.toString()).emit('new_order', {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      items: order.items.length,
+      total: order.total
+    });
+  }
+};
+
+export const createOrder = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const Restaurant = req.getModel('Restaurant');
+  const Table = req.getModel('Table');
+  const Payment = req.getModel('Payment');
+  const LoyaltyTransaction = req.getModel('LoyaltyTransaction');
+  const User = req.getModel('User');
+
+  const {
+    restaurantId, items, address, addressLat, addressLng,
+    orderType = 'delivery', paymentMethod = 'credit_card',
+    tip = 0, couponCode, courierNotes, specialInstructions, scheduledTime, tableNumber,
+    stripePaymentIntentId, useLoyaltyPoints = false, savedCardId,
+    customerPhone, customerName, customerEmail, orderSource, platform: bodyPlatform
+  } = req.body;
+  const platform = orderSource || bodyPlatform || req.headers['x-platform'] || 'web';
+
+  if (!restaurantId || !items?.length) {
+    throw new AppError('restaurantId and items are required', 400);
+  }
+
+  // ── Resolve Target User (Authenticated User vs. Guest Checkout) ──
+  let targetUser = req.user || null;
+  let isNewAccountCreated = false;
+  let setPasswordUrl = null;
+
+  if (!targetUser) {
+    if (!customerEmail || !customerEmail.trim()) {
+      throw new AppError('Email address is required for checkout', 400);
+    }
+    if (!customerName || !customerName.trim()) {
+      throw new AppError('Full name is required for checkout', 400);
+    }
+    const hasEmoji = (str) => Boolean(str && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(str));
+    if (hasEmoji(customerName) || !/^[a-zA-Z0-9\s\-'.@_+]+$/.test(customerName.trim())) {
+      throw new AppError('Name contains restricted characters or emojis. Please use standard letters and numbers only.', 400);
+    }
+    if (hasEmoji(customerEmail) || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(customerEmail.trim())) {
+      throw new AppError('Emojis are not allowed in email addresses. Please provide a standard email address.', 400);
+    }
+    if (orderType === 'delivery' && (!customerPhone || !customerPhone.trim())) {
+      throw new AppError('Phone number is required for delivery orders', 400);
+    }
+
+    const normalizedEmail = customerEmail.toLowerCase().trim();
+    const existingUser = await User.findOne({ email: normalizedEmail });
+
+    if (existingUser) {
+      targetUser = existingUser;
+    } else {
+      const randomPassword = crypto.randomBytes(16).toString('hex') + 'A1!';
+      const newUser = new User({
+        name: customerName.trim(),
+        email: normalizedEmail,
+        phone: customerPhone?.trim() || '',
+        role: 'customer',
+        isEmailVerified: true,
+        isVerified: true,
+        referralOnboarding: 'none'
+      });
+      newUser.setPassword(randomPassword);
+      let referralCode;
+      for (let attempts = 0; attempts < 5; attempts++) {
+        const code = crypto.randomBytes(3).toString('hex').toUpperCase();
+        const exists = await User.exists({ referralCode: code });
+        if (!exists) {
+          referralCode = code;
+          break;
+        }
+      }
+      newUser.referralCode = referralCode || crypto.randomBytes(4).toString('hex').toUpperCase();
+      const rawResetToken = newUser.createPasswordResetToken();
+      await newUser.save();
+
+      targetUser = newUser;
+      isNewAccountCreated = true;
+
+      const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      setPasswordUrl = `${frontendUrl}/reset-password?token=${rawResetToken}&email=${encodeURIComponent(normalizedEmail)}&welcome=1`;
+    }
+  }
+
+  // prevent double-submit / accidental duplicate orders (15 seconds debounce) - ATOMIC LOCK
+  try {
+    await IdempotencyLock.create({ userId: targetUser ? targetUser._id : (customerEmail || req.ip), restaurantId });
+  } catch (error) {
+    if (error.code === 11000) {
+      throw new AppError('You just placed an order. Please wait a moment before placing another one.', 429);
+    }
+    // if it's a different error, just log and allow the order to proceed rather than blocking checkout
+    logger.warn('Failed to create idempotency lock', { error: error.message });
+  }
+
+  // M6: Limit maximum items per order to prevent abuse
+  if (items.length > 50) {
+    throw new AppError('Maximum 50 items per order', 400);
+  }
+  if (orderType === 'delivery' && !address) {
+    throw new AppError('Delivery address is required', 400);
+  }
+  // M4: Sanitize user-generated text fields
+  const sanitizedCourierNotes = courierNotes ? xss(String(courierNotes)).slice(0, 500) : '';
+  const isMerchantPosManualPayment =
+    ['merchant', 'admin'].includes(req.user?.role) &&
+    ['cash', 'payment_link'].includes(paymentMethod);
+
+  if (!CUSTOMER_PAYMENT_METHODS.includes(paymentMethod) && !isMerchantPosManualPayment) {
+    throw new AppError('Unsupported payment method for US customer checkout. Please use card, Apple Pay, or Google Pay.', 400);
+  }
+
+  const isObjectId = /^[a-fA-F0-9]{24}$/.test(restaurantId);
+  let restaurantCheck;
+  if (isObjectId) {
+    restaurantCheck = await Restaurant.findById(restaurantId);
+  } else {
+    restaurantCheck = await Restaurant.findOne({ $or: [{ slug: restaurantId }, { name: restaurantId }, { name: { $regex: /bhatur|lassi lounge/i } }] }) || await Restaurant.findOne();
+  }
+  if (!restaurantCheck) {
+    throw new AppError('Restaurant not found', 404);
+  }
+  // normalize restaurantId to ObjectId string for all downstream operations
+  const normalizedRestaurantId = restaurantCheck._id.toString();
+  if (restaurantCheck.isActive === false) {
+    throw new AppError('This restaurant is not accepting orders right now', 400);
+  }
+
+  // check if restaurant is open according to operating hours
+  const isRestaurantOpenNow = (operatingHours, timezoneStr) => {
+    if (!operatingHours) return true; // if no hours are set, assume open (or could fail-safe to false, but true is safer for migration)
+    
+    let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (timezoneStr) {
+      if (timezoneStr.includes('Eastern Time')) tz = 'America/New_York';
+      else if (timezoneStr.includes('Pacific Time')) tz = 'America/Los_Angeles';
+      else if (timezoneStr.includes('Indian Standard Time')) tz = 'Asia/Kolkata';
+    }
+    
+    const now = new Date();
+    
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+      weekday: 'long'
+    }).formatToParts(now);
+
+    const partObj = {};
+    parts.forEach(p => partObj[p.type] = p.value);
+    
+    const todayName = partObj.weekday.toLowerCase();
+    
+    const todayHours = operatingHours[todayName];
+    if (!todayHours || todayHours.isClosed || !todayHours.open || !todayHours.close) {
+      return false;
+    }
+    
+    let h = parseInt(partObj.hour, 10);
+    if (h === 24) h = 0;
+    const currentHour = String(h).padStart(2, '0');
+    const currentMinute = String(partObj.minute).padStart(2, '0');
+    const currentTime = `${currentHour}:${currentMinute}`;
+    
+    const getMinutes = (timeStr) => {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    const currentMins = getMinutes(currentTime);
+    const openMins = getMinutes(todayHours.open);
+    let closeMinsRaw = getMinutes(todayHours.close);
+    
+    if (closeMinsRaw < openMins) {
+      closeMinsRaw += 24 * 60; // add a day for overnight shifts
+    }
+    const closeMins = closeMinsRaw - 15; // 15-minute buffer
+    
+    let checkMins = currentMins;
+    if (checkMins < openMins) {
+       checkMins += 24 * 60; // adjust current time if after midnight but before open
+    }
+    
+    return checkMins >= openMins && checkMins <= closeMins;
+  };
+
+  const isWithin15MinsOfClosing = (operatingHours, timezoneStr) => {
+    if (!operatingHours) return false;
+    
+    let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (timezoneStr) {
+      if (timezoneStr.includes('Eastern Time')) tz = 'America/New_York';
+      else if (timezoneStr.includes('Pacific Time')) tz = 'America/Los_Angeles';
+      else if (timezoneStr.includes('Indian Standard Time')) tz = 'Asia/Kolkata';
+    }
+    
+    const now = new Date();
+    
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+      weekday: 'long'
+    }).formatToParts(now);
+
+    const partObj = {};
+    parts.forEach(p => partObj[p.type] = p.value);
+    
+    const todayName = partObj.weekday.toLowerCase();
+    
+    const todayHours = operatingHours[todayName];
+    if (!todayHours || todayHours.isClosed || !todayHours.open || !todayHours.close) {
+      return false;
+    }
+    
+    let h = parseInt(partObj.hour, 10);
+    if (h === 24) h = 0;
+    const currentHour = String(h).padStart(2, '0');
+    const currentMinute = String(partObj.minute).padStart(2, '0');
+    const currentTime = `${currentHour}:${currentMinute}`;
+    
+    const getMinutes = (timeStr) => {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    const currentMins = getMinutes(currentTime);
+    const openMins = getMinutes(todayHours.open);
+    let closeMinsRaw = getMinutes(todayHours.close);
+    
+    if (closeMinsRaw < openMins) {
+      closeMinsRaw += 24 * 60;
+    }
+    const closeMins = closeMinsRaw - 15;
+    
+    let checkMins = currentMins;
+    if (checkMins < openMins) {
+       checkMins += 24 * 60;
+    }
+    
+    return checkMins > closeMins && checkMins <= closeMinsRaw;
+  };
+
+  if (!isRestaurantOpenNow(restaurantCheck.operatingHours, restaurantCheck.timezone)) {
+    if (isWithin15MinsOfClosing(restaurantCheck.operatingHours, restaurantCheck.timezone)) {
+      throw new AppError("We're wrapping up for the day! We stop accepting new orders 15 minutes before closing time.", 400);
+    } else {
+      throw new AppError("The restaurant is currently closed. We are not accepting orders at this time.", 400);
+    }
+  }
+
+  // geo-distance serviceability check for delivery orders
+  if (orderType === 'delivery') {
+    validateDeliveryDistance(restaurantCheck, addressLat, addressLng);
+  }
+
+  const prePricing = await calculateOrderPricing({
+    restaurantId: normalizedRestaurantId,
+    items,
+    orderType,
+    tip,
+    couponCode,
+    userId: targetUser?._id,
+    customerPhone,
+    customerEmail,
+    useLoyaltyPoints,
+    paymentMethod,
+    getModel: req.getModel
+  });
+
+  let deliveryFeeOverride = null;
+  let deliveryProviderOverride = null;
+
+  if (stripePaymentIntentId) {
+    const paymentIntent = await retrievePaymentIntent(stripePaymentIntentId);
+    if (paymentIntent.metadata?.deliveryFee !== undefined) {
+      deliveryFeeOverride = Number(paymentIntent.metadata.deliveryFee);
+    }
+    if (paymentIntent.metadata?.deliveryProvider) {
+      deliveryProviderOverride = paymentIntent.metadata.deliveryProvider;
+    }
+  }
+
+  const deliveryQuote = (orderType === 'delivery' && deliveryFeeOverride === null)
+    ? await getTrustedDeliveryQuote({
+      restaurant: prePricing.restaurant,
+      address,
+      subtotal: prePricing.subtotal,
+      scheduledTime
+    })
+    : { deliveryFee: deliveryFeeOverride || 0, quote: { provider: deliveryProviderOverride } };
+
+  const pricing = await calculateOrderPricing({
+    restaurantId: normalizedRestaurantId,
+    items,
+    orderType,
+    tip,
+    couponCode,
+    userId: targetUser?._id,
+    customerPhone,
+    customerEmail,
+    useLoyaltyPoints,
+    paymentMethod,
+    deliveryFeeOverride: deliveryQuote.deliveryFee,
+    getModel: req.getModel
+  });
+
+  const { restaurant } = pricing;
+  let finalStripePaymentIntentId = stripePaymentIntentId;
+
+  if (savedCardId && !finalStripePaymentIntentId && paymentMethod === 'credit_card') {
+    if (!req.user?.stripeCustomerId) {
+      throw new AppError('No Stripe customer associated with this user', 400);
+    }
+
+    const savedCard = req.user.savedCards?.find(c => c._id.toString() === savedCardId || c.cardId === savedCardId);
+    if (!savedCard) {
+      throw new AppError('Saved card not found in your profile', 400);
+    }
+    const stripePaymentMethodId = savedCard.cardId;
+
+    const charge = await chargeSavedCard(pricing.total, req.user.stripeCustomerId, stripePaymentMethodId, {
+      userId: req.user._id.toString(),
+      tenantDbName: req.tenantDb?.name || 'daas_poc'
+    });
+    finalStripePaymentIntentId = charge.id;
+  }
+
+  const { paymentStatus } = await verifyCardPayment({
+    paymentMethod,
+    stripePaymentIntentId: finalStripePaymentIntentId,
+    expectedTotal: pricing.total,
+    userId: targetUser?._id,
+    customerEmail: customerEmail || targetUser?.email
+  });
+
+  // track whether the order document has been persisted to DB.
+  // used in the catch block to decide between orphan-cleanup vs. simple refund.
+  let savedOrder = null;
+  const session = await Order.startSession();
+  session.startTransaction();
+
+  try {
+    // only update the user profile phone if authenticated user explicitly updates it and had default '0000000000'
+    if (req.user && customerPhone && customerPhone !== '0000000000' && (!req.user.phone || req.user.phone === '0000000000')) {
+      await User.findByIdAndUpdate(req.user._id, { phone: customerPhone }, { session });
+      req.user.phone = customerPhone; // Update local reference
+    }
+
+    const order = new Order({
+      userId: targetUser._id,
+      orderSource: platform,
+      customerName: customerName || targetUser.name,
+      customerPhone: customerPhone || targetUser.phone || '0000000000',
+      customerEmail: customerEmail || targetUser.email,
+      address: address || restaurant.address,
+      addressLat,
+      addressLng,
+      restaurantId: restaurant._id,
+      restaurantName: restaurant.name,
+      restaurantAddress: restaurant.address,
+      restaurantPhone: restaurant.phone,
+      items: pricing.orderItems,
+      orderType,
+      tableNumber: orderType === 'dine_in' ? tableNumber : null,
+      subtotal: pricing.subtotal,
+      tax: pricing.tax,
+      deliveryFee: pricing.deliveryFee,
+      platformFee: pricing.platformFee,
+      serviceFee: pricing.serviceFee,
+      tip: pricing.tip,
+      discount: pricing.discount,
+      loyaltyDiscount: pricing.loyaltyDiscount,
+      loyaltyPointsUsed: pricing.pointsUsed,
+      loyaltyPointsEarned: pricing.pointsEarned,
+      total: pricing.total,
+      paymentMethod,
+      paymentStatus,
+      couponId: pricing.coupon?._id || null,
+      couponCode: pricing.coupon?.code || null,
+      courierNotes: sanitizedCourierNotes,
+      specialInstructions: specialInstructions ? xss(String(specialInstructions)).slice(0, 500) : '',
+      scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
+      stripePaymentIntentId: finalStripePaymentIntentId || null,
+      deliveryProvider: deliveryQuote.quote?.provider || 'doordash',
+      status: (paymentMethod === 'payment_link' || (!restaurant.autoAcceptOrders && !['merchant_app', 'merchant_web', 'pos'].includes(platform))) ? 'pending' : 'accepted',
+      statusUpdates: [
+        { status: 'pending', description: 'Order placed', timestamp: new Date() },
+        ...(((restaurant.autoAcceptOrders || ['merchant_app', 'merchant_web', 'pos'].includes(platform)) && paymentMethod !== 'payment_link') ? [{ status: 'accepted', description: 'Order accepted by merchant', timestamp: new Date() }] : [])
+      ],
+      deviceContext: extractDeviceContext(req)
+    });
+
+    await order.save({ session });
+    savedOrder = order; // Mark as persisted — catch block will use this to clean up properly
+
+    // log: order_saved + payment_confirmed
+    pushPaymentEvent(order, 'order_saved', {
+      stripePaymentIntentId: finalStripePaymentIntentId,
+      meta: { orderNumber: order.orderNumber }
+    });
+    if (finalStripePaymentIntentId && paymentStatus === 'paid') {
+      pushPaymentEvent(order, 'payment_confirmed', {
+        amount: pricing.total,
+        stripePaymentIntentId: finalStripePaymentIntentId,
+        triggeredBy: 'customer'
+      });
+    }
+    await order.save({ session }); // persist events
+
+    if (order.orderType === 'dine_in' && order.tableNumber) {
+      const table = await Table.findOneAndUpdate(
+        { restaurantId: restaurant._id, tableNumber: order.tableNumber },
+        {
+          status: 'occupied',
+          currentOrderId: order._id,
+          occupiedAt: new Date()
+        },
+        { new: true, session }
+      ).populate('currentOrderId', 'orderNumber status subtotal items');
+
+      if (table) {
+        const io = req.app.get('io');
+        if (io) io.to(restaurant._id.toString()).emit('table_update', table);
+      }
+    }
+
+    await Payment.create([{
+      orderId: order._id,
+      userId: targetUser._id,
+      restaurantId: restaurant._id,
+      method: paymentMethod,
+      status: paymentStatus,
+      amount: order.total,
+      tip: order.tip,
+      stripePaymentIntentId: finalStripePaymentIntentId || null,
+      metadata: {
+        orderNumber: order.orderNumber,
+        platformFee: order.platformFee,
+        serviceFee: order.serviceFee,
+        deliveryFee: order.deliveryFee,
+        discount: order.discount,
+        loyaltyDiscount: order.loyaltyDiscount
+      }
+    }], { session });
+
+    // mark coupon usage atomically
+    if (pricing.coupon) {
+      const CouponModel = req.getModel('Coupon');
+      const updateQuery = { _id: pricing.coupon._id };
+      if (pricing.coupon.maxUses) {
+        updateQuery.usedCount = { $lt: pricing.coupon.maxUses };
+      }
+
+      const updatedCoupon = await CouponModel.findOneAndUpdate(
+        updateQuery,
+        {
+          $inc: { usedCount: 1 },
+          $push: { usedBy: { userId: targetUser._id } }
+        },
+        { new: true, session }
+      );
+
+      if (!updatedCoupon) {
+        throw new AppError('Sorry, this coupon just reached its usage limit.', 400);
+      }
+    }
+
+    // handle loyalty points: deduct used, add earned
+    if (pricing.pointsUsed > 0 && targetUser) {
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: targetUser._id, loyaltyPoints: { $gte: pricing.pointsUsed } },
+        { $inc: { loyaltyPoints: -pricing.pointsUsed } },
+        { new: true, session }
+      );
+      if (!updatedUser) {
+        throw new AppError('Insufficient loyalty points to complete this order.', 400);
+      }
+      await LoyaltyTransaction.create([{
+        userId: targetUser._id,
+        orderId: order._id,
+        type: 'redeemed',
+        points: -pricing.pointsUsed,
+        balanceAfter: updatedUser.loyaltyPoints,
+        description: `Redeemed on Order #${order.orderNumber}`
+      }], { session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // Centralized Immutable Forensic Audit Log
+    const isPosOrMerchant = ['merchant_app', 'merchant_web', 'pos', 'in_store'].includes(platform) || (req.user && ['merchant', 'staff', 'admin'].includes(req.user.role));
+    logAuditEvent({
+      req,
+      restaurantId: restaurant._id,
+      actorType: isPosOrMerchant ? 'merchant' : 'customer',
+      actor: {
+        userId: req.user?._id || targetUser?._id,
+        name: req.user?.name || customerName || targetUser?.name || 'Customer',
+        email: req.user?.email || customerEmail || targetUser?.email || null,
+        phone: req.user?.phone || customerPhone || targetUser?.phone || null,
+        role: req.user?.role || 'customer'
+      },
+      event: isPosOrMerchant ? 'POS_ORDER_CREATED' : 'CUSTOMER_ORDER_PLACED',
+      action: 'ORDER_CREATE',
+      severity: 'info',
+      message: `${isPosOrMerchant ? 'POS Order created by staff/merchant' : 'Customer placed order'} #${order.orderNumber} ($${pricing.total.toFixed(2)}, ${orderType}, ${paymentMethod})`,
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      metadata: {
+        orderType,
+        paymentMethod,
+        total: pricing.total,
+        itemCount: pricing.orderItems.length,
+        platform,
+        customerName: customerName || targetUser?.name || 'Walk-in Customer',
+        customerPhone: customerPhone || targetUser?.phone || null,
+        customerEmail: customerEmail || targetUser?.email || null,
+        isGuestCheckout: !req.user,
+        deliveryAddress: order.address || null,
+        isNewAccountCreated: Boolean(isNewAccountCreated)
+      }
+    }).catch(() => {});
+
+    if (pricing.coupon) {
+      await handleOrderPlaced({ getModel: req.getModel, order, coupon: pricing.coupon });
+    }
+
+    // emit socket event
+    const io = req.app.get('io');
+    if (io) {
+      io.to(restaurant._id.toString()).emit('new_order', {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        items: order.items.length,
+        total: order.total
+      });
+    }
+
+    // Auto-generate payment link and email it if paymentMethod is payment_link
+    if (order.paymentMethod === 'payment_link') {
+      try {
+        const metadata = { orderId: order._id.toString() };
+        if (targetUser?._id) metadata.userId = targetUser._id.toString();
+        if (req.tenantDb?.name) metadata.tenantDbName = req.tenantDb.name;
+        if (!metadata.tenantDbName) metadata.tenantDbName = process.env.FORCE_TENANT_DB_NAME || 'daas_poc_lassi_lounge';
+
+        const session = await createCheckoutSession(order.total, metadata, null, order.items);
+        
+        // update order with the URL
+        const OrderModel = req.getModel('Order');
+        await OrderModel.findByIdAndUpdate(order._id, { paymentLinkUrl: session.url, stripeCheckoutSessionId: session.id });
+        order.paymentLinkUrl = session.url;
+        order.stripeCheckoutSessionId = session.id;
+
+        // send email if customer email exists
+        if (order.customerEmail) {
+          sendPaymentLinkEmail(order.customerEmail, order, session.url).catch(err => {
+            logger.error(`Failed to send payment link email: ${err.message}`);
+          });
+        }
+      } catch (err) {
+        logger.error(`Failed to generate payment link during order creation: ${err.message}`);
+      }
+    }
+
+    // Send confirmation emails ONLY if the order is auto-accepted. Otherwise, wait until merchant accepts.
+    if (order.status === 'accepted') {
+      const emailsToNotify = new Set();
+      if (targetUser?.email && targetUser?.notificationPreferences?.email !== false) {
+        emailsToNotify.add(targetUser.email);
+      }
+      if (order.customerEmail) {
+        emailsToNotify.add(order.customerEmail);
+      }
+
+      emailsToNotify.forEach(email => {
+        sendOrderConfirmationEmail(email, order).catch((err) => {
+          logger.error(`Failed to send confirmation email to ${email}`, { error: err.message });
+        });
+      });
+    }
+
+    // Auto-send invoice if payment is completed at creation time (e.g. cash, pos)
+    if (order.paymentStatus === 'paid') {
+      autoSendInvoice(order);
+    }
+
+    // ── TRIGGER BACKGROUND NOTIFICATIONS ──────────────────────────────────────
+    if (!['merchant', 'admin', 'staff', 'manager', 'restaurant_owner'].includes(req.user?.role)) {
+      try {
+        await sendPushNotification(restaurant, {
+          title: 'New Order Request',
+          body: `${order.customerName} placed a new ${order.orderType} order! Total: $${order.total.toFixed(2)}`,
+          url: `/merchant/live-orders`
+        });
+        await sendOrderAlert(restaurant, order);
+
+        // Trigger FCM for merchant app users
+        const UserModel = req.getModel ? req.getModel('User') : req.app.get('tenantModels')[req.tenantId]?.User;
+        if (UserModel) {
+          const merchantUsers = await UserModel.find({
+            $or: [
+              { restaurantId: restaurant._id },
+              ...(restaurant.ownerId ? [{ _id: restaurant.ownerId }] : []),
+              { role: { $in: ['admin', 'merchant'] } }
+            ],
+            role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] },
+            fcmTokens: { $exists: true, $not: { $size: 0 } }
+          });
+
+          console.log(`[FCM] Found ${merchantUsers.length} merchant users with FCM tokens for restaurant ${restaurant._id}`);
+          const newOrderImageUrl = getNotificationImageUrl('new_order');
+          for (const mUser of merchantUsers) {
+            console.log(`[FCM] Sending notification to merchant user ${mUser._id} (role: ${mUser.role}, tokens: ${mUser.fcmTokens?.length})`);
+            await createNotification(
+              mUser._id,
+              'New Order Request 🛎️',
+              `${order.customerName} placed a new ${order.orderType} order! Total: $${order.total.toFixed(2)}`,
+              'new_order',
+              `/orders/${order._id}`,
+              io,
+              req.getModel,
+              newOrderImageUrl
+            );
+          }
+        }
+      } catch (notifErr) {
+        console.error('Error sending background notifications:', notifErr);
+      }
+    }
+
+    if (order.status === 'accepted') {
+      scheduleOrDispatch(order, { io, restaurant, getModel: req.getModel }).catch(err => logger.error('Shipday background error during createOrder', err));
+    }
+
+    // Send welcome email with set-password link if a brand new account was automatically created
+    const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const trackingUrl = `${frontendUrl}/orders/${order._id}?token=${order.trackingToken}`;
+
+    if (isNewAccountCreated) {
+      sendGuestOrderWelcomeEmail(targetUser.email, targetUser.name, order, setPasswordUrl, trackingUrl).catch(err => {
+        logger.error('Failed to send guest welcome email', { error: err.message });
+      });
+    } else {
+      order.trackingUrl = trackingUrl;
+      sendOrderConfirmationEmail(order.customerEmail || targetUser?.email, order).catch(err => {
+        logger.error('Failed to send order confirmation email', { error: err.message });
+      });
+    }
+
+    res.created(response, {
+      data: {
+        ...order.toObject(),
+        trackingToken: order.trackingToken,
+        isNewAccountCreated
+      }
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    if (finalStripePaymentIntentId) {
+      try {
+        if (savedOrder) {
+          // order already persisted — mark it as 'failed' so it is visible in merchant
+          // all Orders view and audit trails rather than becoming an invisible orphan.
+          savedOrder.status = 'failed';
+          savedOrder.statusUpdates.push({
+            status: 'failed',
+            description: `Order creation failed after payment: ${error.message}`
+          });
+          savedOrder.paymentStatus = 'refunded';
+          savedOrder.refunded = true;
+          savedOrder.refundAmount = pricing.total;
+          savedOrder.refundReason = 'order_creation_failed';
+
+          // log: order_creation_failed
+          pushPaymentEvent(savedOrder, 'order_creation_failed', {
+            amount: pricing.total,
+            stripePaymentIntentId: finalStripePaymentIntentId,
+            error: error.message,
+            triggeredBy: 'system'
+          });
+          // log: auto_refund_triggered
+          pushPaymentEvent(savedOrder, 'auto_refund_triggered', {
+            amount: pricing.total,
+            stripePaymentIntentId: finalStripePaymentIntentId,
+            reason: 'order_creation_failed',
+            triggeredBy: 'system'
+          });
+
+          await savedOrder.save().catch(saveErr =>
+            logger.error('Failed to mark orphaned order as failed', { orderId: savedOrder._id, error: saveErr.message })
+          );
+          logger.warn('Order saved but post-save step failed — marked as failed in DB', {
+            orderId: savedOrder._id,
+            error: error.message
+          });
+        }
+
+        // issue Stripe refund with correct signature
+        try {
+          const refund = await refundStripePayment(
+            finalStripePaymentIntentId,
+            pricing.total,
+            { idempotencyKey: `order-creation-failed-${finalStripePaymentIntentId}` }
+          );
+          logger.info(`Auto-refunded failed order payment: ${finalStripePaymentIntentId}`, { stripeRefundId: refund.id });
+
+          if (savedOrder) {
+            pushPaymentEvent(savedOrder, 'auto_refund_succeeded', {
+              amount: pricing.total,
+              stripeRefundId: refund.id,
+              stripePaymentIntentId: finalStripePaymentIntentId,
+              reason: 'order_creation_failed',
+              triggeredBy: 'system'
+            });
+            await savedOrder.save().catch(saveErr =>
+              logger.error('Failed to save auto_refund_succeeded event on failed order', { orderId: savedOrder._id, error: saveErr.message })
+            );
+
+            // also record the refund in the Payment collection if it was created
+            try {
+              await recordPaymentRefund({
+                order: savedOrder,
+                amount: pricing.total,
+                reason: 'order_creation_failed',
+                stripeRefundId: refund.id,
+                getModel: req.getModel
+              });
+            } catch (paymentRecordErr) {
+              logger.warn('Could not record refund in Payment collection for failed order', {
+                orderId: savedOrder._id,
+                error: paymentRecordErr.message
+              });
+            }
+          } else {
+            // no savedOrder, log orphaned auto-refund success to global audit log
+            await AuditLog.create({
+              restaurantId: restaurant._id,
+              userId: targetUser?._id || req.user?._id || null,
+              event: 'auto_refund_succeeded',
+              severity: 'info',
+              message: `Order DB creation failed. Successfully auto-refunded orphaned payment. Error that caused checkout failure: ${error.message}`,
+              metadata: {
+                paymentIntentId: finalStripePaymentIntentId,
+                amount: pricing.total,
+                refundId: refund.id,
+                error: error.message,
+                customerName: targetUser?.name || customerName || 'Guest',
+                customerEmail: targetUser?.email || customerEmail || 'guest@example.com'
+              }
+            });
+          }
+        } catch (refundError) {
+          logger.error(`Failed to auto-refund after order creation error: ${refundError.message}`, {
+            paymentIntentId: finalStripePaymentIntentId
+          });
+          if (savedOrder) {
+            pushPaymentEvent(savedOrder, 'auto_refund_failed', {
+              amount: pricing.total,
+              stripePaymentIntentId: finalStripePaymentIntentId,
+              error: refundError.message,
+              reason: 'order_creation_failed',
+              triggeredBy: 'system'
+            });
+            await savedOrder.save().catch(() => { });
+          } else {
+            // no savedOrder, log orphaned auto-refund failure to global audit log
+            await AuditLog.create({
+              restaurantId: restaurant._id,
+              userId: targetUser?._id || req.user?._id || null,
+              event: 'auto_refund_failed',
+              severity: 'critical',
+              message: `Failed to auto-refund orphaned payment after order creation error. Manual intervention required. Refund error: ${refundError.message}`,
+              metadata: {
+                paymentIntentId: finalStripePaymentIntentId,
+                amount: pricing.total,
+                checkoutError: error.message,
+                refundError: refundError.message,
+                customerName: targetUser?.name || customerName || 'Guest',
+                customerEmail: targetUser?.email || customerEmail || 'guest@example.com'
+              }
+            });
+          }
+        }
+      } catch (err) {
+        logger.error('Error during automatic refund chain', { error: err.message });
+      }
+    }
+
+    if (!savedOrder && finalStripePaymentIntentId) {
+      // log the initial checkout failure that caused the whole rollback chain
+      await AuditLog.create({
+        restaurantId: restaurant._id,
+        userId: targetUser?._id || req.user?._id || null,
+        event: 'checkout_failed',
+        severity: 'critical',
+        message: `Order DB creation failed after successful Stripe charge. Rollback initiated. Error: ${error.message}`,
+        metadata: {
+          paymentIntentId: finalStripePaymentIntentId,
+          error: error.message,
+          customerName: targetUser?.name || customerName || 'Guest',
+          customerEmail: targetUser?.email || customerEmail || 'guest@example.com',
+          items: pricing.orderItems
+        }
+      });
+    }
+
+    throw error;
+  }
+});
+
+export const getMyOrders = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, parseInt(req.query.limit) || 50);
+  const skip = (page - 1) * limit;
+
+  const filter = { userId: req.user._id };
+
+  if (req.query.status && req.query.status !== 'all') {
+    if (req.query.status === 'ongoing') {
+      filter.status = { $in: ['pending', 'accepted', 'preparing', 'ready', 'picked_up', 'out_for_delivery'] };
+    } else {
+      filter.status = req.query.status;
+    }
+  }
+
+  if (req.query.q) {
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const qRegex = new RegExp(escapeRegex(req.query.q.trim()), 'i');
+    filter.$or = [
+      { orderNumber: qRegex },
+      { 'items.name': qRegex }
+    ];
+  }
+
+  const [orders, total] = await Promise.all([
+    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Order.countDocuments(filter)
+  ]);
+
+  res.success(response, { data: orders, pagination: res.buildPagination(page, limit, total) });
+});
+
+export const getOrderById = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id)
+    .populate('restaurantId')
+    .populate('userId', 'name email phone');
+  if (!order) throw new AppError('Order not found', 404);
+
+  const queryToken = req.query.token || req.headers['x-tracking-token'];
+  const hasValidToken = Boolean(queryToken && order.trackingToken && queryToken === order.trackingToken);
+
+  if (req.user) {
+    const orderUserId = order.userId?._id?.toString() || order.userId?.toString();
+    if (req.user.role === 'customer' && orderUserId !== req.user._id.toString() && !hasValidToken) {
+      throw new AppError('Not authorized to view this order', 403);
+    }
+    if (['merchant', 'manager', 'staff', 'restaurant_owner'].includes(req.user.role)) {
+      ensureCanManageRestaurant(req.user, order.restaurantId._id || order.restaurantId);
+    }
+  } else {
+    // Guest access: requires valid tracking token
+    if (!hasValidToken) {
+      throw new AppError('Not authorized to view this order. Please sign in or use a valid tracking link.', 403);
+    }
+  }
+
+  await syncDeliveryTracking(order);
+
+  res.success(response, { data: order.toObject() });
+});
+
+export const cancelOrder = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+
+  if (order.userId?.toString() !== req.user._id.toString()) {
+    throw new AppError('Not authorized', 403);
+  }
+
+  if (!['pending', 'accepted'].includes(order.status)) {
+    throw new AppError('Order cannot be cancelled at this stage', 400);
+  }
+
+  if (order.deliveryId) {
+    cancelDelivery(order, 'Cancelled by customer').catch(err => {
+      logger.warn('DoorDash cancellation failed during customer cancel', {
+        orderId: order._id,
+        error: err.response?.data || err.message
+      });
+    });
+  }
+
+  if (order.dispatchStatus === 'scheduled' || order.dispatchStatus === 'dispatching') {
+    order.dispatchStatus = 'cancelled';
+  }
+
+  order.status = 'cancelled';
+  order.statusUpdates.push({ status: 'cancelled', description: 'Cancelled by customer' });
+  await order.save();
+
+  logAuditEvent({
+    req,
+    restaurantId: order.restaurantId,
+    actorType: 'customer',
+    actor: {
+      userId: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      phone: req.user.phone,
+      role: req.user.role
+    },
+    event: 'ORDER_CANCELLED',
+    action: 'CANCEL',
+    severity: 'warning',
+    message: `Order #${order.orderNumber} was cancelled by customer (${req.user.name})`,
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    metadata: { total: order.total }
+  }).catch(() => {});
+
+  const io = req.app.get('io');
+  emitDispatchUpdated(order, io);
+  processAutoRefund(order, 'Cancelled by customer', io, req.getModel).catch(err => logger.error('Auto refund error', err));
+
+  await rollbackLoyaltyPoints(order, 'customer_cancel');
+
+  if (io) {
+    io.to(order.restaurantId.toString()).emit('order_updated', {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      status: 'cancelled'
+    });
+    io.to(order.restaurantId.toString()).emit('order_cancelled', {
+      orderId: order._id,
+      orderNumber: order.orderNumber
+    });
+    io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
+  }
+
+  // Trigger FCM for merchant app users on Cancellation
+  try {
+    const UserModel = req.getModel ? req.getModel('User') : req.app.get('tenantModels')[req.tenantId]?.User;
+    if (UserModel) {
+      const merchantUsers = await UserModel.find({
+        restaurantId: order.restaurantId,
+        role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] },
+        fcmTokens: { $exists: true, $not: { $size: 0 } }
+      });
+
+      const cancelledImageUrl = getNotificationImageUrl('order_cancelled');
+
+      for (const mUser of merchantUsers) {
+        await createNotification(
+          mUser._id,
+          'Order Cancelled 🚨',
+          `Order #${order.orderNumber} was cancelled by the customer. Please stop preparation.`,
+          'order_cancelled',
+          `/orders/${order._id}`,
+          io,
+          req.getModel,
+          cancelledImageUrl
+        );
+      }
+    }
+  } catch (notifErr) {
+    logger.error('Error sending cancel notifications:', notifErr);
+  }
+
+  res.success(response, { data: order, message: 'Order cancelled' });
+});
+
+export const rateOrder = asyncHandler(async (req, response) => {
+  const { rating, review } = req.body;
+  if (!rating || rating < 1 || rating > 5) {
+    throw new AppError('Rating must be between 1 and 5', 400);
+  }
+
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  if (order.userId?.toString() !== req.user._id.toString()) throw new AppError('Not authorized', 403);
+  if (order.status !== 'delivered') throw new AppError('Can only rate delivered orders', 400);
+
+  order.rating = rating;
+  order.review = review ? xss(String(review)).slice(0, 1000) : null;
+  await order.save();
+
+  res.success(response, { data: order, message: 'Thanks for your rating!' });
+});
+
+export const getDeliveryQuote = asyncHandler(async (req, response) => {
+  const Restaurant = req.getModel('Restaurant');
+
+  const { restaurantId, address, addressLat, addressLng, scheduledTime, items = [] } = req.body;
+  if (!restaurantId || !address) throw new AppError('restaurantId and address are required', 400);
+
+  // accept both MongoDB ObjectId and slug (e.g. 'lassi-lounge')
+  const isObjectId = /^[a-fA-F0-9]{24}$/.test(restaurantId);
+  let restaurant;
+  if (isObjectId) {
+    restaurant = await Restaurant.findById(restaurantId);
+  } else {
+    restaurant = await Restaurant.findOne({ $or: [{ slug: restaurantId }, { name: restaurantId }, { name: { $regex: /bhatur|lassi lounge/i } }] }) || await Restaurant.findOne();
+  }
+  if (!restaurant) throw new AppError('Restaurant not found', 404);
+
+  // ── Geo-distance serviceability check ──
+  validateDeliveryDistance(restaurant, addressLat, addressLng);
+
+  let subtotal = 10;
+  if (items.length > 0) {
+    const pricing = await calculateOrderPricing({
+      restaurantId: restaurant._id.toString(),
+      items,
+      orderType: 'delivery',
+      userId: req.user?._id,
+      getModel: req.getModel
+    });
+    subtotal = pricing.subtotal;
+  }
+
+  const quote = await getTrustedDeliveryQuote({ restaurant, address, subtotal, scheduledTime });
+
+  res.success(response, {
+    data: {
+      ...(quote.quote || {}),
+      deliveryFee: quote.deliveryFee,
+      deliveryFeeCents: Math.round(quote.deliveryFee * 100),
+      fallback: !quote.quote
+    }
+  });
+});
+
+// ── Merchant ────────────────────────────────────────────────────────────────
+
+export const getRestaurantOrders = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  ensureCanManageRestaurant(req.user, req.params.restaurantId);
+
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(500, Math.max(1, parseInt(req.query.limit) || 50));
+  const skip = (page - 1) * limit;
+
+  const filter = { restaurantId: req.params.restaurantId };
+
+  if (req.query._id) {
+    filter._id = req.query._id;
+  }
+
+  if (req.query.statuses) {
+    const list = req.query.statuses.split(',').map(s => s.trim()).filter(Boolean);
+    if (list.length > 0) filter.status = { $in: list };
+  } else if (req.query.status) {
+    if (req.query.status.includes(',')) {
+      filter.status = { $in: req.query.status.split(',').map(s => s.trim()).filter(Boolean) };
+    } else {
+      filter.status = req.query.status;
+    }
+  }
+
+  if (req.query.search) {
+    const s = req.query.search.trim();
+    filter.$or = [
+      { orderNumber: { $regex: s, $options: 'i' } },
+      { customerName: { $regex: s, $options: 'i' } },
+      { customerPhone: { $regex: s, $options: 'i' } }
+    ];
+  }
+
+  if (req.query.from || req.query.to) {
+    filter.createdAt = {};
+    if (req.query.from) filter.createdAt.$gte = new Date(req.query.from);
+    if (req.query.to) filter.createdAt.$lte = new Date(req.query.to);
+  } else if (req.query.date) {
+    const d = new Date(req.query.date);
+    filter.createdAt = { $gte: d, $lt: new Date(d.getTime() + 24 * 60 * 60 * 1000) };
+  }
+
+  const query = Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
+  if (req.query.fields === 'list') {
+    query.select('orderNumber status orderType customerName customerPhone total subtotal tip tax deliveryFee items createdAt paymentStatus paymentMethod dispatchStatus');
+  } else {
+    query.populate('userId', 'name email phone');
+  }
+
+  const restId = req.params.restaurantId;
+  const isObjectId = mongoose.Types.ObjectId.isValid(restId);
+  const matchRestId = isObjectId ? { $in: [restId, new mongoose.Types.ObjectId(restId)] } : restId;
+
+  const statsMatch = { restaurantId: matchRestId };
+  if (filter.createdAt) {
+    statsMatch.createdAt = filter.createdAt;
+  }
+
+  const [orders, total, statusAgg] = await Promise.all([
+    query.lean(),
+    Order.countDocuments(filter),
+    Order.aggregate([
+      { $match: statsMatch },
+      { $group: { _id: { status: '$status', orderType: '$orderType' }, count: { $sum: 1 } } }
+    ])
+  ]);
+
+  const stats = {
+    total: 0,
+    new: 0,
+    preparing: 0,
+    ready: 0,
+    picked_up: 0,
+    completed: 0,
+    cancelled: 0,
+    active: 0,
+    dineIn: 0,
+    pickup: 0,
+    delivery: 0
+  };
+
+  if (Array.isArray(statusAgg)) {
+    for (const item of statusAgg) {
+      const s = (item._id?.status || item._id || '').toLowerCase();
+      const type = (item._id?.orderType || '').toLowerCase();
+      const count = Number(item.count) || 0;
+      stats.total += count;
+
+      if (type === 'dine_in') stats.dineIn += count;
+      else if (type === 'pickup') stats.pickup += count;
+      else if (type === 'delivery') stats.delivery += count;
+
+      if (s === 'new' || s === 'pending') {
+        stats.new += count;
+        stats.active += count;
+      } else if (s === 'accepted' || s === 'driver_assigned') {
+        stats.active += count;
+      } else if (s === 'preparing') {
+        stats.preparing += count;
+        stats.active += count;
+      } else if (s === 'ready') {
+        stats.ready += count;
+        stats.active += count;
+      } else if (s === 'out_for_delivery' || (s === 'picked_up' && type === 'delivery')) {
+        stats.picked_up += count;
+        stats.active += count;
+      } else if (s === 'completed' || s === 'delivered' || (s === 'picked_up' && type !== 'delivery')) {
+        stats.completed += count;
+      } else if (s === 'cancelled' || s === 'refunded' || s === 'failed' || s === 'rejected') {
+        stats.cancelled += count;
+      }
+    }
+  }
+
+  if (stats.total === 0 && total > 0) {
+    stats.total = total;
+  }
+
+  res.success(response, {
+    data: orders,
+    stats,
+    pagination: res.buildPagination(page, limit, total),
+    serverTime: new Date().toISOString()
+  });
+});
+
+export const getMerchantOrders = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  if (!req.user.restaurantId) {
+    throw new AppError('No restaurant associated with this merchant account.', 400);
+  }
+
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, parseInt(req.query.limit) || 50);
+  const skip = (page - 1) * limit;
+
+  const filter = { restaurantId: req.user.restaurantId };
+
+  if (req.query._id) {
+    filter._id = req.query._id;
+  }
+
+  if (req.query.statuses) {
+    const list = req.query.statuses.split(',').map(s => s.trim()).filter(Boolean);
+    if (list.length > 0) filter.status = { $in: list };
+  } else if (req.query.status) {
+    if (req.query.status.includes(',')) {
+      filter.status = { $in: req.query.status.split(',').map(s => s.trim()).filter(Boolean) };
+    } else {
+      filter.status = req.query.status;
+    }
+  }
+
+  if (req.query.search) {
+    const s = req.query.search.trim();
+    filter.$or = [
+      { orderNumber: { $regex: s, $options: 'i' } },
+      { customerName: { $regex: s, $options: 'i' } },
+      { customerPhone: { $regex: s, $options: 'i' } }
+    ];
+  }
+
+  const mRestId = req.user.restaurantId.toString();
+  const mIsObjectId = mongoose.Types.ObjectId.isValid(mRestId);
+  const mMatchRestId = mIsObjectId ? { $in: [mRestId, new mongoose.Types.ObjectId(mRestId)] } : mRestId;
+
+  const [orders, total, statusAgg] = await Promise.all([
+    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('userId', 'name email phone').lean(),
+    Order.countDocuments(filter),
+    Order.aggregate([
+      { $match: { restaurantId: mMatchRestId } },
+      { $group: { _id: { status: '$status', orderType: '$orderType' }, count: { $sum: 1 } } }
+    ])
+  ]);
+
+  const stats = {
+    total: 0,
+    new: 0,
+    preparing: 0,
+    ready: 0,
+    picked_up: 0,
+    completed: 0,
+    cancelled: 0,
+    active: 0,
+    dineIn: 0,
+    pickup: 0,
+    delivery: 0
+  };
+
+  if (Array.isArray(statusAgg)) {
+    for (const item of statusAgg) {
+      const s = (item._id?.status || item._id || '').toLowerCase();
+      const type = (item._id?.orderType || '').toLowerCase();
+      const count = Number(item.count) || 0;
+      stats.total += count;
+
+      if (type === 'dine_in') stats.dineIn += count;
+      else if (type === 'pickup') stats.pickup += count;
+      else if (type === 'delivery') stats.delivery += count;
+
+      if (s === 'new' || s === 'pending') {
+        stats.new += count;
+        stats.active += count;
+      } else if (s === 'accepted' || s === 'driver_assigned') {
+        stats.active += count;
+      } else if (s === 'preparing') {
+        stats.preparing += count;
+        stats.active += count;
+      } else if (s === 'ready') {
+        stats.ready += count;
+        stats.active += count;
+      } else if (s === 'out_for_delivery' || (s === 'picked_up' && type === 'delivery')) {
+        stats.picked_up += count;
+        stats.active += count;
+      } else if (s === 'completed' || s === 'delivered' || (s === 'picked_up' && type !== 'delivery')) {
+        stats.completed += count;
+      } else if (s === 'cancelled' || s === 'refunded' || s === 'failed' || s === 'rejected') {
+        stats.cancelled += count;
+      }
+    }
+  }
+
+  if (stats.total === 0 && total > 0) {
+    stats.total = total;
+  }
+
+  res.success(response, {
+    data: orders,
+    stats,
+    pagination: res.buildPagination(page, limit, total),
+    serverTime: new Date().toISOString()
+  });
+});
+
+export const updateOrderStatus = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  let { status } = req.body;
+  let order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+
+  const allowedTransitions = {
+    pending: ['accepted', 'cancelled'],
+    accepted: ['driver_assigned', 'preparing', 'cancelled'],
+    driver_assigned: ['preparing', 'ready', 'picked_up', 'cancelled'],
+    preparing: ['driver_assigned', 'ready', 'cancelled'],
+    ready: ['driver_assigned', 'picked_up', 'cancelled'],
+    picked_up: ['delivered'],
+    delivered: [],
+    cancelled: [],
+    failed: []
+  };
+
+  let finalStatus = status;
+  let wasAlreadyInState = false;
+
+  const { doc: finalOrder } = await withOptimisticRetry(order, async (doc) => {
+    if (!status) {
+      if (doc.status === 'pending') finalStatus = 'accepted';
+      else if (doc.status === 'accepted') finalStatus = 'preparing';
+      else if (doc.status === 'preparing') finalStatus = 'ready';
+      else if (doc.status === 'ready') finalStatus = 'picked_up';
+      else if (doc.status === 'picked_up') finalStatus = 'delivered';
+      else finalStatus = doc.status;
+    } else {
+      finalStatus = status;
+    }
+
+    if (doc.status === finalStatus) {
+      wasAlreadyInState = true;
+      return;
+    }
+
+    if (!allowedTransitions[doc.status]?.includes(finalStatus)) {
+      throw new AppError(`Cannot change order from ${doc.status} to ${finalStatus}`, 400);
+    }
+    if (finalStatus === 'accepted' && ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(doc.paymentMethod) && doc.paymentStatus !== 'paid') {
+      throw new AppError('Card orders must be paid before acceptance', 400);
+    }
+
+    doc.status = finalStatus;
+    doc.statusUpdates.push({ status: finalStatus, description: `Status updated to ${finalStatus}` });
+  });
+
+  if (wasAlreadyInState) {
+    return response.success({ data: finalOrder });
+  }
+
+  status = finalStatus;
+  order = finalOrder;
+
+  logAuditEvent({
+    req,
+    restaurantId: order.restaurantId,
+    actorType: 'merchant',
+    actor: {
+      userId: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    },
+    event: `ORDER_STATUS_${status.toUpperCase()}`,
+    action: 'STATUS_UPDATE',
+    severity: status === 'cancelled' ? 'warning' : 'info',
+    message: `Order #${order.orderNumber} status updated to '${status}' by ${req.user.name || 'Merchant'}`,
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    metadata: { newStatus: status }
+  }).catch(() => {});
+
+  if (status === 'accepted') {
+    const io = req.app.get('io');
+    scheduleOrDispatch(order, { io, getModel: req.getModel }).catch(err => logger.error('Shipday background error', err));
+  } else if (status === 'ready' && order.orderType === 'delivery' && order.dispatchStatus === DISPATCH_STATUSES.SCHEDULED) {
+    const io = req.app.get('io');
+    dispatchOrder(order._id, DISPATCH_BY.READY, { io, getModel: req.getModel, orderDoc: order }).catch(err => logger.error('Ready dispatch error', err));
+  } else if (status === 'cancelled') {
+    const io = req.app.get('io');
+    if (order.dispatchStatus === DISPATCH_STATUSES.SCHEDULED || order.dispatchStatus === DISPATCH_STATUSES.DISPATCHING) {
+      order.dispatchStatus = DISPATCH_STATUSES.CANCELLED;
+      await order.save();
+      emitDispatchUpdated(order, io);
+    }
+    rollbackLoyaltyPoints(order, 'status_update_cancel').catch(err => logger.error('Rollback points error', err));
+    processAutoRefund(order, 'Cancelled by restaurant', io, req.getModel).catch(err => logger.error('Auto refund error', err));
+    if (order.deliveryId) {
+      cancelDelivery(order, 'Cancelled via status update').catch(err => logger.error('Shipday cancel error', err));
+    }
+    if (order.stripeCheckoutSessionId && order.paymentStatus === 'pending') {
+      expireCheckoutSession(order.stripeCheckoutSessionId).catch(err => logger.error('Stripe checkout expire error', err));
+    }
+  } else if (status === 'delivered' || status === 'picked_up') {
+    awardLoyaltyPoints(order).catch(err => logger.error('Award points error', err));
+  }
+
+  const io = req.app.get('io');
+  if (io) {
+    const payload = buildOrderSocketPayload(order);
+    io.to(order.restaurantId.toString()).emit('order_updated', payload);
+    io.to(`order_${order._id}`).emit('order_status_changed', payload);
+  }
+
+  if (order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
+    await createNotification(
+      order.userId,
+      `Order ${status}`,
+      `Your order from ${order.restaurantName} is now ${status.replace('_', ' ')}.`,
+      'order_update',
+      `/orders/${order._id}`,
+      io,
+      req.getModel
+    );
+  }
+
+  res.success(response, { data: order, message: `Status updated to ${status}` });
+});
+
+export const acceptOrder = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+
+  if (order.status !== 'pending') {
+    throw new AppError(`Only pending orders can be accepted. Current status: ${order.status}`, 400);
+  }
+  if (['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online', 'payment_link'].includes(order.paymentMethod) && order.paymentStatus !== 'paid') {
+    throw new AppError('Digital orders must be paid before acceptance', 400);
+  }
+
+  order.status = 'accepted';
+  order.statusUpdates.push({ status: 'accepted', description: 'Order accepted by restaurant' });
+  await order.save();
+
+  logAuditEvent({
+    req,
+    restaurantId: order.restaurantId,
+    actorType: 'merchant',
+    actor: {
+      userId: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    },
+    event: 'ORDER_ACCEPTED',
+    action: 'STATUS_UPDATE',
+    severity: 'info',
+    message: `Order #${order.orderNumber} accepted by ${req.user.name || 'Merchant'}`,
+    orderId: order._id,
+    orderNumber: order.orderNumber
+  }).catch(() => {});
+  scheduleOrDispatch(order, { io: req.app.get('io'), getModel: req.getModel, restaurantId: order.restaurantId }).catch(err => logger.error('Shipday background error', err));
+
+  const io = req.app.get('io');
+  if (io) {
+    const payload = buildOrderSocketPayload(order);
+    io.to(order.restaurantId.toString()).emit('order_updated', payload);
+    io.to(`order_${order._id}`).emit('order_status_changed', payload);
+  }
+
+  if (order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
+    await createNotification(
+      order.userId,
+      'Order Accepted',
+      `${order.restaurantName} has accepted your order and is starting to prepare it!`,
+      'order_update',
+      `/orders/${order._id}`,
+      io,
+      req.getModel
+    );
+  }
+
+  // Send confirmation emails to Customer Email when the order is accepted
+  if (order.customerEmail) {
+    sendOrderConfirmationEmail(order.customerEmail, order).catch((err) => {
+      logger.error(`Failed to send confirmation email to ${order.customerEmail}`, { error: err.message });
+    });
+  }
+
+  res.success(response, { data: order, message: 'Order accepted' });
+});
+
+export const rejectOrder = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+
+  if (!['pending', 'accepted'].includes(order.status)) {
+    throw new AppError(`Order cannot be rejected at ${order.status}`, 400);
+  }
+
+  if (order.dispatchStatus === DISPATCH_STATUSES.SCHEDULED || order.dispatchStatus === DISPATCH_STATUSES.DISPATCHING) {
+    order.dispatchStatus = DISPATCH_STATUSES.CANCELLED;
+  }
+
+  order.status = 'cancelled';
+  order.statusUpdates.push({ status: 'cancelled', description: xss(String(req.body.reason || '')) || 'Rejected by restaurant' });
+  await order.save();
+
+  logAuditEvent({
+    req,
+    restaurantId: order.restaurantId,
+    actorType: 'merchant',
+    actor: {
+      userId: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    },
+    event: 'ORDER_REJECTED',
+    action: 'CANCEL',
+    severity: 'warning',
+    message: `Order #${order.orderNumber} rejected by ${req.user.name || 'Merchant'}. Reason: ${req.body.reason || 'N/A'}`,
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    metadata: { reason: req.body.reason }
+  }).catch(() => {});
+
+  const ioReject = req.app.get('io');
+  emitDispatchUpdated(order, ioReject);
+
+  if (order.deliveryId) {
+    try {
+      await cancelDelivery(order, xss(String(req.body.reason || '')) || 'Rejected by restaurant');
+    } catch (err) {
+      logger.warn('DoorDash cancellation failed during restaurant reject', {
+        orderId: order._id,
+        error: err.response?.data || err.message
+      });
+    }
+  }
+  
+  if (order.stripeCheckoutSessionId && order.paymentStatus === 'pending') {
+    try {
+      await expireCheckoutSession(order.stripeCheckoutSessionId);
+    } catch (e) {
+      logger.warn(`Failed to expire checkout session on reject: ${e.message}`);
+    }
+  }
+  
+  await order.save();
+
+  const io = req.app.get('io');
+  await processAutoRefund(order, xss(String(req.body.reason || '')) || 'Rejected by restaurant', io, req.getModel);
+
+  await rollbackLoyaltyPoints(order, 'restaurant_reject');
+
+  if (io) {
+    const payload = buildOrderSocketPayload(order);
+    io.to(order.restaurantId.toString()).emit('order_updated', payload);
+    io.to(`order_${order._id}`).emit('order_status_changed', payload);
+  }
+
+  if (order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
+    await createNotification(
+      order.userId,
+      'Order Cancelled',
+      `Unfortunately, your order from ${order.restaurantName} was cancelled.`,
+      'order_update',
+      `/orders/${order._id}`,
+      io,
+      req.getModel
+    );
+  }
+
+  res.success(response, { data: order, message: 'Order rejected' });
+});
+
+// ── Admin ───────────────────────────────────────────────────────────────────
+
+export const getAllOrders = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, parseInt(req.query.limit) || 50);
+  const skip = (page - 1) * limit;
+
+  const filter = {};
+  if (req.query.status) filter.status = req.query.status;
+  if (req.query.restaurantId) filter.restaurantId = req.query.restaurantId;
+
+  const [orders, total] = await Promise.all([
+    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('userId', 'name email phone').lean(),
+    Order.countDocuments(filter)
+  ]);
+
+  res.success(response, { data: orders, pagination: res.buildPagination(page, limit, total) });
+});
+
+export const refundOrder = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  if (req.user.role === 'merchant') {
+    ensureCanManageRestaurant(req.user, order.restaurantId);
+  }
+
+  const { amount } = req.body;
+  const reason = req.body.reason ? xss(String(req.body.reason)) : undefined;
+  const refundAmount = roundMoney(amount || order.total);
+  const nextRefundedTotal = roundMoney((order.refundAmount || 0) + refundAmount);
+  if (refundAmount <= 0 || nextRefundedTotal > roundMoney(order.total)) {
+    throw new AppError('Invalid refund amount', 400);
+  }
+
+  let stripeRefundId = null;
+  const isStripePayment = STRIPE_REFUND_PAYMENT_METHODS.includes(order.paymentMethod);
+  if (isStripePayment && ['paid', 'partially_refunded'].includes(order.paymentStatus) && !order.stripePaymentIntentId) {
+    throw new AppError('Cannot refund this card payment because Stripe payment reference is missing', 400);
+  }
+
+  if (order.stripePaymentIntentId && ['paid', 'partially_refunded'].includes(order.paymentStatus)) {
+    // prevent double-click accidental double-refunds via state-based idempotency key
+    const idempotencyKey = req.body.idempotencyKey || `manual-refund-${order._id}-${Math.round((order.refundAmount || 0) * 100)}-${Math.round(refundAmount * 100)}`;
+    const refund = await issueStripeRefund(order.stripePaymentIntentId, refundAmount, idempotencyKey);
+    stripeRefundId = refund.id;
+  }
+
+  await recordPaymentRefund({
+    order,
+    amount: refundAmount,
+    reason: reason || 'Refund processed',
+    stripeRefundId,
+    refundedBy: req.user._id,
+    getModel: req.getModel
+  });
+
+  order.refunded = nextRefundedTotal >= roundMoney(order.total);
+  order.refundAmount = nextRefundedTotal;
+  order.refundReason = reason || 'Refund processed';
+  order.paymentStatus = order.refundAmount >= order.total ? 'refunded' : 'partially_refunded';
+
+  // auto-cancel active orders if fully refunded
+  if (order.paymentStatus === 'refunded' && !['delivered', 'cancelled'].includes(order.status)) {
+    order.status = 'cancelled';
+    order.statusUpdates.push({
+      status: 'cancelled',
+      description: 'Order cancelled automatically due to full refund'
+    });
+  }
+
+  order.statusUpdates.push({
+    status: order.status,
+    description: `Refund of $${refundAmount.toFixed(2)} processed`
+  });
+  await order.save();
+
+  logAuditEvent({
+    req,
+    restaurantId: order.restaurantId,
+    actorType: 'merchant',
+    actor: {
+      userId: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    },
+    event: 'ORDER_REFUNDED',
+    action: 'REFUND',
+    severity: 'warning',
+    message: `Refund of $${refundAmount.toFixed(2)} processed for Order #${order.orderNumber}. Reason: ${reason || 'N/A'}`,
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    metadata: {
+      refundAmount,
+      totalRefunded: nextRefundedTotal,
+      stripeRefundId,
+      reason
+    }
+  }).catch(() => {});
+
+  if (order.paymentStatus === 'refunded') {
+    await rollbackLoyaltyPoints(order, 'order_refund');
+  }
+
+  // send Notification
+  if (order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
+    const io = req.app.get('io');
+    await createNotification(
+      order.userId,
+      'Refund Processed',
+      `Your refund of $${refundAmount.toFixed(2)} has been processed.`,
+      'order_update',
+      `/orders/${order._id}`,
+      io,
+      req.getModel
+    );
+  }
+
+  // emit Socket Event
+  const io = req.app.get('io');
+  if (io) {
+    io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
+
+    // also notify the restaurant room so the merchant dashboard order list updates in real-time
+    io.to(order.restaurantId.toString()).emit('order_updated', {
+      orderId: order._id,
+      status: order.status,
+      paymentStatus: order.paymentStatus
+    });
+  }
+
+  res.success(response, { data: order, message: `Refund of $${refundAmount.toFixed(2)} processed` });
+});
+
+// ── Simulation (dev only) ───────────────────────────────────────────────────
+
+const STATUS_FLOW = ['pending', 'accepted', 'preparing', 'ready', 'picked_up', 'delivered'];
+
+export const simulateStatusAdvance = asyncHandler(async (req, response) => {
+  if (process.env.NODE_ENV === 'production') {
+    throw new AppError('Simulation not available in production', 403);
+  }
+
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+
+  const currentIdx = STATUS_FLOW.indexOf(order.status);
+  if (currentIdx === -1 || currentIdx >= STATUS_FLOW.length - 1) {
+    throw new AppError('Order has reached terminal status', 400);
+  }
+
+  const nextStatus = STATUS_FLOW[currentIdx + 1];
+  order.status = nextStatus;
+  order.statusUpdates.push({ status: nextStatus, description: `Simulated advance to ${nextStatus}` });
+  await order.save();
+
+  const io = req.app.get('io');
+  if (io) {
+    io.to(order.restaurantId.toString()).emit('order_updated', {
+      orderId: order._id, orderNumber: order.orderNumber, status: nextStatus
+    });
+    io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
+  }
+
+  res.success(response, { data: order, message: `Simulated → ${nextStatus}` });
+});
+
+// ── Review Reply ────────────────────────────────────────────────────────────
+
+export const replyToReview = asyncHandler(async (req, response) => {
+  const { reply } = req.body;
+  if (!reply) throw new AppError('Reply content is required', 400);
+
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+
+  if (!order.rating) {
+    throw new AppError('Order has not been rated yet', 400);
+  }
+
+  order.restaurantReply = xss(String(reply)).slice(0, 1000);
+  await order.save();
+
+  res.success(response, { data: order, message: 'Reply added successfully' });
+});
+
+// ── Driver ──────────────────────────────────────────────────────────────────
+
+export const getAvailableDriverOrders = asyncHandler(async (req, response) => {
+  // find orders that are ready for pickup and have no assigned driver, or orders that this driver just accepted.
+  // actually, let's just find orders with status 'ready' and orderType 'delivery' and no deliveryId (DoorDash)
+  const Order = req.getModel('Order');
+  const orders = await Order.find({
+    orderType: 'delivery',
+    status: 'ready',
+    deliveryId: { $exists: false } // Not managed by DoorDash
+  }).sort({ createdAt: 1 }).lean();
+
+  res.success(response, { data: orders });
+});
+
+export const getActiveDriverOrder = asyncHandler(async (req, response) => {
+  // an active order is one that the driver has accepted or picked up, but not delivered.
+  const Order = req.getModel('Order');
+  const order = await Order.findOne({
+    driverId: req.user._id,
+    status: { $in: ['accepted_by_driver', 'picked_up'] }
+  }).lean();
+
+  res.success(response, { data: order });
+});
+
+export const driverAcceptOrder = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+
+  if (order.driverId) {
+    throw new AppError('Order already accepted by another driver', 400);
+  }
+
+  order.driverId = req.user._id;
+  order.status = 'accepted_by_driver'; // Custom intermediate status
+  order.statusUpdates.push({ status: 'accepted_by_driver', description: `Driver ${req.user.name} accepted the delivery` });
+  await order.save();
+
+  const io = req.app.get('io');
+  if (io) {
+    io.to(order.restaurantId.toString()).emit('order_updated', {
+      orderId: order._id, status: order.status
+    });
+    io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
+  }
+
+  res.success(response, { data: order, message: 'Order accepted' });
+});
+
+export const driverPickupOrder = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const order = await Order.findOne({ _id: req.params.id, driverId: req.user._id });
+  if (!order) throw new AppError('Order not found or not assigned to you', 404);
+
+  order.status = 'picked_up';
+  order.pickupTime = new Date();
+  order.statusUpdates.push({ status: 'picked_up', description: `Order picked up by ${req.user.name}` });
+  await order.save();
+
+  const io = req.app.get('io');
+  if (io) {
+    io.to(order.restaurantId.toString()).emit('order_updated', {
+      orderId: order._id, status: order.status
+    });
+    io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
+  }
+
+  res.success(response, { data: order, message: 'Order picked up' });
+});
+
+export const driverDeliverOrder = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const order = await Order.findOne({ _id: req.params.id, driverId: req.user._id });
+  if (!order) throw new AppError('Order not found or not assigned to you', 404);
+
+  order.status = 'delivered';
+  order.deliveryTime = new Date();
+  order.statusUpdates.push({ status: 'delivered', description: `Order delivered by ${req.user.name}` });
+  await order.save();
+
+  const io = req.app.get('io');
+  if (io) {
+    io.to(order.restaurantId.toString()).emit('order_updated', {
+      orderId: order._id, status: order.status
+    });
+    io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
+  }
+
+  res.success(response, { data: order, message: 'Order delivered successfully' });
+});
+
+export const addAdminNote = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const text = req.body.text ? xss(String(req.body.text)) : null;
+  if (!text) throw new AppError('Note text is required', 400);
+
+  const order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+
+  // author logic: if user has a name use it, else default to 'Admin/Staff'
+  const author = req.user?.name || (req.user?.role === 'admin' ? 'Admin' : 'Kitchen');
+
+  order.adminNotes.push({
+    text,
+    author,
+    timestamp: new Date()
+  });
+
+  await order.save();
+
+  // notify clients if needed (optional)
+  const io = req.app.get('io');
+  if (io) {
+    io.to(order.restaurantId.toString()).emit('order_updated', {
+      orderId: order._id
+    });
+  }
+
+  res.success(response, { data: order, message: 'Note added successfully' });
+});
+
+export const remakeOrder = asyncHandler(async (req, response) => {
+  const tenantId = req.user.tenantId || req.user.restaurantId?.toString(); // fallback if tenantId missing
+  const OrderModel = getTenantModel(tenantId, 'Order');
+  const PaymentModel = getTenantModel(tenantId, 'Payment');
+  const order = await OrderModel.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+
+  const chargeCustomer = req.body.chargeCustomer === true;
+  const reason = (req.body.reason || '').trim();
+  const pin = (req.body.pin || '').trim();
+
+  // SECURITY: For free remakes ($0), reason is mandatory to prevent accidental or unauthorized free orders
+  if (!chargeCustomer && (!reason || reason.length < 3)) {
+    throw new AppError('A valid reason (minimum 3 characters) is required for a free remake ($0)', 400);
+  }
+
+  let authorizedEmployee = null;
+  // If pin is provided, verify against Employee model
+  if (pin) {
+    const EmployeeModel = getTenantModel(tenantId, 'Employee');
+    const employee = await EmployeeModel.findOne({
+      restaurantId: order.restaurantId,
+      isActive: true,
+      pin
+    });
+    if (!employee) {
+      throw new AppError('Invalid Manager/Staff PIN', 403);
+    }
+    authorizedEmployee = employee;
+  }
+
+  const device = extractDeviceContext(req);
+  const actorName = authorizedEmployee 
+    ? `${authorizedEmployee.name} (Staff PIN)` 
+    : (req.user.name || req.user.email || 'Merchant');
+
+  const remake = new OrderModel({
+    ...order.toObject(),
+    _id: undefined,
+    orderNumber: undefined,
+    externalDeliveryId: undefined,
+    createdAt: undefined,
+    updatedAt: undefined,
+    status: 'pending',
+    isRemake: true,
+    parentOrderId: order._id,
+    remakeReason: reason || (chargeCustomer ? 'Customer requested reorder' : 'Free remake'),
+    remakeBy: {
+      userId: req.user._id,
+      name: req.user.name || 'Merchant',
+      email: req.user.email,
+      role: req.user.role,
+      employeeName: authorizedEmployee?.name || null,
+      ip: device.ip,
+      deviceType: device.deviceType,
+      os: device.os,
+      browser: device.browser,
+      location: device.locationDisplay,
+      platform: device.platform,
+      userAgent: device.userAgent
+    },
+    deviceContext: device,
+    statusUpdates: [
+      ...(order.statusUpdates || []),
+      { 
+        status: 'pending', 
+        timestamp: new Date(), 
+        description: `Order Remade from #${order.orderNumber} (${chargeCustomer ? 'Paid' : '$0 Free'}${reason ? ` - Reason: ${reason}` : ''}) by ${actorName} [${device.deviceType} • ${device.os} • ${device.browser} • IP: ${device.ip}${device.locationDisplay ? ` • ${device.locationDisplay}` : ''}]` 
+      }
+    ],
+    stripeCheckoutSessionId: undefined,
+    stripePaymentIntentId: undefined,
+    paymentLinkUrl: undefined,
+    adminNotes: [
+      { 
+        text: `Remake of order ${order.orderNumber} [${chargeCustomer ? 'Paid' : '$0 Free'}] | Reason: ${reason || 'N/A'}${authorizedEmployee ? ` | Approved by: ${authorizedEmployee.name}` : ''} | Remade by: ${actorName} | Device: ${device.deviceType} (${device.os}, ${device.browser}) | IP: ${device.ip}${device.locationDisplay ? ` (${device.locationDisplay})` : ''}`, 
+        author: actorName, 
+        timestamp: new Date() 
+      }
+    ]
+  });
+
+  if (!chargeCustomer) {
+    remake.total = 0;
+    remake.subtotal = 0;
+    remake.tax = 0;
+    remake.deliveryFee = 0;
+    remake.tip = 0;
+    remake.discount = 0;
+    remake.platformFee = 0;
+    remake.serviceFee = 0;
+    remake.paymentStatus = 'paid';
+    remake.paymentMethod = order.paymentMethod || 'cash';
+  } else {
+    remake.paymentStatus = 'pending';
+    remake.paymentMethod = 'payment_link';
+  }
+
+  await remake.save();
+
+  // 1. Audit record on parent order as well
+  try {
+    order.adminNotes = order.adminNotes || [];
+    order.adminNotes.push({
+      text: `Remade into order #${remake.orderNumber || remake._id} [${chargeCustomer ? 'Paid' : '$0 Free'}] | Reason: ${reason || 'N/A'} by ${actorName} from ${device.deviceType} (${device.os}, ${device.browser}, IP: ${device.ip}${device.locationDisplay ? `, Loc: ${device.locationDisplay}` : ''})`,
+      author: actorName,
+      timestamp: new Date()
+    });
+    await order.save();
+  } catch (err) {
+    logger.warn('Failed to append remake note to parent order', { error: err.message });
+  }
+
+  // 2. Centralized system AuditLog record
+  try {
+    await AuditLog.create({
+      restaurantId: order.restaurantId,
+      userId: req.user._id,
+      actorType: 'merchant',
+      actor: {
+        userId: req.user._id,
+        email: req.user.email,
+        name: req.user.name,
+        role: req.user.role,
+        employeeName: authorizedEmployee?.name || null
+      },
+      event: 'ORDER_REMAKE',
+      action: 'REMAKE',
+      severity: chargeCustomer ? 'info' : 'warning',
+      message: `Order #${order.orderNumber} remade into #${remake.orderNumber || remake._id} (${chargeCustomer ? 'Paid' : '$0 Free'}). Reason: ${reason || 'N/A'}`,
+      orderId: remake._id,
+      orderNumber: remake.orderNumber || order.orderNumber,
+      device,
+      metadata: {
+        parentOrderId: order._id,
+        parentOrderNumber: order.orderNumber,
+        remakeOrderId: remake._id,
+        remakeOrderNumber: remake.orderNumber,
+        chargeCustomer,
+        reason,
+        actor: {
+          userId: req.user._id,
+          email: req.user.email,
+          name: req.user.name,
+          role: req.user.role,
+          employeeName: authorizedEmployee?.name || null
+        },
+        device
+      }
+    });
+  } catch (err) {
+    logger.warn('Failed to create central AuditLog for remake', { error: err.message });
+  }
+
+  await PaymentModel.create([{
+    orderId: remake._id,
+    userId: remake.userId || req.user._id,
+    restaurantId: remake.restaurantId,
+    method: remake.paymentMethod || 'cash',
+    status: remake.paymentStatus,
+    amount: remake.total,
+    tip: remake.tip,
+    metadata: {
+      orderNumber: remake.orderNumber,
+      remakeOf: order._id
+    }
+  }]);
+
+  const io = req.app.get('io');
+  if (io) {
+    const payload = buildOrderSocketPayload(remake);
+    io.to(remake.restaurantId.toString()).emit('new_order', payload);
+  }
+
+  res.success(response, { data: remake, message: 'Remake order created' });
+});
+
+export const sendInvoice = asyncHandler(async (req, response) => {
+  const tenantId = req.user.tenantId || req.user.restaurantId?.toString();
+  const OrderModel = getTenantModel(tenantId, 'Order');
+  const order = await OrderModel.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+
+  if (!order.customerEmail && !order.customerPhone) {
+    throw new AppError('No contact info (email or phone) available to send invoice', 400);
+  }
+
+  let sentTo = [];
+
+  if (order.customerEmail) {
+    try {
+      await sendInvoiceEmail(order.customerEmail, order);
+      sentTo.push('email');
+    } catch (err) {
+      logger.error(`Failed to send invoice email for order ${order._id}:`, err);
+    }
+  }
+
+  if (order.customerPhone && order.customerPhone !== '0000000000') {
+    try {
+      await sendInvoiceWhatsApp(order.customerPhone, order);
+      sentTo.push('whatsapp');
+    } catch (err) {
+      logger.error(`Failed to send invoice WhatsApp for order ${order._id}:`, err);
+    }
+  }
+
+  if (sentTo.length === 0) {
+    throw new AppError('Failed to send invoice to provided contact methods', 500);
+  }
+
+  res.success(response, { data: null, message: 'Invoice sent successfully' });
+});
+
+export const sendPaymentLink = asyncHandler(async (req, response) => {
+  const tenantId = req.user.tenantId || req.user.restaurantId?.toString();
+  const OrderModel = getTenantModel(tenantId, 'Order');
+  const order = await OrderModel.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+
+  if (!order.paymentLinkUrl) {
+    throw new AppError('No payment link available for this order', 400);
+  }
+
+  if (order.customerEmail) {
+    try {
+      await sendPaymentLinkEmail(order.customerEmail, order, order.paymentLinkUrl);
+    } catch (err) {
+      logger.error(`Failed to send payment link email for order ${order._id}:`, err);
+      throw new AppError('Failed to send email', 500);
+    }
+  } else {
+    throw new AppError('No customer email on file', 400);
+  }
+
+  res.success(response, { data: null, message: `Payment link emailed to ${order.customerEmail}` });
+});
+
+// ── Payment Events Audit Trail ───────────────────────────────────────────────
+
+/**
+ * @desc    get payment event audit log for an order
+ * @route   GET /api/orders/:id/payment-events
+ * @access  Private (merchant, admin)
+ */
+export const getPaymentEvents = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id).select('paymentEvents statusUpdates orderNumber paymentStatus refunded refundAmount refundReason stripePaymentIntentId').lean();
+  if (!order) throw new AppError('Order not found', 404);
+
+  // merge paymentEvents + statusUpdates into a unified chronological audit log
+  const paymentEvts = (order.paymentEvents || []).map(ev => ({
+    type: 'payment_event',
+    event: ev.event,
+    timestamp: ev.timestamp,
+    amount: ev.amount,
+    stripeRefundId: ev.stripeRefundId,
+    stripePaymentIntentId: ev.stripePaymentIntentId,
+    error: ev.error,
+    reason: ev.reason,
+    triggeredBy: ev.triggeredBy,
+    meta: ev.meta
+  }));
+
+  const statusEvts = (order.statusUpdates || []).map(su => ({
+    type: 'status_update',
+    event: 'status_change',
+    timestamp: su.timestamp,
+    status: su.status,
+    description: su.description
+  }));
+
+  const unified = [...paymentEvts, ...statusEvts].sort(
+    (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+  );
+
+  res.success(response, {
+    data: {
+      orderId: req.params.id,
+      orderNumber: order.orderNumber,
+      paymentStatus: order.paymentStatus,
+      refunded: order.refunded,
+      refundAmount: order.refundAmount,
+      refundReason: order.refundReason,
+      stripePaymentIntentId: order.stripePaymentIntentId,
+      events: unified
+    }
+  });
+});
+
+// ── Document Generation (Invoice & KOT) ────────────────────────────────────
+
+/**
+ * @desc    generate and serve standalone Invoice HTML
+ * @route   GET /api/orders/:id/invoice
+ * @access  Private (merchant, admin)
+ */
+export const getInvoiceDocument = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const Payment = req.getModel('Payment');
+
+  const order = await Order.findById(req.params.id).lean();
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+
+  const payment = await Payment.findOne({ orderId: order._id }).lean();
+
+  const html = generateInvoiceHTML(order, payment);
+  response.setHeader('Content-Type', 'text/html; charset=utf-8');
+  response.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; script-src-attr 'unsafe-inline';");
+  response.send(html);
+});
+
+/**
+ * @desc    download invoice PDF
+ * @route   GET /api/orders/:id/invoice-pdf
+ * @access  Public
+ */
+export const downloadInvoicePdf = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const Payment = req.getModel('Payment');
+
+  const order = await Order.findById(req.params.id).populate('items.menuItemId').lean();
+  if (!order) throw new AppError('Order not found', 404);
+
+  const payment = await Payment.findOne({ orderId: order._id }).lean();
+
+  const { generateInvoiceHTML } = await import('../services/documentService.js');
+  const { generatePdfFromHtml } = await import('../services/pdfService.js');
+
+  let html;
+  try {
+    html = generateInvoiceHTML(order, payment);
+  } catch (error) {
+    logger.error(`Failed to generate HTML for order ${order._id}`, error);
+    throw new AppError('Failed to generate HTML document', 500);
+  }
+
+  let pdfBuffer;
+  try {
+    pdfBuffer = await generatePdfFromHtml(html);
+  } catch (error) {
+    logger.error(`Failed to generate PDF for order ${order._id}`, error);
+    throw new AppError('Failed to generate PDF document', 500);
+  }
+
+  const filename = `Invoice-${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}.pdf`;
+  
+  response.setHeader('Content-Type', 'application/pdf');
+  response.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+  response.end(Buffer.from(pdfBuffer), 'binary');
+});
+
+/**
+ * @desc    generate and serve standalone KOT (Kitchen Order Ticket) HTML
+ * @route   GET /api/orders/:id/kot
+ * @access  Private (merchant, admin)
+ */
+export const getKOTDocument = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+
+  const order = await Order.findById(req.params.id).lean();
+  if (!order) throw new AppError('Order not found', 404);
+
+  const html = generateKOTHTML(order);
+  response.setHeader('Content-Type', 'text/html; charset=utf-8');
+  response.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; script-src-attr 'unsafe-inline';");
+  response.send(html);
+});
+
+/**
+ * @desc    Update payment status for an existing order (merchant charges card from Live Orders)
+ * @route   PUT /api/orders/:id/payment
+ * @access  Private (merchant)
+ */
+export const updatePaymentStatus = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+
+  // Guard: don't allow updating an already-paid order UNLESS this request is also trying to set it to paid (idempotent race condition with Stripe webhooks)
+  if (order.paymentStatus === 'paid' && req.body.paymentStatus !== 'paid') {
+    throw new AppError('Order is already paid', 400);
+  }
+
+  // Guard: don't allow updating cancelled/failed orders
+  if (['cancelled', 'failed', 'refunded'].includes(order.status)) {
+    throw new AppError(`Cannot update payment for a ${order.status} order`, 400);
+  }
+
+  const { paymentMethod, paymentStatus, stripePaymentIntentId } = req.body;
+
+  if (paymentMethod) order.paymentMethod = paymentMethod;
+  if (stripePaymentIntentId) order.stripePaymentIntentId = stripePaymentIntentId;
+
+  if (paymentStatus) {
+    order.paymentStatus = paymentStatus;
+    if (paymentStatus === 'paid' && order.status === 'pending') {
+      order.status = 'accepted';
+      order.statusUpdates.push({ status: 'accepted', description: 'Order accepted after card payment by merchant' });
+
+      // Expire the old Stripe Checkout Session (QR link) so customer can no longer pay via link
+      if (order.stripeCheckoutSessionId) {
+        try {
+          await expireCheckoutSession(order.stripeCheckoutSessionId);
+        } catch (e) {
+          logger.warn(`Failed to expire checkout session on card charge: ${e.message}`);
+        }
+      }
+    }
+    
+    // Auto-send invoice on successful payment status update
+    if (paymentStatus === 'paid') {
+      autoSendInvoice(order);
+    }
+  }
+
+  await order.save();
+
+  const io = req.app.get('io');
+  if (io) {
+    const payload = buildOrderSocketPayload(order);
+    io.to(order.restaurantId.toString()).emit('order_status_update', payload);
+    io.to(order.restaurantId.toString()).emit('order_updated', payload);
+  }
+
+  res.success(response, { data: order, message: 'Payment status updated successfully' });
+});
+

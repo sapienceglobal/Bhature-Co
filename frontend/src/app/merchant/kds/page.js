@@ -1,0 +1,71 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useMerchantContext } from '@/context/MerchantContext';
+import { orderAPI } from '@/lib/api';
+import KitchenDisplayView from '@/components/merchant/KitchenDisplayView';
+import { PageLoader, showToast } from '@/components/ui';
+import { useSocket } from '@/context/SocketContext';
+
+export default function MerchantKDSPage() {
+  const { restaurant, roomId, globalLoading } = useMerchantContext();
+  const { joinRoom, on, off } = useSocket();
+  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState([]);
+
+  const loadData = async () => {
+    try {
+
+      const res = await orderAPI.getRestaurantOrders(roomId).catch(() => ({ data: [] }));
+      setOrders(res.data || []);
+    } catch (err) {
+      console.error('Orders Load Error:', err);
+      showToast('Failed to load orders', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (globalLoading || !roomId) return;
+    loadData();
+  }, [roomId, globalLoading]);
+
+  // socket logic
+  useEffect(() => {
+    if (!roomId) return undefined;
+    joinRoom(roomId);
+    
+    const handleRealtimeOrder = () => {
+      loadData();
+    };
+
+    on('new_order', handleRealtimeOrder);
+    on('order_updated', handleRealtimeOrder);
+
+    return () => {
+      off('new_order', handleRealtimeOrder);
+      off('order_updated', handleRealtimeOrder);
+    };
+  }, [roomId, joinRoom, on, off]);
+
+  const handleUpdateStatus = async (orderId, status) => {
+    try { 
+      await orderAPI.updateStatus(orderId, status); 
+      showToast(`Status → ${status}`, 'success'); 
+      loadData(); 
+    } catch (err) { 
+      showToast(err.message || 'Failed', 'error'); 
+      loadData();
+    }
+  };
+
+  if (globalLoading || loading) return <PageLoader text="Loading Kitchen Display..." />;
+
+  return (
+    <KitchenDisplayView
+      orders={orders}
+      onUpdateStatus={handleUpdateStatus}
+    />
+  );
+}

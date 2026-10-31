@@ -1,0 +1,78 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import ProfileHero from './shared/ProfileHero';
+import AccountSidebar from './shared/AccountSidebar';
+import MyOrdersTab from './tabs/orders/MyOrdersTab';
+import DashboardTab from './tabs/DashboardTab';
+import MyProfileTab from './tabs/MyProfileTab';
+import AddressesTab from './tabs/AddressesTab';
+import FavoritesTab from './tabs/FavoritesTab';
+import PaymentsTab from './tabs/PaymentsTab';
+import LoyaltyTab from './tabs/LoyaltyTab';
+import CouponsTab from './tabs/CouponsTab';
+import NotificationsTab from './tabs/NotificationsTab';
+import ReferTab from './tabs/ReferTab';
+import MyReservationsTab from './tabs/MyReservationsTab';
+
+export default function LassiProfilePage({ user, logout, updateUser }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams?.get('tab');
+  const [activeNav, setActiveNav] = useState(tabParam || 'dashboard');
+
+  useEffect(() => {
+    setActiveNav(tabParam || 'dashboard');
+  }, [tabParam]);
+
+  const handleNavClick = async (id) => {
+    if (id === 'logout') {
+      if (logout) await logout();
+      window.location.href = '/login';
+      return;
+    }
+    setActiveNav(id);
+    router.push(`/profile?tab=${id}`, { scroll: false });
+  };
+
+  return (
+    <div className="min-h-screen bg-[#fbfaf7] text-[#1a1a1a]">
+      {/* Hero Section */}
+      <ProfileHero activeNav={activeNav} />
+
+      {/* Yaha maine max-w-[1160px] ko hata kar max-w-[1440px] kar diya hai 
+          taaki left-right ka space kam ho jaye */}
+      <main className="mx-auto max-w-[1440px] px-4 md:px-8 lg:px-12 py-4 md:py-8">
+        
+        {/* Grid layout jisme left me sidebar (280px) aur right me baaki jagah (1fr) hai */}
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4 md:gap-8 items-start">
+          
+          {/* Left Sidebar */}
+          <AccountSidebar
+            user={user}
+            activeNav={activeNav}
+            onNavClick={handleNavClick}
+            onOrderNow={() => router.push('/menu')}
+          />
+
+          {/* Right Side Content with Smooth Fade-In Transition */}
+          <div key={activeNav} className="min-w-0 min-h-[600px] animate-fadeIn">
+            {/* Conditional Rendering for Tabs */}
+            {activeNav === 'dashboard' && <DashboardTab user={user} onNavigate={handleNavClick} />}
+            {activeNav === 'profile' && <MyProfileTab user={user} updateUser={updateUser} />}
+            {activeNav === 'addresses' && <AddressesTab user={user} updateUser={updateUser} />}
+            {activeNav === 'orders' && <MyOrdersTab />}
+            {activeNav === 'reservations' && <MyReservationsTab />}
+            {activeNav === 'favorites' && <FavoritesTab user={user} updateUser={updateUser} />}
+            {activeNav === 'payments' && <PaymentsTab user={user} updateUser={updateUser} />}
+            {activeNav === 'loyalty' && <LoyaltyTab user={user} />}
+            {activeNav === 'coupons' && <CouponsTab user={user} />}
+            {activeNav === 'notifications' && <NotificationsTab user={user} updateUser={updateUser} />}
+            {activeNav === 'refer' && <ReferTab user={user} />}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

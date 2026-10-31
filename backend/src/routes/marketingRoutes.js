@@ -1,0 +1,17 @@
+import express from 'express';
+import { getCampaigns, broadcastCampaign, getAudienceStats } from '../controllers/marketingController.js';
+import { protect, authorize } from '../middleware/auth.js';
+
+const router = express.Router();
+
+// only allow admin and manager to access marketing campaigns
+router.use(protect);
+router.use(authorize('merchant', 'admin'));
+
+router.get('/audience-stats', getAudienceStats);
+
+router.route('/')
+  .get(getCampaigns)
+  .post(broadcastCampaign);
+
+export default router;

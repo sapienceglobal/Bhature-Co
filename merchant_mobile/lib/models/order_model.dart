@@ -1,0 +1,383 @@
+class OrderItem {
+  final String name;
+  final int quantity;
+  final String? size;
+  final List<String> addOns;
+  final String? specialInstructions;
+  final double lineTotal;
+  final String? image;
+
+  OrderItem({
+    required this.name,
+    required this.quantity,
+    this.size,
+    this.addOns = const [],
+    this.specialInstructions,
+    this.lineTotal = 0.0,
+    this.image,
+  });
+
+  factory OrderItem.fromJson(Map<String, dynamic> json) {
+    var addOnsList = <String>[];
+    if (json['addOns'] != null) {
+      if (json['addOns'] is List) {
+        addOnsList = List<String>.from((json['addOns'] as List).map((a) => a['name']?.toString() ?? ''));
+      }
+    }
+    return OrderItem(
+      name: json['name'] ?? 'Unknown Item',
+      quantity: json['quantity'] ?? 1,
+      size: json['selectedSize'] != null ? json['selectedSize']['name'] : null,
+      addOns: addOnsList,
+      specialInstructions: json['specialInstructions'],
+      lineTotal: (json['lineTotal'] ?? 0.0).toDouble(),
+      image: json['image'] ?? json['imageUrl'],
+    );
+  }
+}
+
+class StatusUpdate {
+  final String status;
+  final DateTime timestamp;
+  final String? description;
+
+  StatusUpdate({required this.status, required this.timestamp, this.description});
+
+  factory StatusUpdate.fromJson(Map<String, dynamic> json) {
+    return StatusUpdate(
+      status: json['status'] ?? 'unknown',
+      timestamp: json['timestamp'] != null ? DateTime.parse(json['timestamp']) : DateTime.now(),
+      description: json['description'],
+    );
+  }
+}
+
+class PaymentEvent {
+  final String event;
+  final String? reason;
+  final String? error;
+  final double? amount;
+  final DateTime timestamp;
+
+  PaymentEvent({
+    required this.event,
+    required this.timestamp,
+    this.reason,
+    this.error,
+    this.amount,
+  });
+
+  factory PaymentEvent.fromJson(Map<String, dynamic> json) {
+    return PaymentEvent(
+      event: json['event'] ?? 'unknown',
+      reason: json['reason'],
+      error: json['error'],
+      amount: json['amount'] != null ? (json['amount'] as num).toDouble() : null,
+      timestamp: json['timestamp'] != null ? DateTime.parse(json['timestamp']) : DateTime.now(),
+    );
+  }
+}
+
+class OrderModel {
+  final String id;
+  final String orderNumber;
+  final String status;
+  final String customerName;
+  final String customerPhone;
+  final String orderType;
+  final double total;
+  final DateTime createdAt;
+  final List<OrderItem> items;
+  final String? specialInstructions;
+  final String? courierName;
+  final String? courierPhone;
+  final String? courierPhoneForCustomer;
+  final String? courierPhoneForRestaurant;
+  final String? courierImageUrl;
+  final String? courierVehicle;
+  final String? courierVehiclePlate;
+  final String? thirdPartyDeliveryName;
+  final String? customerEmail;
+  final String? address;
+  final String? tableNumber;
+  final String paymentStatus;
+  final String paymentMethod;
+  final String? paymentLinkUrl;
+  final bool refunded;
+  final String? refundReason;
+  final List<StatusUpdate> statusUpdates;
+  final List<PaymentEvent> paymentEvents;
+  final double subtotal;
+  final double tax;
+  final double deliveryFee;
+  final double discount;
+  final double tip;
+  final double refundAmount;
+  final String? orderSource;
+  final String? accountName;
+  final String? accountEmail;
+  final String? accountPhone;
+  final bool hasAutoRefund;
+  final bool autoRefundSucceeded;
+  final bool autoRefundFailed;
+  final bool autoRefundSkipped;
+  
+  // Delivery & Tracking Fields
+  final String? deliveryProvider;
+  final String? deliveryId;
+  final String? trackingUrl;
+  final String? thirdPartyTrackingUrl;
+  final DateTime? pickupTime;
+  final DateTime? deliveryTime;
+  final String? courierNotes;
+  final double? rating;
+  final bool isRemake;
+  final String? parentOrderId;
+  final String? remakeReason;
+  final Map<String, dynamic>? remakeBy;
+  final Map<String, dynamic>? deviceContext;
+
+  // Delayed Dispatch (Shipday) Fields
+  final String? dispatchStatus;
+  final DateTime? dispatchAt;
+  final DateTime? dispatchedAt;
+  final String? dispatchedBy;
+  final int dispatchAttempts;
+  final String? dispatchError;
+  final int delayMinutesApplied;
+
+  OrderModel({
+    required this.id,
+    required this.orderNumber,
+    required this.status,
+    required this.customerName,
+    required this.customerPhone,
+    required this.orderType,
+    required this.total,
+    required this.createdAt,
+    required this.items,
+    this.specialInstructions,
+    this.courierName,
+    this.courierPhone,
+    this.courierPhoneForCustomer,
+    this.courierPhoneForRestaurant,
+    this.courierImageUrl,
+    this.courierVehicle,
+    this.courierVehiclePlate,
+    this.thirdPartyDeliveryName,
+    this.customerEmail,
+    this.address,
+    this.tableNumber,
+    this.paymentStatus = 'unpaid',
+    this.paymentMethod = 'cash',
+    this.paymentLinkUrl,
+    this.refunded = false,
+    this.refundReason,
+    this.statusUpdates = const [],
+    this.paymentEvents = const [],
+    this.subtotal = 0,
+    this.tax = 0,
+    this.deliveryFee = 0,
+    this.discount = 0,
+    this.tip = 0,
+    this.refundAmount = 0,
+    this.orderSource,
+    this.accountName,
+    this.accountEmail,
+    this.accountPhone,
+    this.hasAutoRefund = false,
+    this.autoRefundSucceeded = false,
+    this.autoRefundFailed = false,
+    this.autoRefundSkipped = false,
+    this.deliveryProvider,
+    this.deliveryId,
+    this.trackingUrl,
+    this.thirdPartyTrackingUrl,
+    this.pickupTime,
+    this.deliveryTime,
+    this.courierNotes,
+    this.rating,
+    this.isRemake = false,
+    this.parentOrderId,
+    this.remakeReason,
+    this.remakeBy,
+    this.deviceContext,
+    this.dispatchStatus,
+    this.dispatchAt,
+    this.dispatchedAt,
+    this.dispatchedBy,
+    this.dispatchAttempts = 0,
+    this.dispatchError,
+    this.delayMinutesApplied = 0,
+  });
+
+  factory OrderModel.fromJson(Map<String, dynamic> json) {
+    var itemsList = <OrderItem>[];
+    if (json['items'] != null) {
+      itemsList = (json['items'] as List).map((i) => OrderItem.fromJson(i)).toList();
+    }
+    var updatesList = <StatusUpdate>[];
+    if (json['statusUpdates'] != null) {
+      updatesList = (json['statusUpdates'] as List).map((i) => StatusUpdate.fromJson(i)).toList();
+    }
+    
+    // Parse payment events for auto refund
+    bool hasAutoRefund = false;
+    bool autoRefundSucceeded = false;
+    bool autoRefundFailed = false;
+    bool autoRefundSkipped = false;
+    var paymentEventsList = <PaymentEvent>[];
+    
+    if (json['paymentEvents'] != null) {
+      final evts = json['paymentEvents'] as List;
+      paymentEventsList = evts.map((e) => PaymentEvent.fromJson(e)).toList();
+      hasAutoRefund = evts.any((e) => e['event'] == 'auto_refund_triggered');
+      autoRefundSucceeded = json['refunded'] == true || evts.any((e) => e['event'] == 'auto_refund_succeeded');
+      autoRefundFailed = !autoRefundSucceeded && evts.any((e) => e['event'] == 'auto_refund_failed');
+      autoRefundSkipped = evts.any((e) => e['event'] == 'auto_refund_skipped');
+    }
+    return OrderModel(
+      id: json['_id'] ?? '',
+      orderNumber: json['orderNumber'] ?? json['_id']?.toString().substring((json['_id']?.toString().length ?? 6) - 6) ?? '',
+      status: json['status']?.toString().toLowerCase() ?? 'new',
+      customerName: json['customerName'] ?? 'Guest',
+      customerPhone: json['customerPhone'] ?? 'N/A',
+      orderType: json['orderType'] ?? 'delivery',
+      total: (json['total'] ?? 0).toDouble(),
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+      items: itemsList,
+      specialInstructions: json['specialInstructions'],
+      courierName: json['courierName'],
+      courierPhone: json['courierPhone'],
+      courierPhoneForCustomer: json['courierPhoneForCustomer'],
+      courierPhoneForRestaurant: json['courierPhoneForRestaurant'],
+      courierImageUrl: json['courierImageUrl'],
+      courierVehicle: json['courierVehicle'],
+      courierVehiclePlate: json['courierVehiclePlate'],
+      thirdPartyDeliveryName: json['thirdPartyDeliveryName'],
+      paymentStatus: json['paymentStatus']?.toString().toLowerCase() ?? 'unpaid',
+      paymentMethod: json['paymentMethod']?.toString().toLowerCase() ?? 'cash',
+      paymentLinkUrl: json['paymentLinkUrl']?.toString(),
+      refunded: json['refunded'] ?? false,
+      refundReason: json['refundReason'],
+      customerEmail: json['customerEmail'],
+      address: json['deliveryAddress']?['street'] ?? json['address'],
+      tableNumber: json['tableNumber'],
+      statusUpdates: updatesList,
+      paymentEvents: paymentEventsList,
+      subtotal: (json['subtotal'] ?? 0).toDouble(),
+      tax: (json['tax'] ?? 0).toDouble(),
+      deliveryFee: (json['deliveryFee'] ?? 0).toDouble(),
+      discount: (json['discount'] ?? 0).toDouble(),
+      tip: (json['tip'] ?? 0).toDouble(),
+      refundAmount: (json['refundAmount'] ?? 0).toDouble(),
+      orderSource: json['orderSource'],
+      accountName: json['userId'] is Map ? json['userId']['name'] : null,
+      accountEmail: json['userId'] is Map ? json['userId']['email'] : null,
+      accountPhone: json['userId'] is Map ? json['userId']['phone'] : null,
+      hasAutoRefund: hasAutoRefund,
+      autoRefundSucceeded: autoRefundSucceeded,
+      autoRefundFailed: autoRefundFailed,
+      autoRefundSkipped: autoRefundSkipped,
+      deliveryProvider: json['deliveryProvider'],
+      deliveryId: json['deliveryId'],
+      trackingUrl: json['trackingUrl'],
+      thirdPartyTrackingUrl: json['thirdPartyTrackingUrl'],
+      pickupTime: json['pickupTime'] != null ? DateTime.parse(json['pickupTime']) : null,
+      deliveryTime: json['deliveryTime'] != null ? DateTime.parse(json['deliveryTime']) : null,
+      courierNotes: json['courierNotes'],
+      rating: json['rating'] != null ? (json['rating'] as num).toDouble() : null,
+      isRemake: json['isRemake'] ?? false,
+      parentOrderId: json['parentOrderId'],
+      remakeReason: json['remakeReason']?.toString(),
+      remakeBy: json['remakeBy'] is Map ? Map<String, dynamic>.from(json['remakeBy']) : null,
+      deviceContext: json['deviceContext'] is Map ? Map<String, dynamic>.from(json['deviceContext']) : null,
+      dispatchStatus: json['dispatchStatus']?.toString(),
+      dispatchAt: json['dispatchAt'] != null ? DateTime.tryParse(json['dispatchAt'].toString()) : null,
+      dispatchedAt: json['dispatchedAt'] != null ? DateTime.tryParse(json['dispatchedAt'].toString()) : null,
+      dispatchedBy: json['dispatchedBy']?.toString(),
+      dispatchAttempts: (json['dispatchAttempts'] is num) ? (json['dispatchAttempts'] as num).toInt() : 0,
+      dispatchError: json['dispatchError']?.toString(),
+      delayMinutesApplied: (json['delayMinutesApplied'] is num) ? (json['delayMinutesApplied'] as num).toInt() : 0,
+    );
+  }
+
+  OrderModel copyWith({
+    String? status,
+    String? dispatchStatus,
+    DateTime? dispatchAt,
+    DateTime? dispatchedAt,
+    String? dispatchedBy,
+    int? dispatchAttempts,
+    String? dispatchError,
+    int? delayMinutesApplied,
+    String? deliveryId,
+    String? trackingUrl,
+  }) {
+    return OrderModel(
+      id: id,
+      orderNumber: orderNumber,
+      status: status ?? this.status,
+      customerName: customerName,
+      customerPhone: customerPhone,
+      orderType: orderType,
+      total: total,
+      createdAt: createdAt,
+      items: items,
+      specialInstructions: specialInstructions,
+      courierName: courierName,
+      courierPhone: courierPhone,
+      courierPhoneForCustomer: courierPhoneForCustomer,
+      courierPhoneForRestaurant: courierPhoneForRestaurant,
+      courierImageUrl: courierImageUrl,
+      courierVehicle: courierVehicle,
+      thirdPartyDeliveryName: thirdPartyDeliveryName,
+      paymentStatus: paymentStatus,
+      paymentMethod: paymentMethod,
+      paymentLinkUrl: paymentLinkUrl,
+      refunded: refunded,
+      refundReason: refundReason,
+      customerEmail: customerEmail,
+      address: address,
+      tableNumber: tableNumber,
+      statusUpdates: statusUpdates,
+      paymentEvents: paymentEvents,
+      subtotal: subtotal,
+      tax: tax,
+      deliveryFee: deliveryFee,
+      discount: discount,
+      tip: tip,
+      refundAmount: refundAmount,
+      orderSource: orderSource,
+      accountName: accountName,
+      accountEmail: accountEmail,
+      accountPhone: accountPhone,
+      hasAutoRefund: hasAutoRefund,
+      autoRefundSucceeded: autoRefundSucceeded,
+      autoRefundFailed: autoRefundFailed,
+      autoRefundSkipped: autoRefundSkipped,
+      deliveryProvider: deliveryProvider,
+      deliveryId: deliveryId ?? this.deliveryId,
+      trackingUrl: trackingUrl ?? this.trackingUrl,
+      thirdPartyTrackingUrl: thirdPartyTrackingUrl,
+      pickupTime: pickupTime,
+      deliveryTime: deliveryTime,
+      courierNotes: courierNotes,
+      rating: rating,
+      isRemake: isRemake,
+      parentOrderId: parentOrderId,
+      remakeReason: remakeReason ?? this.remakeReason,
+      remakeBy: remakeBy ?? this.remakeBy,
+      deviceContext: deviceContext ?? this.deviceContext,
+      dispatchStatus: dispatchStatus ?? this.dispatchStatus,
+      dispatchAt: dispatchAt ?? this.dispatchAt,
+      dispatchedAt: dispatchedAt ?? this.dispatchedAt,
+      dispatchedBy: dispatchedBy ?? this.dispatchedBy,
+      dispatchAttempts: dispatchAttempts ?? this.dispatchAttempts,
+      dispatchError: dispatchError ?? this.dispatchError,
+      delayMinutesApplied: delayMinutesApplied ?? this.delayMinutesApplied,
+    );
+  }
+}
+
+

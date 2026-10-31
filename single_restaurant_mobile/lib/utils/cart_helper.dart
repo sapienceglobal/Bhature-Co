@@ -1,0 +1,87 @@
+import 'package:flutter/material.dart';
+import 'package:single_restaurant_mobile/providers/cart_provider.dart';
+import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
+import 'package:single_restaurant_mobile/widgets/customization_bottom_sheet.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
+import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/widgets/common/app_dialog.dart';
+
+class AddToCartHelper {
+  static void handleAddToCart(
+    BuildContext context,
+    Map<String, dynamic> item,
+    CartProvider cartProvider,
+    RestaurantProvider restaurantProvider, {
+    int quantity = 1,
+  }) {
+    final bool hasAddOns = item['addOns'] != null && (item['addOns'] as List).isNotEmpty;
+    final bool hasSizes = item['sizeVariations'] != null && (item['sizeVariations'] as List).isNotEmpty;
+    final bool isCustomizable = hasAddOns || hasSizes;
+
+    if (!isCustomizable) {
+      // Direct add
+      final newItem = Map<String, dynamic>.from(item);
+      newItem['quantity'] = quantity;
+      cartProvider.addItem(newItem, restaurantData: restaurantProvider.restaurant);
+      ToastUtils.showCartSuccess(context);
+      return;
+    }
+
+    // Check if the item already exists in the cart WITH ANY customizations
+    final targetId = item['menuItemId'] ?? item['_id'] ?? item['id'];
+    
+    // Find all occurrences of this item in the cart
+    final cartItems = cartProvider.items.where((i) {
+      final iId = i['menuItemId'] ?? i['_id'] ?? i['id'];
+      return iId == targetId;
+    }).toList();
+
+    if (cartItems.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AppDialog(
+          title: 'Repeat Customization?',
+          icon: Icons.replay_rounded,
+          iconColor: AppColors.secondary,
+          message: 'You already have this item in your cart. Do you want to repeat your last customization or choose a new one?',
+          secondaryActionText: 'Choose New',
+          onSecondaryAction: () {
+            Navigator.pop(ctx);
+            _openCustomizationSheet(context, item, cartProvider, restaurantProvider);
+          },
+          primaryActionText: 'Last Repeat',
+          onPrimaryAction: () {
+            Navigator.pop(ctx);
+            // Add the most recently added configuration again
+            final lastItem = cartItems.last;
+            final repeatItem = Map<String, dynamic>.from(lastItem);
+            repeatItem['quantity'] = 1;
+            cartProvider.addItem(repeatItem, restaurantData: restaurantProvider.restaurant);
+            ToastUtils.showCartSuccess(context);
+          },
+        ),
+      );
+    } else {
+      // First time adding, show customization bottom sheet
+      _openCustomizationSheet(context, item, cartProvider, restaurantProvider);
+    }
+  }
+
+  static void _openCustomizationSheet(
+    BuildContext context,
+    Map<String, dynamic> item,
+    CartProvider cartProvider,
+    RestaurantProvider restaurantProvider,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => CustomizationBottomSheet(
+        item: item,
+        cartProvider: cartProvider,
+        restaurantProvider: restaurantProvider,
+      ),
+    );
+  }
+}

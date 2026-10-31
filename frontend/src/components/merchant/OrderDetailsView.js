@@ -1,0 +1,1417 @@
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { 
+  ChevronLeft, Printer, Send, Calendar, Clock, 
+  MapPin, Phone, Mail, FileText,
+  CheckCircle, XCircle, FileClock, RefreshCcw, X,
+  AlertTriangle, ShieldAlert, Zap, ArrowDownLeft,
+  CreditCard, Info, Activity, Eye, Shield,
+  Globe, Smartphone, Truck, Star, ExternalLink, Settings,
+  QrCode, Copy
+} from 'lucide-react';
+import { orderAPI, paymentAPI } from '@/lib/api';
+import { QRCodeSVG } from 'qrcode.react';
+import { showToast, ConfirmModal } from '@/components/ui';
+import { useMerchantContext } from '@/context/MerchantContext';
+import { useSocket } from '@/context/SocketContext';
+import { formatCurrency, formatDate, formatTime } from '@/lib/formatters';
+
+// ─── Payment Event config ────────────────────────────────────────────────────
+const PAYMENT_EVENT_CONFIG = {
+  payment_initiated:      { icon: CreditCard,    color: '#6366f1', bg: '#ede9fe', label: 'Payment Initiated' },
+  payment_confirmed:      { icon: CheckCircle,   color: '#16a34a', bg: '#dcfce7', label: 'Payment Confirmed' },
+  payment_failed:         { icon: XCircle,       color: '#dc2626', bg: '#fef2f2', label: 'Payment Failed' },
+  order_saved:            { icon: FileText,      color: '#2563eb', bg: '#dbeafe', label: 'Order Saved to System' },
+  order_creation_failed:  { icon: AlertTriangle, color: '#dc2626', bg: '#fef2f2', label: 'Order Creation Failed' },
+  auto_refund_triggered:  { icon: Zap,           color: '#d97706', bg: '#fffbeb', label: 'Auto-Refund Initiated' },
+  auto_refund_succeeded:  { icon: ArrowDownLeft, color: '#16a34a', bg: '#dcfce7', label: 'Auto-Refund Completed' },
+  auto_refund_failed:     { icon: ShieldAlert,   color: '#dc2626', bg: '#fef2f2', label: 'Auto-Refund Failed' },
+  manual_refund:          { icon: FileClock,     color: '#7c3aed', bg: '#f5f3ff', label: 'Manual Refund Processed' },
+  loyalty_rollback:       { icon: RefreshCcw,    color: '#0891b2', bg: '#e0f2fe', label: 'Loyalty Points Reversed' },
+  status_change:          { icon: Activity,      color: '#6b7280', bg: '#f3f4f6', label: 'Status Updated' },
+};
+
+function fmtAmt(amount, currency) {
+  if (!amount && amount !== 0) return '';
+  return ` · ${formatCurrency(amount, currency)}`;
+}
+
+export default function OrderDetailsView({ order: initialOrder, onBack, onUpdateStatus, onRefresh, onViewOriginal }) {
+  const { restaurant } = useMerchantContext();
+  const { on, off } = useSocket();
+  const currency = restaurant?.currency || 'USD';
+
+  const [order, setOrder] = useState(initialOrder);
+  const [mounted, setMounted] = useState(false);
+  const [isRefunding, setIsRefunding] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isRemakingOrder, setIsRemakingOrder] = useState(false);
+  const [isSendingInvoice, setIsSendingInvoice] = useState(false);
+  const [paymentAudit, setPaymentAudit] = useState(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
+
+  // QR Modal state
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [paymentLinkUrl, setPaymentLinkUrl] = useState('');
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [isSendingLink, setIsSendingLink] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [showRemakeModal, setShowRemakeModal] = useState(false);
+  const [remakeReason, setRemakeReason] = useState('Customer Complaint');
+  const [customReason, setCustomReason] = useState('');
+  const [remakePin, setRemakePin] = useState('');
+  const [remakeError, setRemakeError] = useState('');
+  const [showDriverImage, setShowDriverImage] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    fetchFreshOrder();
+    fetchPaymentAuditSilent();
+  }, [initialOrder._id]);
+
+  useEffect(() => {
+    const handleStatusChanged = (payload) => {
+      if (payload.orderId === initialOrder._id || payload._id === initialOrder._id) {
+        fetchFreshOrder();
+        fetchPaymentAuditSilent();
+      }
+    };
+
+    on('order_status_changed', handleStatusChanged);
+    on('order_updated', handleStatusChanged);
+
+    return () => {
+      off('order_status_changed', handleStatusChanged);
+      off('order_updated', handleStatusChanged);
+    };
+  }, [initialOrder._id, on, off]);
+
+  const fetchPaymentAuditSilent = async () => {
+    try {
+      const res = await orderAPI.getPaymentEvents(initialOrder._id);
+      setPaymentAudit(res.data);
+    } catch (err) {
+      console.error('Failed to load payment audit trail', err);
+    }
+  };
+
+  const fetchFreshOrder = async () => {
+    try {
+      const res = await orderAPI.getRestaurantOrders(initialOrder.restaurantId, `_id=${initialOrder._id}`);
+      const freshOrder = res.data?.find ? res.data.find(o => o._id === initialOrder._id) : null;
+      if (freshOrder) setOrder(freshOrder);
+    } catch (err) {
+      console.error('Failed to fetch fresh order details', err);
+    }
+  };
+
+  const fetchPaymentAudit = async () => {
+    if (paymentAudit) { setShowAudit(v => !v); return; }
+    setAuditLoading(true);
+    try {
+      const res = await orderAPI.getPaymentEvents(order._id);
+      setPaymentAudit(res.data);
+      setShowAudit(true);
+    } catch (err) {
+      showToast('Failed to load payment audit trail', 'error');
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  // ─── Local State ──────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'audit'
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+
+  if (!mounted || !order) return null;
+
+  // ─── Derived state ────────────────────────────────────────────────────────
+  const oStatus = (order.status || '').toLowerCase();
+  const isTerminal = ['delivered', 'cancelled', 'failed', 'refunded'].includes(oStatus);
+  const isRefunded = order.refunded === true || order.paymentStatus === 'refunded';
+  const isPartialRefund = order.paymentStatus === 'partially_refunded';
+  const hasAutoRefund = (order.paymentEvents || []).some(e => ['auto_refund_triggered', 'auto_refund_skipped', 'auto_refund_failed'].includes(e.event));
+  const autoRefundSucceeded = isRefunded || (order.paymentEvents || []).some(e => e.event === 'auto_refund_succeeded');
+  const isSkippedEvent = (e) => e.event === 'auto_refund_skipped' || (e.event === 'auto_refund_failed' && e.details?.error === 'Auto-refund is disabled in restaurant settings');
+  const autoRefundSkipped = !autoRefundSucceeded && (order.paymentEvents || []).some(isSkippedEvent);
+  const autoRefundFailed = !autoRefundSucceeded && !autoRefundSkipped && (order.paymentEvents || []).some(e => e.event === 'auto_refund_failed');
+  const canRefund = !isRefunded && ['paid', 'partially_refunded'].includes(order.paymentStatus);
+  const canCancel = !isTerminal;
+  const totalItems = (order.items || []).reduce((acc, it) => acc + it.quantity, 0);
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+  const handleRefund = async () => {
+    if (!canRefund) {
+      showToast(isRefunded ? 'This order has already been refunded' : 'Order is not eligible for refund', 'info');
+      return;
+    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Issue Refund',
+      message: `Refund ${formatCurrency(order.total - (order.refundAmount || 0), currency)} to the customer's card? This action cannot be reversed.`,
+      onConfirm: async () => {
+        setIsRefunding(true);
+        try {
+          await orderAPI.refund(order._id, { reason: 'Merchant initiated refund' });
+          showToast('Order refunded successfully', 'success');
+          await fetchFreshOrder();
+          setPaymentAudit(null); // reset so next expand fetches fresh
+          if (onRefresh) onRefresh();
+        } catch (err) {
+          showToast(err.message || 'Failed to refund order', 'error');
+        } finally {
+          setIsRefunding(false);
+        }
+      }
+    });
+  };
+
+  const handleCancel = async () => {
+    if (!canCancel) {
+      showToast(`Order is already ${oStatus} — cannot cancel`, 'info');
+      return;
+    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Cancel Order',
+      message: 'Are you sure you want to cancel this order? If it has been paid, an auto-refund will be issued automatically.',
+      onConfirm: async () => {
+        setIsCancelling(true);
+        try {
+          await orderAPI.updateStatus(order._id, 'cancelled');
+          showToast('Order cancelled — auto-refund will be processed', 'success');
+          await fetchFreshOrder();
+          setPaymentAudit(null);
+          if (onRefresh) onRefresh();
+        } catch (err) {
+          showToast(err.message || 'Failed to cancel order', 'error');
+        } finally {
+          setIsCancelling(false);
+        }
+      }
+    });
+  };
+
+  const handleRemake = () => {
+    setRemakeReason('Customer Complaint');
+    setCustomReason('');
+    setRemakePin('');
+    setRemakeError('');
+    setShowRemakeModal(true);
+  };
+
+  const executeRemake = async (chargeCustomer) => {
+    const finalReason = remakeReason === 'Other' ? customReason.trim() : remakeReason;
+    if (!chargeCustomer && (!finalReason || finalReason.length < 3)) {
+      setRemakeError('Please provide a reason (minimum 3 chars) for free remake ($0).');
+      return;
+    }
+    setRemakeError('');
+    setIsRemakingOrder(true);
+    try {
+      await orderAPI.remake(order._id, chargeCustomer, { reason: finalReason, pin: remakePin.trim() });
+      setShowRemakeModal(false);
+      showToast(`Remake order sent to kitchen (${chargeCustomer ? 'Paid' : '$0 charge'})`, 'success');
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      const errMsg = err.response?.data?.message || err.message || 'Failed to create remake order';
+      setRemakeError(errMsg);
+      showToast(errMsg, 'error');
+    } finally {
+      setIsRemakingOrder(false);
+    }
+  };
+
+  const handleSendInvoice = async () => {
+    if (!order.customerEmail) {
+      showToast('No customer email on file — cannot send invoice', 'error');
+      return;
+    }
+    setIsSendingInvoice(true);
+    try {
+      await orderAPI.sendInvoice(order._id);
+      showToast(`Invoice emailed to ${order.customerEmail}`, 'success');
+    } catch (err) {
+      showToast('Failed to send invoice email', 'error');
+    } finally {
+      setIsSendingInvoice(false);
+    }
+  };
+
+  const handleShowQR = async () => {
+    if (paymentLinkUrl) {
+      setShowQRModal(true);
+      return;
+    }
+    
+    setIsGeneratingLink(true);
+    try {
+      const linkRes = await paymentAPI.createLink({
+        orderId: order._id,
+        amount: order.total.toFixed(2),
+        restaurantId: order.restaurantId,
+        items: order.items,
+        customerPhone: order.customerPhone || undefined,
+        customerEmail: order.customerEmail || undefined,
+      });
+      setPaymentLinkUrl(linkRes.data?.url || linkRes.url);
+      if (order.customerEmail) {
+        showToast(`Payment link generated and emailed to ${order.customerEmail}`, 'success');
+      }
+      setShowQRModal(true);
+    } catch (err) {
+      showToast('Failed to generate payment link', 'error');
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const handleSendPaymentLinkEmail = async () => {
+    if (!order.customerEmail) {
+      showToast('No customer email on file', 'error');
+      return;
+    }
+    setIsSendingLink(true);
+    try {
+      await orderAPI.sendPaymentLink(order._id);
+      showToast(`Payment link emailed to ${order.customerEmail}`, 'success');
+    } catch (err) {
+      showToast('Failed to send payment link email', 'error');
+    } finally {
+      setIsSendingLink(false);
+    }
+  };
+
+  const copyToClipboard = async () => {
+    if (!paymentLinkUrl) return;
+    try {
+      await navigator.clipboard.writeText(paymentLinkUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+      showToast('Payment link copied!', 'success');
+    } catch (err) {
+      showToast('Failed to copy', 'error');
+    }
+  };
+
+  const handlePrintKOT = () => {
+    const url = orderAPI.getKotUrl(order._id);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handlePrintInvoice = () => {
+    const url = orderAPI.getInvoiceUrl(order._id);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  // ─── Status Progression ──────────────────────────────────────────────────
+  const getNextStatusInfo = () => {
+    const orderType = (order.orderType || '').toLowerCase();
+    switch (oStatus) {
+      case 'pending': case 'new':
+        return { label: 'Accept Order', next: 'accepted', color: '#8b0000', icon: CheckCircle };
+      case 'accepted':
+        return { label: 'Start Preparing', next: 'preparing', color: '#ea580c', icon: Clock };
+      case 'preparing':
+        return { label: 'Mark Ready', next: 'ready', color: '#16a34a', icon: CheckCircle };
+      case 'ready': case 'ready_for_pickup':
+        if (orderType === 'delivery') {
+          return { label: 'Waiting for Rider...', next: null, color: '#16a34a', icon: Truck, waiting: true };
+        }
+        return { label: 'Handed to Customer ✓', next: 'picked_up', color: '#2563eb', icon: CheckCircle };
+      default:
+        return null;
+    }
+  };
+
+  const nextStatusInfo = getNextStatusInfo();
+
+  const handleStatusProgression = async () => {
+    if (!nextStatusInfo || !nextStatusInfo.next || !onUpdateStatus) return;
+    try {
+      await onUpdateStatus(order._id, nextStatusInfo.next);
+      await fetchFreshOrder();
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      showToast(err.message || 'Failed to update status', 'error');
+    }
+  };
+
+  // ─── Badges ───────────────────────────────────────────────────────────────
+  const getStatusBadge = (status) => {
+    const s = (status || '').toLowerCase();
+    const map = {
+      preparing:      ['#ea580c', 'rgba(234, 88, 12, 0.15)', 'Preparing'],
+      pending:        ['#dc2626', 'rgba(220, 38, 38, 0.15)', 'New'],
+      new:            ['#dc2626', 'rgba(220, 38, 38, 0.15)', 'New'],
+      out_for_delivery:['#16a34a','rgba(22, 163, 74, 0.15)','Out for Delivery'],
+      accepted:       ['#2563eb', 'rgba(37, 99, 235, 0.15)', 'Accepted'],
+      ready:          ['#3b82f6', 'rgba(59, 130, 246, 0.15)', 'Ready'],
+      delivered:      ['#16a34a', 'rgba(22, 163, 74, 0.15)', 'Completed'],
+      picked_up:      ['#16a34a', 'rgba(22, 163, 74, 0.15)', 'Completed'],
+      completed:      ['#16a34a', 'rgba(22, 163, 74, 0.15)', 'Completed'],
+      cancelled:      ['#94a3b8', 'rgba(148, 163, 184, 0.15)', 'Cancelled'],
+      refunded:       ['#ef4444', 'rgba(239, 68, 68, 0.15)', 'Refunded'],
+      failed:         ['#f87171', 'rgba(248, 113, 113, 0.15)', 'Failed'],
+    };
+    const [color, bg, label] = map[s] || ['#94a3b8', 'rgba(148, 163, 184, 0.15)', status];
+    return <span style={{ color, background: bg }} className="font-bold text-xs px-2.5 py-1 rounded-lg border border-current/20 font-outfit">{label}</span>;
+  };
+
+  const getPaymentBadge = (status) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'paid')               return <span className="text-emerald-500 font-bold text-xs bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg font-outfit">Paid</span>;
+    if (s === 'refunded')           return <span className="text-rose-500 font-bold text-xs bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-lg font-outfit">Refunded</span>;
+    if (s === 'failed')             return <span className="text-rose-500 font-bold text-xs bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-lg font-outfit">Failed</span>;
+    return <span className="text-admin-text-secondary font-bold text-xs bg-admin-card border border-admin-border px-2.5 py-1 rounded-lg capitalize font-outfit">{status || 'Pending'}</span>;
+  };
+
+  // ─── Timeline ─────────────────────────────────────────────────────────────
+  let timelineSteps = [];
+  if (['pickup', 'dine_in', 'dine-in'].includes((order.orderType || '').toLowerCase())) {
+    timelineSteps = [
+      { key: 'placed',       label: 'Order Placed',        entity: 'Customer' },
+      { key: 'accepted',     label: 'Order Confirmed',      entity: 'System' },
+      { key: 'preparing',    label: 'Preparing',            entity: 'Kitchen' },
+      { key: 'ready',        label: 'Ready for Pickup',     entity: 'Kitchen' },
+      { key: 'picked_up',    label: 'Handed to Customer',   entity: 'Merchant' }
+    ];
+  } else {
+    timelineSteps = [
+      { key: 'placed',       label: 'Order Placed',        entity: 'Customer' },
+      { key: 'accepted',     label: 'Order Confirmed',      entity: 'System' },
+      { key: 'preparing',    label: 'Preparing',            entity: 'Kitchen' },
+      { key: 'ready',        label: 'Ready for Pickup',     entity: 'Kitchen' },
+      { key: 'out_for_delivery', label: 'Out for Delivery', entity: 'Rider' },
+      { key: 'delivered',    label: 'Delivered',            entity: 'Pending' }
+    ];
+  }
+  if (['cancelled', 'refunded', 'failed'].includes(oStatus)) {
+    timelineSteps = [
+      { key: 'placed',    label: 'Order Placed',   entity: 'Customer' },
+      { key: 'cancelled', label: oStatus === 'failed' ? 'Order Failed' : 'Order Cancelled', entity: 'System' }
+    ];
+  }
+
+  const getTimestampForStatus = (statusKey) => {
+    const aliases = {
+      placed: ['new', 'pending'], accepted: ['accepted', 'paid'], preparing: ['preparing'],
+      ready: ['ready'], out_for_delivery: ['out_for_delivery', 'picked_up'],
+      delivered: ['delivered', 'completed'], cancelled: ['cancelled', 'refunded', 'failed']
+    };
+    const match = (order.statusUpdates || []).find(u => (aliases[statusKey] || [statusKey]).includes(u.status?.toLowerCase()));
+    return match?.timestamp;
+  };
+
+  let currentStepIndex = 0;
+  if (['cancelled', 'refunded', 'failed'].includes(oStatus)) currentStepIndex = 1;
+  else if (['delivered', 'completed'].includes(oStatus)) currentStepIndex = 5;
+  else if (['out_for_delivery', 'picked_up'].includes(oStatus)) currentStepIndex = 4;
+  else if (oStatus === 'ready') currentStepIndex = 3;
+  else if (oStatus === 'preparing') currentStepIndex = 2;
+  else if (oStatus === 'accepted') currentStepIndex = 1;
+
+  return (
+    <div className="space-y-6 pb-20">
+      {order.isRemake && (
+        <div className="bg-[#fff7ed] border border-[#fed7aa] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-[#7c2d12] font-black text-sm font-outfit">Remade Order</h3>
+                {order.remakeReason && (
+                  <span className="text-[11px] font-bold bg-amber-500/20 text-amber-800 px-2 py-0.5 rounded-full border border-amber-500/30">
+                    Reason: {order.remakeReason}
+                  </span>
+                )}
+              </div>
+              <p className="text-[#c2410c] text-xs">
+                {order.remakeBy?.name ? (
+                  <>Remade by <strong className="font-bold text-[#7c2d12]">{order.remakeBy.name}</strong> ({order.remakeBy.role || 'Staff'})</>
+                ) : (
+                  'This order is a remake of a previous order.'
+                )}
+              </p>
+              {(order.remakeBy?.ip || order.remakeBy?.deviceType || order.remakeBy?.os) && (
+                <div className="flex items-center gap-2 text-[10.5px] font-medium text-amber-800/80 flex-wrap pt-0.5">
+                  <span>💻 {order.remakeBy.deviceType || 'Device'}: {order.remakeBy.os || ''} {order.remakeBy.browser ? `(${order.remakeBy.browser})` : ''}</span>
+                  <span>•</span>
+                  <span>📍 IP: <code className="font-mono bg-amber-200/50 px-1 rounded">{order.remakeBy.ip}</code> {order.remakeBy.location ? `(${order.remakeBy.location})` : ''}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          {order.parentOrderId && (
+            <button
+              onClick={() => {
+                if (onViewOriginal) {
+                  onViewOriginal(order.parentOrderId);
+                } else {
+                  window.open(`/merchant/all-orders`, '_blank');
+                }
+              }}
+              className="px-4 py-2 bg-[#fed7aa] hover:bg-[#fdba74] text-[#7c2d12] text-xs font-bold rounded-xl transition-colors shrink-0 shadow-sm font-outfit cursor-pointer"
+            >
+              View Original Order
+            </button>
+          )}
+        </div>
+      )}
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <button onClick={onBack} className="p-2 rounded-xl hover:bg-admin-card border border-admin-border text-admin-text-secondary hover:text-admin-text transition-all">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-2xl sm:text-3xl font-black text-admin-text font-outfit">#{order.orderNumber || order._id?.toString().slice(-6) || 'N/A'}</h1>
+            {getStatusBadge(order.status)}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-admin-text-secondary ml-11">
+            <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {formatDate(order.createdAt, restaurant?.dateFormat, restaurant?.timezone)}</span>
+            <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {formatTime(order.createdAt, restaurant?.timeFormat, restaurant?.timezone)}</span>
+            <span className="flex items-center gap-1.5 capitalize text-admin-text bg-admin-card border border-admin-border px-2.5 py-0.5 rounded-lg">{order.orderType?.replace(/_/g, ' ') || 'Delivery'}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button onClick={handlePrintKOT} className="flex items-center gap-1.5 text-admin-text font-bold text-xs border border-admin-border bg-admin-card px-3.5 py-2.5 rounded-xl hover:bg-admin-surface-hover transition-all shadow-sm">
+            <Printer className="w-3.5 h-3.5 text-admin-text-secondary" /> KOT
+          </button>
+          <button onClick={handlePrintInvoice} className="flex items-center gap-1.5 text-admin-text font-bold text-xs border border-admin-border bg-admin-card px-3.5 py-2.5 rounded-xl hover:bg-admin-surface-hover transition-all shadow-sm">
+            <FileText className="w-3.5 h-3.5 text-admin-text-secondary" /> Invoice
+          </button>
+        </div>
+      </div>
+
+      {/* ── Auto-Refund / Failed Alerts ─────────────────────────────────────── */}
+      {oStatus === 'failed' && !hasAutoRefund && (
+        <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+          <div className="w-9 h-9 rounded-xl bg-rose-500/20 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5 text-rose-500" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-rose-500">Order Failed — Payment may need manual review</p>
+            <p className="text-xs text-rose-400 mt-1">Check the Order Journey below for details.</p>
+          </div>
+        </div>
+      )}
+      
+      {hasAutoRefund && (
+        <div className={`border rounded-2xl p-4 flex items-start gap-3 shadow-sm ${
+          autoRefundFailed ? 'bg-rose-500/10 border-rose-500/20' : 
+          autoRefundSkipped ? 'bg-admin-card border-admin-border' :
+          autoRefundSucceeded ? 'bg-amber-500/10 border-amber-500/20' : 'bg-blue-500/10 border-blue-500/20'
+        }`}>
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+            autoRefundFailed ? 'bg-rose-500/20 text-rose-500' : 
+            autoRefundSkipped ? 'bg-admin-surface text-admin-text-secondary' :
+            autoRefundSucceeded ? 'bg-amber-500/20 text-amber-500' : 'bg-blue-500/20 text-blue-500'
+          }`}>
+            {autoRefundFailed ? <ShieldAlert className="w-5 h-5" /> : 
+             autoRefundSkipped ? <Settings className="w-5 h-5" /> :
+             autoRefundSucceeded ? <Zap className="w-5 h-5" /> : <Info className="w-5 h-5" />}
+          </div>
+          <div>
+            <p className={`text-sm font-bold ${
+              autoRefundFailed ? 'text-rose-500' : 
+              autoRefundSkipped ? 'text-admin-text' :
+              autoRefundSucceeded ? 'text-amber-500' : 'text-blue-500'
+            }`}>
+              {autoRefundFailed ? '⚠️ Auto-Refund Failed — Manual action required' : 
+               autoRefundSkipped ? 'Auto-Refund Disabled in Settings' :
+               autoRefundSucceeded ? `⚡ Auto-Refund Processed — ${formatCurrency(order.refundAmount || order.total, currency)} was automatically returned to customer's card` : '🔄 Auto-Refund Initiated — Processing...'}
+            </p>
+            {order.refundReason && !autoRefundSkipped && (
+              <p className={`text-xs mt-1 ${autoRefundFailed ? 'text-rose-400' : autoRefundSucceeded ? 'text-amber-400' : 'text-blue-400'}`}>
+                Reason: <span className="font-semibold">{order.refundReason.replace(/_/g, ' ')}</span>
+              </p>
+            )}
+            {autoRefundFailed && (
+              <p className="text-xs text-rose-400 mt-1 font-medium">Contact Stripe dashboard or initiate a manual refund below.</p>
+            )}
+            {autoRefundSkipped && (
+              <p className="text-xs text-admin-text-secondary mt-1 font-medium">You have turned off automatic refunds. Please initiate a manual refund below if required.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Main 2-Column Layout ────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* LEFT COLUMN: 65% width */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          
+          {/* Customer & Delivery Card */}
+          <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-sm overflow-hidden flex flex-col md:flex-row">
+            <div className="p-6 border-b md:border-b-0 md:border-r border-admin-border flex-1 bg-admin-card/30">
+              <h3 className="text-[11px] font-black text-brand uppercase tracking-wider mb-4 font-outfit">Customer Details</h3>
+              <div className="flex items-center gap-3.5 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center text-[16px] font-black text-brand font-outfit">
+                  {(order.customerName || 'G')[0].toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[16px] font-black text-admin-text font-outfit">{order.customerName || 'Guest Customer'}</p>
+                  </div>
+                  <p className="text-[13px] font-semibold text-admin-text-secondary mb-1">{order.customerPhone || 'No Phone Number'}</p>
+                  
+                  {/* Explicit Platform Indicator */}
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className="text-[10px] font-bold text-brand uppercase tracking-wider">Source:</span>
+                    <span className="text-[12px] font-bold text-admin-text flex items-center gap-1 bg-admin-card px-2.5 py-0.5 rounded-lg border border-admin-border shadow-sm">
+                      {order.orderSource === 'app' ? (
+                        <><Smartphone className="w-3.5 h-3.5 text-emerald-500" /> Mobile App</>
+                      ) : (
+                        <><Globe className="w-3.5 h-3.5 text-blue-500" /> Website</>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2.5">
+                <div title={!order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com' ? 'Email not provided' : ''} className={`flex items-center gap-2 ${(!order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com') ? 'opacity-50' : ''}`}>
+                  <Mail className="w-4 h-4 text-admin-text-secondary/70" /> 
+                  <span className="text-[13px] font-medium text-admin-text">
+                    {order.customerEmail === 'admin@lassiloungeny.com' ? 'No Email' : (order.customerEmail || 'No Email')}
+                  </span>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <a href={order.customerPhone && order.customerPhone !== '0000000000' ? `tel:${order.customerPhone}` : '#'} 
+                     title={(!order.customerPhone || order.customerPhone === '0000000000') ? 'Number not provided' : 'Call Customer'}
+                     className={`flex-1 bg-admin-card border border-admin-border py-2.5 rounded-xl text-center text-xs font-bold flex justify-center items-center gap-1.5 shadow-sm transition-all ${(!order.customerPhone || order.customerPhone === '0000000000') ? 'opacity-50 cursor-not-allowed text-admin-text-secondary' : 'text-admin-text hover:bg-admin-surface-hover'}`}>
+                    <Phone className="w-3.5 h-3.5" /> Call
+                  </a>
+                </div>
+                
+                {/* Account Holder Information if different */}
+                {order.userId && (
+                  (order.userId.name && order.userId.name !== order.customerName) ||
+                  (order.userId.email && order.userId.email !== order.customerEmail)
+                ) && (
+                  <div className="mt-4 pt-3 border-t border-dashed border-admin-border">
+                    <p className="text-[10px] font-bold text-admin-text-secondary uppercase tracking-wider mb-1.5">Account Owner</p>
+                    <p className="text-[13px] font-bold text-admin-text">{order.userId.name}</p>
+                    <p className="text-[12px] font-medium text-admin-text-secondary">{order.userId.email}</p>
+                    {order.userId.phone && order.userId.phone !== '0000000000' && (
+                      <p className="text-[12px] font-medium text-admin-text-secondary">{order.userId.phone}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Device & Fraud Telemetry (Chargeback Defense) */}
+                <div className="mt-4 pt-3 border-t border-admin-border/70">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-black text-brand uppercase tracking-wider flex items-center gap-1.5 font-outfit">
+                      <Shield className="w-3.5 h-3.5 text-emerald-500" /> Security & Device Telemetry
+                    </p>
+                    <span className="text-[9.5px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-mono">
+                      Fraud Proof
+                    </span>
+                  </div>
+                  <div className="bg-admin-card/60 border border-admin-border rounded-xl p-2.5 space-y-1.5 text-[11px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-admin-text-secondary font-medium shrink-0">Device & OS:</span>
+                      <span className="font-semibold text-admin-text text-right truncate">
+                        {order.deviceContext?.deviceType || (order.orderSource === 'app' ? 'Mobile' : 'Desktop')} • {order.deviceContext?.os || (order.orderSource === 'app' ? 'Mobile OS' : 'Web Client')}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-admin-text-secondary font-medium shrink-0">Browser / Client:</span>
+                      <span className="font-semibold text-admin-text text-right truncate">
+                        {order.deviceContext?.browser || (order.orderSource === 'app' ? 'Customer Mobile App' : 'Web Browser')}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-admin-text-secondary font-medium shrink-0">Client IP:</span>
+                      <span className="font-mono text-[10.5px] font-bold text-admin-text bg-admin-surface px-1.5 py-0.5 rounded border border-admin-border">
+                        {order.deviceContext?.ip || 'Verified Remote Session'}
+                      </span>
+                    </div>
+                    {order.deviceContext?.locationDisplay && (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-admin-text-secondary font-medium shrink-0">Location:</span>
+                        <span className="font-semibold text-admin-text text-right truncate max-w-[170px]" title={order.deviceContext.locationDisplay}>
+                          📍 {order.deviceContext.locationDisplay}
+                        </span>
+                      </div>
+                    )}
+                    {(order.deviceContext?.networkCarrier || order.deviceContext?.networkType) && (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-admin-text-secondary font-medium shrink-0">Network / Carrier:</span>
+                        <span className="font-semibold text-admin-text text-right truncate max-w-[170px]">
+                          📶 {order.deviceContext.networkCarrier || ''} {order.deviceContext.networkType ? `(${order.deviceContext.networkType})` : ''}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 flex-1 flex flex-col justify-between bg-admin-surface">
+              <div>
+                <h3 className="text-[11px] font-black text-brand uppercase tracking-wider mb-4 font-outfit">Fulfillment Details</h3>
+                {order.orderType === 'dine_in' && order.tableNumber ? (
+                  <p className="text-sm font-bold text-admin-text flex items-center gap-2"><MapPin className="w-4 h-4 text-admin-text-secondary" /> Table {order.tableNumber}</p>
+                ) : (
+                  <p className="text-[13px] font-semibold text-admin-text flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-admin-text-secondary shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">{order.address || 'Pickup (No Address Provided)'}</span>
+                  </p>
+                )}
+                {order.specialInstructions && (
+                  <div className="mt-4 bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-xl">
+                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-1">Customer Notes</p>
+                    <p className="text-xs text-amber-400 font-medium leading-relaxed">{order.specialInstructions}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Logistics & Tracking Card */}
+          {order.orderType === 'delivery' && (
+            <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-admin-border flex justify-between items-center bg-admin-card/30">
+                <h3 className="text-[11px] font-black text-brand uppercase tracking-wider flex items-center gap-2 font-outfit">
+                  <Truck className="w-4 h-4" /> Delivery & Tracking Details
+                </h3>
+                {(order.thirdPartyTrackingUrl || order.trackingUrl) && (
+                  <a href={order.thirdPartyTrackingUrl || order.trackingUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-white bg-brand hover:opacity-90 px-3.5 py-1.5 rounded-xl transition-all shadow-sm">
+                    <ExternalLink className="w-3.5 h-3.5" /> Track Order
+                  </a>
+                )}
+              </div>
+              <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-8">
+                
+                {/* Left Column: Timing */}
+                <div className="space-y-3.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-admin-text-secondary">Placement Time</span>
+                    <span className="text-xs font-bold text-admin-text text-right">{formatDate(order.createdAt, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-admin-text-secondary font-medium">{formatTime(order.createdAt, restaurant?.timeFormat, restaurant?.timezone)}</span></span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-admin-text-secondary">Accepted Time</span>
+                    <span className="text-xs font-bold text-admin-text text-right">
+                      {order.statusUpdates?.find(u => u.status === 'accepted')?.timestamp 
+                        ? <>{formatDate(order.statusUpdates.find(u => u.status === 'accepted').timestamp, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-admin-text-secondary font-medium">{formatTime(order.statusUpdates.find(u => u.status === 'accepted').timestamp, restaurant?.timeFormat, restaurant?.timezone)}</span></> 
+                        : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-admin-text-secondary">Pickup Time</span>
+                    <span className="text-xs font-bold text-admin-text text-right">
+                      {order.pickupTime ? <>{formatDate(order.pickupTime, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-admin-text-secondary font-medium">{formatTime(order.pickupTime, restaurant?.timeFormat, restaurant?.timezone)}</span></> : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-admin-text-secondary">Delivery Time</span>
+                    <span className="text-xs font-bold text-admin-text text-right">
+                      {order.deliveryTime ? <>{formatDate(order.deliveryTime, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-admin-text-secondary font-medium">{formatTime(order.deliveryTime, restaurant?.timeFormat, restaurant?.timezone)}</span></> : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right Column: Driver Details */}
+                <div className="space-y-3.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-admin-text-secondary">Delivery Provider</span>
+                    <span className="text-[13px] font-black text-admin-text capitalize font-outfit">{order.deliveryProvider === 'shipday' ? 'In-House' : order.deliveryProvider || 'N/A'}</span>
+                  </div>
+                  {order.deliveryId && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-admin-text-secondary">Shipday Order ID</span>
+                      <span className="text-xs font-bold text-admin-text font-mono">{order.deliveryId}</span>
+                    </div>
+                  )}
+                  {order.thirdPartyDeliveryName && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-admin-text-secondary">3rd Party Partner</span>
+                      <span className="text-xs font-bold text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded-lg border border-amber-500/20">{order.thirdPartyDeliveryName}</span>
+                    </div>
+                  )}
+                  {order.dispatchStatus && order.dispatchStatus !== 'not_applicable' && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-admin-text-secondary">Rider Dispatch</span>
+                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-lg border ${
+                        order.dispatchStatus === 'scheduled' ? 'text-amber-500 bg-amber-500/10 border-amber-500/20' :
+                        order.dispatchStatus === 'dispatching' ? 'text-blue-500 bg-blue-500/10 border-blue-500/20' :
+                        order.dispatchStatus === 'dispatched' ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' :
+                        order.dispatchStatus === 'failed' ? 'text-rose-500 bg-rose-500/10 border-rose-500/20' :
+                        'text-admin-text bg-admin-card border-admin-border'
+                      }`}>
+                        {order.dispatchStatus === 'scheduled' ? `Scheduled${order.dispatchAt ? ` (${new Date(order.dispatchAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : ''}` :
+                         order.dispatchStatus === 'dispatching' ? 'Requesting rider...' :
+                         order.dispatchStatus === 'dispatched' ? 'Dispatched' :
+                         order.dispatchStatus === 'failed' ? 'Dispatch Failed' :
+                         order.dispatchStatus}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center mt-2 pt-3 border-t border-dashed border-admin-border">
+                    <span className="text-xs font-semibold text-admin-text-secondary">Assigned Rider</span>
+                    <div className="flex items-center gap-2">
+                      {order.courierImageUrl ? (
+                        <img 
+                          src={order.courierImageUrl} 
+                          alt={order.courierName} 
+                          onClick={() => setShowDriverImage(true)}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(order.courierName || 'Driver') + '&background=e5e7eb&color=374151';
+                          }}
+                          className="w-6 h-6 rounded-full object-cover border border-admin-border cursor-pointer hover:opacity-80 transition-opacity" 
+                        />
+                      ) : order.courierName ? (
+                        <span className="text-[10px] text-admin-text-secondary italic">No photo</span>
+                      ) : null}
+                      <span className="text-[13px] font-black text-admin-text font-outfit">{order.courierName || 'Pending'}</span>
+                    </div>
+                  </div>
+                  {order.courierName ? (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-admin-text-secondary">Vehicle</span>
+                      {order.courierVehicle || order.courierVehiclePlate ? (
+                        <span className="text-xs font-bold text-admin-text">
+                          {order.courierVehiclePlate 
+                            ? `${order.courierVehicle || 'Vehicle'} | Plate: ${order.courierVehiclePlate}` 
+                            : order.courierVehicle}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-admin-text-secondary italic">Not provided by carrier</span>
+                      )}
+                    </div>
+                  ) : null}
+                  {order.courierPhoneForCustomer || order.courierPhoneForRestaurant ? (
+                    <>
+                      {order.courierPhoneForCustomer && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-semibold text-admin-text-secondary">Rider Phone (Customer)</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-admin-text">{order.courierPhoneForCustomer}</span>
+                            <a href={`tel:${order.courierPhoneForCustomer}`} className="w-7 h-7 rounded-full bg-admin-card flex items-center justify-center text-admin-text hover:bg-admin-surface-hover border border-admin-border transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
+                          </div>
+                        </div>
+                      )}
+                      {order.courierPhoneForRestaurant && (
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-xs font-semibold text-admin-text-secondary">Rider Phone (Restaurant)</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-admin-text">{order.courierPhoneForRestaurant}</span>
+                            <a href={`tel:${order.courierPhoneForRestaurant}`} className="w-7 h-7 rounded-full bg-admin-card flex items-center justify-center text-admin-text hover:bg-admin-surface-hover border border-admin-border transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-admin-text-secondary">Rider Phone</span>
+                      {order.courierPhone ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-admin-text">{order.courierPhone}</span>
+                          <a href={`tel:${order.courierPhone}`} className="w-7 h-7 rounded-full bg-admin-card flex items-center justify-center text-admin-text hover:bg-admin-surface-hover border border-admin-border transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-bold text-admin-text-secondary">N/A</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {order.rating && (
+                  <div className="col-span-1 md:col-span-2 mt-1 pt-4 border-t border-admin-border flex items-center gap-4">
+                    <span className="text-[10px] font-bold text-admin-text-secondary uppercase tracking-wider font-outfit">Customer Feedback</span>
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className={`w-4 h-4 ${i < Math.floor(order.rating) ? 'text-amber-400 fill-amber-400' : 'text-admin-border'}`} />
+                      ))}
+                      <span className="text-xs font-bold text-admin-text ml-1">{order.rating.toFixed(1)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Order Items */}
+          <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-sm flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-admin-border flex justify-between items-center bg-admin-card/30">
+              <h3 className="text-[13px] font-black text-admin-text font-outfit">Order Items <span className="text-admin-text-secondary font-normal">({totalItems})</span></h3>
+            </div>
+            <div className="overflow-x-auto flex-1 custom-scrollbar">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-admin-border bg-admin-card/10">
+                    <th className="px-6 py-3 text-[10px] font-bold text-admin-text-secondary uppercase tracking-wider font-outfit">Item</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-admin-text-secondary uppercase tracking-wider text-right font-outfit">Price</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-admin-text-secondary uppercase tracking-wider text-center font-outfit">Qty</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-admin-text-secondary uppercase tracking-wider text-right font-outfit">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-admin-border">
+                  {(order.items || []).map((item, idx) => (
+                    <tr key={idx} className="group hover:bg-admin-card/40 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-start gap-3">
+                          {item.image ? (
+                            <img src={item.image} alt={item.name} className="w-10 h-10 rounded-xl object-cover border border-admin-border shadow-sm" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-xl bg-admin-card flex items-center justify-center text-xs font-black text-admin-text-secondary shrink-0 border border-admin-border font-outfit">
+                              {item.name?.substring(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-[14px] font-bold text-admin-text font-outfit">{item.name}</p>
+                            {(item.selectedSize || (item.addOns && item.addOns.length > 0)) && (
+                              <p className="text-[12px] text-admin-text-secondary mt-1 leading-tight max-w-[250px]">
+                                {[item.selectedSize?.name, ...(item.addOns || []).map(a => a.name)].filter(Boolean).join(', ')}
+                              </p>
+                            )}
+                            {item.specialInstructions && (
+                              <p className="text-[11px] text-amber-500 mt-1 italic block">"{item.specialInstructions}"</p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-[13px] font-semibold text-admin-text-secondary text-right">{formatCurrency((item.lineTotal || (item.price * item.quantity)) / item.quantity, currency)}</td>
+                      <td className="px-6 py-4 text-[14px] font-black text-admin-text text-center font-outfit">{item.quantity}</td>
+                      <td className="px-6 py-4 text-[14px] font-black text-admin-text text-right font-outfit">{formatCurrency(item.lineTotal || (item.price * item.quantity), currency)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Financial Summary */}
+            <div className="bg-admin-card/30 p-6 border-t border-admin-border flex justify-end">
+              <div className="w-full sm:w-[320px] space-y-2">
+                <div className="flex justify-between items-center text-[13px]">
+                  <span className="font-semibold text-admin-text-secondary">Subtotal</span>
+                  <span className="font-bold text-admin-text">{formatCurrency(order.subtotal, currency)}</span>
+                </div>
+                {(order.tax || 0) > 0 && (
+                  <div className="flex justify-between items-center text-[13px]">
+                    <span className="font-semibold text-admin-text-secondary">{restaurant?.taxType || 'Tax'}</span>
+                    <span className="font-bold text-admin-text">{formatCurrency(order.tax, currency)}</span>
+                  </div>
+                )}
+                {(order.deliveryFee || 0) > 0 && (
+                  <div className="flex justify-between items-center text-[13px]">
+                    <span className="font-semibold text-admin-text-secondary">Delivery Fee</span>
+                    <span className="font-bold text-admin-text">{formatCurrency(order.deliveryFee, currency)}</span>
+                  </div>
+                )}
+                {(order.tip || 0) > 0 && (
+                  <div className="flex justify-between items-center text-[13px]">
+                    <span className="font-semibold text-admin-text-secondary">Tip</span>
+                    <span className="font-bold text-admin-text">{formatCurrency(order.tip, currency)}</span>
+                  </div>
+                )}
+                {(order.discount || 0) > 0 && (
+                  <div className="flex justify-between items-center text-[13px]">
+                    <span className="font-semibold text-emerald-500">Discount</span>
+                    <span className="font-bold text-emerald-500">-{formatCurrency(order.discount, currency)}</span>
+                  </div>
+                )}
+                {(order.refundAmount || 0) > 0 && (
+                  <div className="flex justify-between items-center text-[13px]">
+                    <span className="font-semibold text-rose-500">Refunded</span>
+                    <span className="font-bold text-rose-500">{formatCurrency(order.refundAmount, currency)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-[17px] pt-3.5 mt-3 border-t border-admin-border font-outfit">
+                  <span className="font-black text-admin-text">Total</span>
+                  <span className="font-black text-brand">{formatCurrency(order.total, currency)}</span>
+                </div>
+                
+                {/* Payment Badge Footer */}
+                <div className="flex justify-between items-center pt-3 mt-3 border-t border-dashed border-admin-border">
+                  <span className="text-[11px] font-bold text-admin-text-secondary uppercase font-outfit">Payment Status</span>
+                  {getPaymentBadge(order.paymentStatus)}
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-[11px] font-bold text-admin-text-secondary uppercase font-outfit">Method</span>
+                  <span className="text-[11px] font-bold text-admin-text uppercase">{order.paymentMethod?.replace(/_/g, ' ') || 'Cash'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: 35% width */}
+        <div className="lg:col-span-1 flex flex-col gap-6">
+
+          {/* Status Progression Button */}
+          {nextStatusInfo && !isTerminal && (
+            nextStatusInfo.waiting ? (
+              <div className="w-full py-3.5 rounded-xl border-2 border-dashed border-[#bbf7d0] bg-[#f0fdf4] flex items-center justify-center gap-2.5">
+                <div className="w-4 h-4 border-2 border-[#16a34a] border-t-transparent rounded-full animate-spin" />
+                <span className="text-[14px] font-bold text-[#166534]">{nextStatusInfo.label}</span>
+              </div>
+            ) : (
+              <button
+                onClick={handleStatusProgression}
+                className="w-full py-3.5 rounded-xl text-white font-bold text-[14px] flex items-center justify-center gap-2.5 shadow-md hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: nextStatusInfo.color }}
+              >
+                {React.createElement(nextStatusInfo.icon, { className: 'w-5 h-5' })}
+                {nextStatusInfo.label}
+              </button>
+            )
+          )}
+
+          {/* Action Center */}
+          <div className="bg-admin-surface border border-admin-border rounded-2xl p-6 shadow-sm">
+            <h3 className="text-[11px] font-black text-brand uppercase tracking-wider mb-4 font-outfit">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {order.paymentStatus !== 'paid' && !['cancelled', 'rejected', 'expired'].includes(order.status) && (
+                <button onClick={handleShowQR} disabled={isGeneratingLink}
+                  className="col-span-2 border border-brand/30 bg-brand/10 rounded-xl py-3 flex items-center justify-center gap-2 hover:bg-brand/20 transition-all font-bold text-[13px] text-brand shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-outfit">
+                  {isGeneratingLink ? (
+                    <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <QrCode className="w-4 h-4" />
+                  )}
+                  {isGeneratingLink ? 'Generating...' : (paymentLinkUrl ? 'Show Payment QR Code' : 'Generate Payment QR Code')}
+                </button>
+              )}
+
+              <button onClick={handleRemake} disabled={isRemakingOrder}
+                className="col-span-2 border border-admin-border bg-admin-card rounded-xl py-3 flex items-center justify-center gap-2 hover:bg-admin-surface-hover transition-all font-bold text-[13px] text-admin-text shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-outfit">
+                {isRemakingOrder ? (
+                  <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <RefreshCcw className="w-4 h-4 text-emerald-500" />
+                )}
+                {isRemakingOrder ? 'Creating…' : 'Remake Order ($0)'}
+              </button>
+
+              <button onClick={handleSendInvoice} disabled={isSendingInvoice || !order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com'}
+                title={(!order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com') ? 'Email not provided' : 'Email Invoice'}
+                className={`border rounded-xl py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${(!order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com') && !isSendingInvoice ? 'border-admin-border bg-admin-card/50 text-admin-text-secondary/50' : 'border-admin-border bg-admin-card hover:bg-admin-surface-hover text-admin-text'}`}>
+                {isSendingInvoice ? (
+                  <div className="w-4 h-4 border-2 border-admin-text-secondary border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                {isSendingInvoice ? 'Sending...' : 'Email Invoice'}
+              </button>
+              
+              <button 
+                onClick={() => {
+                  if (order.customerPhone && order.customerPhone !== '0000000000') {
+                    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+                    const message = `Hi ${order.customerName || 'there'}! 👋\n\nHere is the official invoice file for your order #${order.orderNumber || order._id.slice(-6).toUpperCase()}:\n${baseUrl}/api/orders/${order._id}/invoice-pdf\n\nThank you for your order!`;
+                    const phone = order.customerPhone.replace(/[^\d+]/g, '');
+                    const waNumber = phone.startsWith('+') ? phone.replace('+', '') : `1${phone.replace(/^1/, '')}`;
+                    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`, '_blank');
+                  }
+                }}
+                disabled={!order.customerPhone || order.customerPhone === '0000000000'}
+                title={(!order.customerPhone || order.customerPhone === '0000000000') ? 'Number not provided' : 'Send Invoice to WhatsApp'}
+                className={`border rounded-xl py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${(!order.customerPhone || order.customerPhone === '0000000000') ? 'border-admin-border bg-admin-card/50 text-admin-text-secondary/50' : 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20'}`}>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+                </svg>
+                WhatsApp Invoice
+              </button>
+
+              <button onClick={handleRefund} disabled={isRefunding || !canRefund}
+                className={`border rounded-xl py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${!canRefund && !isRefunding ? 'border-admin-border bg-admin-card/50 text-admin-text-secondary/50' : 'border-admin-border bg-admin-card hover:bg-admin-surface-hover text-admin-text'}`}>
+                {isRefunding ? (
+                  <div className="w-4 h-4 border-2 border-admin-text-secondary border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <FileClock className="w-4 h-4" />
+                )}
+                {isRefunding ? 'Refunding...' : (isRefunded ? 'Refunded' : 'Refund')}
+              </button>
+
+              <button onClick={handleCancel} disabled={isCancelling || !canCancel}
+                className={`col-span-2 border rounded-xl py-3 flex items-center justify-center gap-2 font-bold text-[13px] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${!canCancel && !isCancelling ? 'border-admin-border bg-admin-card/50 text-admin-text-secondary/50' : 'border-rose-500/30 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20'}`}>
+                {isCancelling ? (
+                  <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <XCircle className="w-4 h-4" />
+                )}
+                {isCancelling ? 'Cancelling…' : 'Cancel Order'}
+              </button>
+            </div>
+          </div>
+
+          {/* Unified Order Journey Feed */}
+          <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-sm flex-1 flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-admin-border bg-admin-card/30">
+              <h3 className="text-[11px] font-black text-brand uppercase tracking-wider flex items-center gap-2 font-outfit">
+                <Activity className="w-4 h-4" /> Order Journey
+              </h3>
+            </div>
+            <div className="p-6 flex-1 custom-scrollbar overflow-y-auto max-h-[600px]">
+              <div className="relative pl-3">
+                {/* Vertical Pipeline Line */}
+                <div className="absolute left-[19px] top-4 bottom-4 w-px bg-admin-border -z-10" />
+                
+                {(() => {
+                  // merge statusUpdates and paymentAudit events into a single timeline
+                  let events = [];
+                  
+                  // 1. Add status updates
+                  (order.statusUpdates || []).forEach(su => {
+                    let label = su.status?.replace(/_/g, ' ');
+                    let key = su.status?.toLowerCase();
+                    
+                    // override label if this is a refund event (backend pushes it as 'cancelled')
+                    if (su.description && su.description.toLowerCase().includes('refund of') && su.description.toLowerCase().includes('processed')) {
+                      label = 'Refunded';
+                      key = 'refunded';
+                    }
+
+                    events.push({
+                      type: 'status',
+                      key: key,
+                      label: label,
+                      desc: su.description,
+                      time: su.timestamp ? new Date(su.timestamp) : null,
+                      original: su
+                    });
+                  });
+
+                  // 2. Add payment events if loaded
+                  if (paymentAudit && paymentAudit.events) {
+                    paymentAudit.events.forEach(pe => {
+                      events.push({
+                        type: 'payment',
+                        key: pe.event,
+                        label: PAYMENT_EVENT_CONFIG[pe.event]?.label || pe.event,
+                        desc: pe.reason || pe.error || null,
+                        amount: pe.amount,
+                        config: PAYMENT_EVENT_CONFIG[pe.event] || PAYMENT_EVENT_CONFIG.status_change,
+                        time: pe.timestamp ? new Date(pe.timestamp) : null,
+                        original: pe
+                      });
+                    });
+                  }
+
+                  // 3. Add base pipeline placeholders (if they haven't happened yet)
+                  timelineSteps.forEach((ts, idx) => {
+                    const isCompleted = idx < currentStepIndex;
+                    const isCurrent = idx === currentStepIndex;
+                    if (!isCompleted && !isCurrent) {
+                      events.push({
+                        type: 'pipeline_future',
+                        key: ts.key,
+                        label: ts.label,
+                        desc: ts.entity,
+                        time: null
+                      });
+                    }
+                  });
+
+                  // sort: chronological for completed events, then future pipeline at the bottom
+                  events.sort((a, b) => {
+                    if (a.time && b.time) return a.time.getTime() - b.time.getTime();
+                    if (a.time && !b.time) return -1;
+                    if (!a.time && b.time) return 1;
+                    // both future
+                    return 0;
+                  });
+
+                  return events.map((ev, i) => {
+                    const isFuture = ev.type === 'pipeline_future';
+                    const isCancel = ['cancelled', 'failed', 'refunded'].includes(ev.key);
+                    const isPreparing = ['preparing', 'ready'].includes(ev.key);
+                    const isSuccess = ['delivered', 'completed', 'picked_up'].includes(ev.key);
+                    
+                    let dotClass = "w-[14px] h-[14px] rounded-full border-2 border-admin-border bg-admin-surface ring-4 ring-admin-surface";
+                    if (!isFuture) {
+                      if (ev.type === 'payment') {
+                        // payment dots use their config bg
+                        dotClass = `w-6 h-6 -ml-[5px] rounded-full flex items-center justify-center ring-4 ring-admin-surface shadow-sm`;
+                      } else {
+                        // status dots
+                        dotClass = `w-[14px] h-[14px] rounded-full ring-4 ring-admin-surface shadow-sm ${
+                          isCancel ? 'bg-rose-500' : isPreparing ? 'bg-amber-500' : isSuccess ? 'bg-emerald-500' : 'bg-blue-500'
+                        }`;
+                      }
+                    }
+
+                    return (
+                      <div key={i} className="flex gap-4 relative z-10 mb-6 last:mb-0">
+                        <div className="mt-1 shrink-0">
+                          {ev.type === 'payment' ? (
+                            <div className={dotClass} style={{ backgroundColor: ev.config.bg }}>
+                              <ev.config.icon className="w-3 h-3" style={{ color: ev.config.color }} />
+                            </div>
+                          ) : (
+                            <div className={dotClass} />
+                          )}
+                        </div>
+                        <div className="flex-1 -mt-0.5">
+                          <div className="flex justify-between items-start">
+                            <p className={`text-[13px] font-bold capitalize font-outfit ${isFuture ? 'text-admin-text-secondary/60' : ev.type==='payment' ? '' : 'text-admin-text'}`}
+                               style={ev.type === 'payment' ? { color: ev.config.color } : {}}>
+                              {ev.label}
+                            </p>
+                            {ev.time && (
+                              <span className="text-[10px] font-bold text-admin-text-secondary ml-2 shrink-0 whitespace-nowrap bg-admin-card border border-admin-border px-2 py-0.5 rounded-lg">
+                                {formatTime(ev.time, restaurant?.timeFormat, restaurant?.timezone)}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {ev.desc && (
+                            <p className={`text-[11px] mt-0.5 leading-snug ${isFuture ? 'text-admin-text-secondary/50' : 'text-admin-text-secondary'}`}>
+                              {ev.desc}
+                            </p>
+                          )}
+                          
+                          {ev.amount != null && ev.type === 'payment' && (
+                            <p className="text-[11px] font-black text-admin-text mt-1 bg-admin-card border border-admin-border inline-block px-2.5 py-0.5 rounded-lg font-outfit">
+                              {formatCurrency(ev.amount, currency)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+
+              </div>
+            </div>
+            
+            {/* Internal Note Input placeholder */}
+            <div className="p-4 border-t border-admin-border bg-admin-card/20">
+               <div className="text-[10px] font-bold text-admin-text-secondary uppercase mb-2 font-outfit">Internal Note</div>
+               {order.adminNotes?.length > 0 ? (
+                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-400 font-medium leading-relaxed">
+                   {order.adminNotes[order.adminNotes.length - 1].text}
+                 </div>
+               ) : (
+                 <p className="text-[11px] text-admin-text-secondary/60 italic">No internal notes added.</p>
+               )}
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Driver Image Modal */}
+      {showDriverImage && mounted && createPortal(
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 cursor-pointer"
+          onClick={() => setShowDriverImage(false)}
+        >
+          <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setShowDriverImage(false)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 bg-black/50 rounded-full p-2"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img 
+              src={order.courierImageUrl} 
+              alt={order.courierName || 'Driver'} 
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(order.courierName || 'Driver') + '&background=e5e7eb&color=374151&size=256';
+              }}
+              className="w-full h-auto rounded-2xl shadow-2xl object-contain max-h-[80vh] border border-admin-border" 
+            />
+          </div>
+        </div>,
+        document.body
+      )}
+
+      <ConfirmModal
+        {...confirmConfig}
+        onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+      />
+
+      {/* QR Code Modal for Payment Link Orders */}
+      {showQRModal && mounted && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <h2 className="text-xl font-black text-admin-text mb-2 font-outfit">Payment Required</h2>
+              <p className="text-[13px] font-medium text-admin-text-secondary mb-6">Scan QR code to complete payment for Order #{order.orderNumber || order._id?.toString().slice(-6) || 'N/A'}</p>
+              
+              <div className="bg-white p-5 rounded-2xl border border-admin-border flex items-center justify-center mb-6 shadow-inner">
+                {paymentLinkUrl ? (
+                  <QRCodeSVG 
+                    value={paymentLinkUrl}
+                    size={200}
+                    bgColor={"#ffffff"}
+                    fgColor={"#0f172a"}
+                    level={"Q"}
+                    includeMargin={false}
+                  />
+                ) : (
+                  <div className="w-[200px] h-[200px] flex items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-admin-border border-t-brand rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-admin-card rounded-xl p-3 flex items-center justify-between border border-admin-border mb-4">
+                <p className="text-[12px] font-mono text-admin-text-secondary font-medium truncate mr-3 flex-1 text-left">
+                  {paymentLinkUrl || 'Generating...'}
+                </p>
+                <button
+                  onClick={copyToClipboard}
+                  disabled={!paymentLinkUrl}
+                  className="shrink-0 p-2 bg-admin-surface rounded-lg shadow-sm border border-admin-border hover:bg-admin-surface-hover transition-colors text-admin-text disabled:opacity-50"
+                  title="Copy link"
+                >
+                  {copiedLink ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {paymentLinkUrl && (
+                <button
+                  onClick={() => {
+                    window.open(`https://wa.me/?text=${encodeURIComponent(`Please pay for your order here: ${paymentLinkUrl}`)}`, '_blank');
+                  }}
+                  className="w-full py-3 mb-2 rounded-xl border border-[#25D366]/40 text-[#25D366] bg-[#25D366]/10 hover:bg-[#25D366]/20 font-bold text-[14px] transition-all shadow-sm font-outfit"
+                >
+                  Share via WhatsApp
+                </button>
+              )}
+
+              {paymentLinkUrl && order.customerEmail && (
+                <button
+                  onClick={handleSendPaymentLinkEmail}
+                  disabled={isSendingLink}
+                  className="w-full py-3 mb-2 rounded-xl border border-admin-border text-admin-text bg-admin-card hover:bg-admin-surface-hover font-bold text-[14px] transition-all shadow-sm disabled:opacity-50 font-outfit"
+                >
+                  {isSendingLink ? 'Sending...' : 'Email QR Code & Link'}
+                </button>
+              )}
+            </div>
+            
+            <div className="p-4 border-t border-admin-border bg-admin-card/30">
+              <button
+                onClick={() => setShowQRModal(false)}
+                className="w-full py-2.5 bg-admin-card border border-admin-border rounded-xl text-[14px] font-bold text-admin-text hover:bg-admin-surface-hover transition-all shadow-sm font-outfit"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Remake Options Modal */}
+      {showRemakeModal && mounted && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <div className="text-center mb-5">
+                <div className="w-12 h-12 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-500 flex items-center justify-center mx-auto mb-3">
+                  <RefreshCw className="w-6 h-6 animate-spin-slow" />
+                </div>
+                <h2 className="text-xl font-black text-admin-text font-outfit">Remake Order #{order.orderNumber}</h2>
+                <p className="text-[13px] font-medium text-admin-text-secondary mt-1">
+                  Send this order back to the kitchen. Select the reason and choose billing.
+                </p>
+              </div>
+
+              {remakeError && (
+                <div className="mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 text-xs font-bold flex items-center gap-2">
+                  <span>⚠️</span>
+                  <span>{remakeError}</span>
+                </div>
+              )}
+
+              {/* Reason Selector */}
+              <div className="space-y-2 mb-4">
+                <label className="text-xs font-bold text-admin-text flex items-center justify-between">
+                  <span>Remake Reason <span className="text-rose-500">*</span></span>
+                  <span className="text-[10px] text-admin-text-muted font-normal">Mandatory for $0 Free</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {['Customer Complaint', 'Cold / Quality Issue', 'Wrong Item Sent', 'Damaged / Spilled', 'Other'].map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRemakeReason(r)}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold transition-all text-left truncate border ${
+                        remakeReason === r
+                          ? 'bg-brand/15 text-brand border-brand/40 shadow-sm'
+                          : 'bg-admin-card text-admin-text-secondary border-admin-border hover:bg-admin-card/80'
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+                {remakeReason === 'Other' && (
+                  <input
+                    type="text"
+                    value={customReason}
+                    onChange={(e) => setCustomReason(e.target.value)}
+                    placeholder="Enter specific remake reason..."
+                    className="w-full mt-2 px-3 py-2 rounded-xl text-xs bg-admin-card border border-admin-border text-admin-text focus:outline-none focus:border-brand"
+                  />
+                )}
+              </div>
+
+              {/* Staff / Manager PIN (Optional / Policy) */}
+              <div className="space-y-1 mb-6">
+                <label className="text-xs font-bold text-admin-text flex items-center justify-between">
+                  <span>Manager / Staff PIN</span>
+                  <span className="text-[10px] text-admin-text-muted font-normal">If required by store</span>
+                </label>
+                <input
+                  type="password"
+                  maxLength={8}
+                  value={remakePin}
+                  onChange={(e) => setRemakePin(e.target.value)}
+                  placeholder="Enter PIN (e.g. 1234)"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-admin-card border border-admin-border text-admin-text focus:outline-none focus:border-brand font-mono tracking-widest"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-2.5">
+                <button
+                  type="button"
+                  disabled={isRemakingOrder}
+                  onClick={() => executeRemake(false)}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-[14px] font-bold transition-all shadow-sm flex items-center justify-center gap-2 font-outfit cursor-pointer"
+                >
+                  {isRemakingOrder ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  <span>Free Remake ($0)</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={isRemakingOrder}
+                  onClick={() => executeRemake(true)}
+                  className="w-full py-3 bg-admin-card border-2 border-brand text-brand hover:bg-brand/10 disabled:opacity-50 rounded-xl text-[14px] font-bold transition-all shadow-sm flex items-center justify-center gap-2 font-outfit cursor-pointer"
+                >
+                  {isRemakingOrder ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  <span>Charge Customer ({formatCurrency(order.total, currency)})</span>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-admin-border bg-admin-card/30">
+              <button
+                type="button"
+                onClick={() => setShowRemakeModal(false)}
+                className="w-full py-2.5 bg-admin-card border border-admin-border rounded-xl text-[14px] font-bold text-admin-text hover:bg-admin-surface-hover transition-all shadow-sm font-outfit cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,193 @@
+/**
+ * category3DHelper.js
+ * Centralized utility mapping menu categories to their branded 3D pop-out cutout assets.
+ * Exactly mirrors the category-to-asset mapping used in the Customer Flutter Mobile App:
+ * `single_restaurant_mobile/lib/utils/image_helper.dart`
+ */
+
+const BASE_PATH = '/images/branded/lassi-lounge/categories';
+
+export const CATEGORY_3D_ASSETS = {
+  thali: `${BASE_PATH}/special_thali_3d.png`,
+  momos: `${BASE_PATH}/momos_3d.png`,
+  amritsar: `${BASE_PATH}/amritsar_special_3d.png`,
+  riceCombo: `${BASE_PATH}/rice_combo_3d.png`,
+  parathas: `${BASE_PATH}/parathas_3d.png`,
+  nonVegAppetizer: `${BASE_PATH}/non_veg_appetizer_3d.png`,
+  riceDishes: `${BASE_PATH}/rice_dishes_3d.png`,
+  snacks: `${BASE_PATH}/snacks_3d.png`,
+  nonVegMain: `${BASE_PATH}/non_veg_main_3d.png`,
+  vegMain: `${BASE_PATH}/veg_main_3d.png`,
+  desserts: `${BASE_PATH}/desserts_3d.png`,
+  beverages: `${BASE_PATH}/beverages_3d.png`,
+  breads: `${BASE_PATH}/breads_3d.png`,
+  all: `${BASE_PATH}/special_thali_3d.png`,
+};
+
+export const CATEGORY_3D_PRESET_OPTIONS = [
+  { id: 'thali', label: 'Special Thali', image: CATEGORY_3D_ASSETS.thali },
+  { id: 'momos', label: 'Momos & Dimsums', image: CATEGORY_3D_ASSETS.momos },
+  { id: 'amritsar', label: 'Amritsari Special', image: CATEGORY_3D_ASSETS.amritsar },
+  { id: 'riceCombo', label: 'Rice Bowl & Combo', image: CATEGORY_3D_ASSETS.riceCombo },
+  { id: 'parathas', label: 'Stuffed Parathas', image: CATEGORY_3D_ASSETS.parathas },
+  { id: 'nonVegAppetizer', label: 'Non-Veg Starters', image: CATEGORY_3D_ASSETS.nonVegAppetizer },
+  { id: 'riceDishes', label: 'Biryani & Rice', image: CATEGORY_3D_ASSETS.riceDishes },
+  { id: 'snacks', label: 'Snacks & Chaat', image: CATEGORY_3D_ASSETS.snacks },
+  { id: 'nonVegMain', label: 'Non-Veg Main Course', image: CATEGORY_3D_ASSETS.nonVegMain },
+  { id: 'vegMain', label: 'Veg Main Course', image: CATEGORY_3D_ASSETS.vegMain },
+  { id: 'desserts', label: 'Desserts & Sweets', image: CATEGORY_3D_ASSETS.desserts },
+  { id: 'beverages', label: 'Beverages & Lassi', image: CATEGORY_3D_ASSETS.beverages },
+  { id: 'breads', label: 'Breads & Naan', image: CATEGORY_3D_ASSETS.breads },
+];
+
+/**
+ * Returns the exact 3D transparent cutout asset URL for any category.
+ * Accepts either a string category name or category object ({ name, label, image, _id }).
+ *
+ * @param {string|object} category
+ * @returns {string}
+ */
+export function getCategory3DImage(category) {
+  if (!category) return CATEGORY_3D_ASSETS.vegMain;
+
+  let name = '';
+
+  if (typeof category === 'string') {
+    if (category.startsWith('http') || category.startsWith('/images/')) {
+      return category;
+    }
+    name = category.toLowerCase().trim();
+  } else if (typeof category === 'object') {
+    if (category.image && typeof category.image === 'string' && (category.image.startsWith('http') || category.image.startsWith('/images/'))) {
+      return category.image;
+    }
+    name = (category.name || category.label || category.title || '').toLowerCase().trim();
+  }
+
+  if (name === 'all' || name === 'all items' || name === 'explore all') {
+    return CATEGORY_3D_ASSETS.all;
+  }
+
+  // 1. Thali
+  if (name.includes('thali') || name.includes('platter')) {
+    return CATEGORY_3D_ASSETS.thali;
+  }
+
+  // 2. Momos
+  if (name.includes('momo') || name.includes('dumpling')) {
+    return CATEGORY_3D_ASSETS.momos;
+  }
+
+  // 3. Amritsar Special / Kulcha / Chole Bhature
+  if (
+    name.includes('amritsar') ||
+    name.includes('kulcha') ||
+    name.includes('bhature') ||
+    name.includes('bhatura') ||
+    name.includes('bature') ||
+    name.includes('chole') ||
+    name.includes('chhole')
+  ) {
+    return CATEGORY_3D_ASSETS.amritsar;
+  }
+
+  // 4. Rice Combo
+  if (name.includes('combo') || name.includes('bowl')) {
+    return CATEGORY_3D_ASSETS.riceCombo;
+  }
+
+  // 5. Parathas
+  if (name.includes('paratha')) {
+    return CATEGORY_3D_ASSETS.parathas;
+  }
+
+  // 6. Curries / Veg Main Course / Paneer / Dal
+  if (
+    name.includes('curry') ||
+    name.includes('curries') ||
+    name.includes('paneer') ||
+    name.includes('dal') ||
+    name.includes('gravy') ||
+    name.includes('sabzi') ||
+    name.includes('subji')
+  ) {
+    return CATEGORY_3D_ASSETS.vegMain;
+  }
+
+  // 6. Non-Veg Appetizers / Chicken Tikka
+  if (
+    (name.includes('non') || name.includes('chicken') || name.includes('meat')) &&
+    (name.includes('appetizer') || name.includes('snack') || name.includes('starter') || name.includes('tikka') || name.includes('kabab') || name.includes('kebab'))
+  ) {
+    return CATEGORY_3D_ASSETS.nonVegAppetizer;
+  }
+
+  // 7. Rice Dishes / Biryani
+  if (name.includes('rice') || name.includes('biryani') || name.includes('pulao')) {
+    return CATEGORY_3D_ASSETS.riceDishes;
+  }
+
+  // 8. Appetizers & Snacks / Chaat / Samosa
+  if (
+    name.includes('appetizer') ||
+    name.includes('snack') ||
+    name.includes('starter') ||
+    name.includes('samosa') ||
+    name.includes('chaat') ||
+    name.includes('pakora') ||
+    name.includes('roll')
+  ) {
+    return CATEGORY_3D_ASSETS.snacks;
+  }
+
+  // 9. Non-Veg Main Course
+  if (
+    name.includes('non') ||
+    name.includes('chicken') ||
+    name.includes('mutton') ||
+    name.includes('goat') ||
+    name.includes('meat') ||
+    name.includes('fish') ||
+    name.includes('seafood') ||
+    name.includes('tandoori')
+  ) {
+    return CATEGORY_3D_ASSETS.nonVegMain;
+  }
+
+  // 10. Desserts / Sweets
+  if (
+    name.includes('dessert') ||
+    name.includes('sweet') ||
+    name.includes('mithai') ||
+    name.includes('jamun') ||
+    name.includes('kulfi') ||
+    name.includes('ice cream') ||
+    name.includes('halwa') ||
+    name.includes('rasgulla')
+  ) {
+    return CATEGORY_3D_ASSETS.desserts;
+  }
+
+  // 11. Beverages / Lassi / Shakes / Chai
+  if (
+    name.includes('beverage') ||
+    name.includes('drink') ||
+    name.includes('lassi') ||
+    name.includes('shake') ||
+    name.includes('tea') ||
+    name.includes('chai') ||
+    name.includes('coffee') ||
+    name.includes('juice') ||
+    name.includes('soda')
+  ) {
+    return CATEGORY_3D_ASSETS.beverages;
+  }
+
+  // 12. Breads / Naan / Roti
+  if (name.includes('bread') || name.includes('naan') || name.includes('roti') || name.includes('kulcha')) {
+    return CATEGORY_3D_ASSETS.breads;
+  }
+
+  // 13. Default Veg Main Course
+  return CATEGORY_3D_ASSETS.vegMain;
+}

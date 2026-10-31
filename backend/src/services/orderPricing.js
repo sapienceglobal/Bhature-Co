@@ -1,0 +1,298 @@
+import mongoose from 'mongoose';
+import xss from 'xss';
+import Coupon from '../models/Coupon.js';
+import MenuItem from '../models/MenuItem.js';
+import Order from '../models/Order.js';
+import Restaurant from '../models/Restaurant.js';
+import User from '../models/User.js';
+import { PLATFORM_DEFAULTS, LOYALTY_CONFIG } from '../config/constants.js';
+import { AppError } from '../middleware/errorHandler.js';
+
+const roundMoney = (value) => Math.round((Number(value) || 0) * 100) / 100;
+
+const findSelectedSize = (menuItem, requestedSize) => {
+  if (!requestedSize?.name) return null;
+  const selected = menuItem.sizeVariations?.find((size) => size.name === requestedSize.name);
+  if (!selected) {
+    throw new AppError(`Selected size is not available for ${menuItem.name}`, 400);
+  }
+  return { name: selected.name, price: roundMoney(selected.price) };
+};
+
+const findSelectedAddOns = (menuItem, requestedAddOns = []) => {
+  if (!Array.isArray(requestedAddOns) || requestedAddOns.length === 0) return [];
+
+  return requestedAddOns.map((requested) => {
+    const requestedId = requested._id?.toString();
+    const selected = menuItem.addOns?.find((addOn) => (
+      requestedId
+        ? addOn._id?.toString() === requestedId
+        : addOn.name === requested.name
+    ));
+
+    if (!selected) {
+      throw new AppError(`Selected add-on is not available for ${menuItem.name}`, 400);
+    }
+
+    return {
+      name: selected.name,
+      price: roundMoney(selected.price)
+    };
+  });
+};
+
+export const calculateOrderPricing = async ({
+  restaurantId,
+  items,
+  orderType = 'delivery',
+  tip = 0,
+  couponCode,
+  userId,
+  customerPhone = null,
+  customerEmail = null,
+  useLoyaltyPoints = false,
+  deliveryFeeOverride = null,
+  paymentMethod = null,
+  getModel = null
+}) => {
+  const getPricingModel = (modelName, defaultModel) => {
+    return getModel ? getModel(modelName) : defaultModel;
+  };
+  const RestaurantModel = getPricingModel('Restaurant', Restaurant);
+  const MenuItemModel = getPricingModel('MenuItem', MenuItem);
+  const CouponModel = getPricingModel('Coupon', Coupon);
+  const OrderModel = getPricingModel('Order', Order);
+  const UserModel = getPricingModel('User', User);
+
+  if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+    throw new AppError('Invalid restaurantId', 400);
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new AppError('Order must contain at least one item', 400);
+  }
+
+  const restaurant = await RestaurantModel.findById(restaurantId);
+  if (!restaurant) throw new AppError('Restaurant not found', 404);
+  if (restaurant.status !== 'approved' || !restaurant.isActive || !restaurant.acceptsOnlineOrders) {
+    throw new AppError('Restaurant is not accepting online orders right now', 400);
+  }
+  if (orderType === 'delivery' && restaurant.acceptsOnlineOrders === false) {
+    throw new AppError('Restaurant is not accepting delivery orders right now', 400);
+  }
+  if (orderType === 'pickup' && !restaurant.acceptsPickup) {
+    throw new AppError('Restaurant is not accepting pickup orders right now', 400);
+  }
+  if (orderType === 'dine_in' && !restaurant.acceptsDineIn) {
+    throw new AppError('Restaurant is not accepting dine-in orders right now', 400);
+  }
+
+  // operating Hours Check
+  if (restaurant.operatingHours) {
+    const tz = 'America/New_York'; // Timezone mapping logic can be refined later based on restaurant.timezone
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      weekday: 'long',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    
+    // quick workaround for node's Intl format. Format: "Wednesday, 14:30"
+    const parts = formatter.formatToParts(now);
+    const getPart = (type) => parts.find(p => p.type === type)?.value;
+    
+    const dayName = getPart('weekday').toLowerCase();
+    const currentHour = parseInt(getPart('hour'));
+    const currentMinute = parseInt(getPart('minute'));
+    const currentTimeVal = currentHour * 60 + currentMinute;
+
+    const todayHours = restaurant.operatingHours[dayName];
+    if (todayHours) {
+      if (todayHours.isClosed) {
+        throw new AppError('Restaurant is currently closed today', 400);
+      }
+      if (todayHours.open && todayHours.close) {
+        const [openH, openM] = todayHours.open.split(':').map(Number);
+        const openTimeVal = openH * 60 + openM;
+        const [closeH, closeM] = todayHours.close.split(':').map(Number);
+        const closeTimeVal = closeH * 60 + closeM;
+
+        if (currentTimeVal < openTimeVal || currentTimeVal > closeTimeVal) {
+           throw new AppError(`Restaurant is closed. Operating hours today: ${todayHours.open} - ${todayHours.close}`, 400);
+        }
+      }
+    }
+  }
+
+  const menuItemIds = items.map((item) => item.menuItemId || item._id);
+  if (menuItemIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
+    throw new AppError('Invalid menu item in cart', 400);
+  }
+
+  const menuItems = await MenuItemModel.find({
+    _id: { $in: menuItemIds },
+    restaurantId,
+    isAvailable: true
+  });
+
+  if (menuItems.length !== new Set(menuItemIds.map(String)).size) {
+    throw new AppError('One or more cart items are unavailable', 400);
+  }
+
+  const menuItemById = new Map(menuItems.map((item) => [item._id.toString(), item]));
+  let subtotal = 0;
+
+  const orderItems = items.map((requested) => {
+    const menuItem = menuItemById.get((requested.menuItemId || requested._id).toString());
+    const quantity = Math.max(1, Math.min(99, parseInt(requested.quantity, 10) || 1));
+    const selectedSize = findSelectedSize(menuItem, requested.selectedSize);
+    const addOns = findSelectedAddOns(menuItem, requested.addOns);
+    const basePrice = selectedSize?.price ?? menuItem.effectivePrice;
+    const addOnTotal = addOns.reduce((sum, addOn) => sum + addOn.price, 0);
+    const lineTotal = roundMoney((basePrice + addOnTotal) * quantity);
+    subtotal = roundMoney(subtotal + lineTotal);
+
+    return {
+      menuItemId: menuItem._id,
+      name: menuItem.name,
+      price: menuItem.effectivePrice,
+      quantity,
+      selectedSize,
+      addOns,
+      specialInstructions: xss(String(requested.specialInstructions || '').slice(0, 500)),
+      lineTotal
+    };
+  });
+
+  if (restaurant.minimumOrder && subtotal < restaurant.minimumOrder) {
+    throw new AppError(`Minimum order amount is $${restaurant.minimumOrder.toFixed(2)}`, 400);
+  }
+
+  const rawTaxRate = restaurant.taxRate !== undefined ? restaurant.taxRate : PLATFORM_DEFAULTS.DEFAULT_TAX_RATE * 100;
+  const taxRateDecimal = rawTaxRate < 1 ? rawTaxRate : (rawTaxRate / 100);
+  const tax = roundMoney(subtotal * taxRateDecimal);
+
+  const deliveryFee = orderType === 'delivery'
+    ? roundMoney(deliveryFeeOverride ?? restaurant.deliveryFee ?? 0)
+    : 0;
+  // TEMPORARY FOR TESTING: Set platform fee to 0 instead of PLATFORM_DEFAULTS.PLATFORM_FEE
+  const platformFee = 0;
+  
+  const rawServiceCharge = restaurant.serviceCharge !== undefined ? restaurant.serviceCharge : 3.0;
+  const serviceChargeDecimal = rawServiceCharge < 1 ? rawServiceCharge : (rawServiceCharge / 100);
+  const serviceFee = roundMoney(subtotal * serviceChargeDecimal);
+  
+  const packagingFee = roundMoney(restaurant.packagingCharge ?? 0);
+  const safeTip = roundMoney(Math.max(0, Number(tip) || 0));
+
+  let discount = 0;
+  let appliedCoupon = null;
+  if (couponCode) {
+    const coupon = await CouponModel.findOne({ code: couponCode.toUpperCase().trim() });
+    if (!coupon) throw new AppError('Invalid coupon code', 400);
+    if (coupon.specificRestaurant && coupon.specificRestaurant.toString() !== restaurant._id.toString()) {
+      throw new AppError('Coupon is not valid for this restaurant', 400);
+    }
+    const pastOrderCount = userId ? (await OrderModel.countDocuments({ userId })) : 0;
+
+    // Anti-fraud: For first-order-only coupons, also check if ANY order exists
+    // under the same phone number (across different accounts).
+    // This prevents users from creating multiple accounts with different emails
+    // but the same phone to exploit first-order discounts.
+    let effectivePastOrderCount = pastOrderCount;
+    if (coupon.firstOrderOnly) {
+      let phoneToCheck = customerPhone?.trim() || null;
+      let emailToCheck = customerEmail?.trim()?.toLowerCase() || null;
+
+      if (!phoneToCheck && userId) {
+        const currentUser = await UserModel.findById(userId).select('phone');
+        if (currentUser?.phone) phoneToCheck = currentUser.phone.trim();
+      }
+      if (!emailToCheck && userId) {
+        const currentUser = await UserModel.findById(userId).select('email');
+        if (currentUser?.email) emailToCheck = currentUser.email.trim().toLowerCase();
+      }
+
+      let phoneOrderCount = 0;
+      if (phoneToCheck && phoneToCheck !== '0000000000') {
+        phoneOrderCount = await OrderModel.countDocuments({
+          customerPhone: phoneToCheck,
+          status: { $nin: ['failed', 'cancelled'] }
+        });
+      }
+
+      let emailOrderCount = 0;
+      if (emailToCheck) {
+        emailOrderCount = await OrderModel.countDocuments({
+          customerEmail: emailToCheck,
+          status: { $nin: ['failed', 'cancelled'] }
+        });
+      }
+
+      effectivePastOrderCount = Math.max(pastOrderCount, phoneOrderCount, emailOrderCount);
+    }
+
+    const validation = coupon.isValid(subtotal, userId, effectivePastOrderCount, paymentMethod);
+    if (!validation.valid) throw new AppError(validation.reason || 'Coupon is not valid', 400);
+    discount = coupon.type === 'free_delivery'
+      ? deliveryFee
+      : roundMoney(coupon.calculateDiscount(subtotal));
+    appliedCoupon = coupon;
+  }
+
+  const loyaltyEnabled = restaurant.loyaltySettings?.enabled !== false;
+  const centsPerPoint = restaurant.loyaltySettings?.centsPerPoint ?? 1;
+  const pointsPerDollar = restaurant.loyaltySettings?.pointsPerDollar ?? 1;
+
+  let loyaltyDiscount = 0;
+  let pointsUsed = 0;
+  if (useLoyaltyPoints && userId && loyaltyEnabled) {
+    const user = await UserModel.findById(userId).select('loyaltyPoints');
+    const availablePoints = Math.max(0, Number(user?.loyaltyPoints) || 0);
+    
+    const maxDiscountFromPoints = (availablePoints * centsPerPoint) / 100;
+    const maxRedeemable = roundMoney(subtotal + tax + deliveryFee + platformFee + serviceFee + safeTip - discount);
+    
+    // anti-Abuse: Cart subtotal must be at least 3x the redeemed value
+    const antiAbuseCap = roundMoney(subtotal / 3);
+    
+    loyaltyDiscount = Math.min(maxDiscountFromPoints, maxRedeemable, antiAbuseCap);
+    loyaltyDiscount = roundMoney(loyaltyDiscount);
+    
+    // points consumed is calculated from the applied discount
+    pointsUsed = Math.ceil((loyaltyDiscount * 100) / centsPerPoint);
+  }
+
+  const totalBeforeLoyalty = roundMoney(subtotal + tax + deliveryFee + platformFee + serviceFee + packagingFee + safeTip - discount);
+  let total = Math.max(0, roundMoney(totalBeforeLoyalty - loyaltyDiscount));
+  
+  if (restaurant.roundOff) {
+    total = Math.round(total);
+  }
+  
+  let pointsEarned = 0;
+  if (loyaltyEnabled) {
+    pointsEarned = Math.floor(total * pointsPerDollar);
+  }
+
+  return {
+    restaurant,
+    orderItems,
+    subtotal,
+    tax,
+    deliveryFee,
+    platformFee,
+    serviceFee,
+    packagingFee,
+    tip: safeTip,
+    discount,
+    loyaltyDiscount,
+    pointsUsed,
+    pointsEarned,
+    total,
+    coupon: appliedCoupon
+  };
+};
+
+export { roundMoney };

@@ -1,0 +1,61 @@
+import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
+import { protect, authorize } from '../middleware/auth.js';
+import validate from '../middleware/validate.js';
+import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } from '../middleware/schemas.js';
+import * as authController from '../controllers/authController.js';
+
+const router = Router();
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  message: { success: false, message: 'Too many attempts. Try again after 15 minutes.' }
+});
+
+// ── Public Routes ───────────────────────────────────────────────────────────
+router.post('/register', authLimiter, validate(registerSchema), authController.register);
+router.post('/login', authLimiter, validate(loginSchema), authController.login);
+router.post('/social-login', authLimiter, authController.socialLogin);
+router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), authController.forgotPassword);
+router.post('/reset-password/:token', authLimiter, validate(resetPasswordSchema), authController.resetPassword);
+router.post('/verify-otp', authLimiter, authController.verifyOtp);
+router.post('/resend-otp', authLimiter, authController.resendOtp);
+router.post('/request-deletion', authLimiter, authController.requestAccountDeletion);
+router.post('/web-delete-account', authLimiter, authController.webDeleteAccount);
+
+// ── Protected Routes ────────────────────────────────────────────────────────
+router.get('/me', protect, authController.getMe);
+router.put('/me', protect, authController.updateProfile);
+router.put('/me/password', protect, validate(changePasswordSchema), authController.changePassword);
+router.post('/me/fcm-token', protect, authController.saveFcmToken);
+router.post('/logout', protect, authController.logout);
+router.delete('/me', protect, authController.deleteAccount);
+
+// ── Addresses ───────────────────────────────────────────────────────────────
+router.post('/me/addresses', protect, authorize('customer', 'merchant', 'admin'), authController.addAddress);
+router.put('/me/addresses/:addressId', protect, authorize('customer', 'merchant', 'admin'), authController.editAddress);
+router.delete('/me/addresses/:addressId', protect, authorize('customer', 'merchant', 'admin'), authController.removeAddress);
+router.patch('/me/addresses/:addressId/default', protect, authorize('customer', 'merchant', 'admin'), authController.setDefaultAddress);
+
+// ── Payment Methods ─────────────────────────────────────────────────────────
+router.post('/me/cards', protect, authorize('customer', 'merchant', 'admin'), authController.addCard);
+router.delete('/me/cards/:cardId', protect, authorize('customer', 'merchant', 'admin'), authController.removeCard);
+router.patch('/me/cards/:cardId/default', protect, authorize('customer', 'merchant', 'admin'), authController.setDefaultCard);
+
+// ── Saved Cart ──────────────────────────────────────────────────────────────
+router.get('/me/cart', protect, authorize('customer', 'merchant', 'admin'), authController.getSavedCart);
+router.put('/me/cart', protect, authorize('customer', 'merchant', 'admin'), authController.updateSavedCart);
+router.delete('/me/cart', protect, authorize('customer', 'merchant', 'admin'), authController.clearSavedCart);
+
+// ── Favorites ───────────────────────────────────────────────────────────────
+router.post('/me/favorites/restaurants/:restaurantId', protect, authorize('customer', 'merchant', 'admin'), authController.toggleFavoriteRestaurant);
+router.post('/me/favorites/items/:itemId', protect, authorize('customer', 'merchant', 'admin'), authController.toggleFavoriteItem);
+
+// ── Two-Factor Authentication ────────────────────────────────────────────────
+router.post('/2fa/verify', authController.verify2FA);
+router.get('/2fa/generate', protect, authorize('merchant', 'admin'), authController.generate2FA);
+router.post('/2fa/enable', protect, authorize('merchant', 'admin'), authController.enable2FA);
+router.post('/2fa/disable', protect, authorize('merchant', 'admin'), authController.disable2FA);
+
+export default router;

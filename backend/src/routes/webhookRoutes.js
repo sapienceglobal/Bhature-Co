@@ -1,0 +1,330 @@
+import { Router } from 'express';
+import crypto from 'crypto';
+import Order from '../models/Order.js';
+import asyncHandler from '../utils/asyncHandler.js';
+import logger from '../utils/logger.js';
+import { AppError } from '../middleware/errorHandler.js';
+import { applyDeliveryUpdate, buildOrderSocketPayload } from '../services/deliverySyncService.js';
+import { getOnDemandDetails } from '../services/deliveryProviders/shipdayProvider.js';
+import { createNotification } from '../controllers/notificationController.js';
+
+// ── Shipday Webhook Token ───────────────────────────────────────────────────
+// Shipday allows configuring a validation token (max 32 chars) when setting up
+// webhooks. This token is sent in the webhook request header as "token".
+const SHIPDAY_WEBHOOK_TOKEN = process.env.SHIPDAY_WEBHOOK_TOKEN;
+if (!SHIPDAY_WEBHOOK_TOKEN) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[FATAL] SHIPDAY_WEBHOOK_TOKEN is not set. Refusing to start with insecure webhooks.');
+    process.exit(1);
+  } else {
+    console.warn('[WARNING] SHIPDAY_WEBHOOK_TOKEN is not set. Webhooks will accept all requests in dev mode.');
+  }
+}
+
+const router = Router();
+
+// ── Token Verification Middleware ───────────────────────────────────────────
+const verifyShipdayToken = (req, res, next) => {
+  // In development without token configured, skip verification
+  if (!SHIPDAY_WEBHOOK_TOKEN && process.env.NODE_ENV !== 'production') {
+    return next();
+  }
+
+  const token = req.headers['token'] || req.headers['Token'];
+  if (!token || !SHIPDAY_WEBHOOK_TOKEN) {
+    throw new AppError('Missing Shipday webhook token', 401);
+  }
+
+  // Use timing-safe comparison to prevent timing attacks
+  const tokenBuffer = Buffer.from(String(token));
+  const expectedBuffer = Buffer.from(SHIPDAY_WEBHOOK_TOKEN);
+
+  if (tokenBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(tokenBuffer, expectedBuffer)) {
+    logger.warn('Shipday webhook token mismatch', {
+      receivedLength: tokenBuffer.length,
+      expectedLength: expectedBuffer.length
+    });
+    throw new AppError('Invalid Shipday webhook token', 401);
+  }
+
+  next();
+};
+
+// ── Helper: Find order by Shipday order number ──────────────────────────────
+const findOrderByNumber = async (orderNumber, req) => {
+  if (!orderNumber) return null;
+
+  // Try the tenant-aware model first, fallback to global
+  try {
+    if (req.getModel) {
+      const TenantOrder = req.getModel('Order');
+      const order = await TenantOrder.findOne({ orderNumber: String(orderNumber) });
+      if (order) return order;
+    }
+  } catch {
+    // fallback below
+  }
+
+  // Fallback to the default Order model
+  return await Order.findOne({ orderNumber: String(orderNumber) });
+};
+
+/**
+ * POST /api/shipday-webhook
+ * Receives Shipday order status update webhook events.
+ *
+ * Shipday webhook payload format:
+ * {
+ *   "timestamp": 1684644196349,
+ *   "event": "ORDER_PIKEDUP",
+ *   "order_status": "PICKED_UP",
+ *   "order": { "id": 123456, "order_number": "808713698", ... },
+ *   "carrier": { "id": 134, "name": "Jane Doe", "phone": "45678432", ... },
+ *   "delivery_details": { ... },
+ *   "pickup_details": { ... },
+ *   "thirdPartyDeliveryOrder": { ... }
+ * }
+ */
+router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
+  const event = req.body;
+
+  const eventType = event.event || 'unknown';
+  const orderData = event.order || {};
+  const orderNumber = orderData.order_number || orderData.orderNumber;
+  const shipdayOrderId = orderData.id || event.orderId;
+
+  logger.info('Shipday webhook received', {
+    event: eventType,
+    orderNumber,
+    shipdayOrderId,
+    orderStatus: event.order_status
+  });
+
+  if (!orderNumber && !shipdayOrderId) {
+    logger.warn('Shipday webhook missing order_number and orderId');
+    return response.status(200).json({ received: true });
+  }
+
+  // Find the order in our database
+  let order = null;
+  if (orderNumber) {
+    order = await findOrderByNumber(orderNumber, req);
+  }
+  if (!order && shipdayOrderId) {
+    // Try finding by deliveryId (which stores the Shipday orderId)
+    order = await Order.findOne({ deliveryId: String(shipdayOrderId) });
+  }
+
+  if (!order) {
+    logger.warn(`Shipday webhook: no order found for orderNumber=${orderNumber}, shipdayId=${shipdayOrderId}`);
+    return response.status(200).json({ received: true });
+  }
+
+  // Build a normalized payload for applyDeliveryUpdate
+  const updatePayload = {
+    // Status info
+    event: eventType.toLowerCase(),
+    order_status: (event.order_status || '').toLowerCase(),
+    status: (event.order_status || '').toLowerCase()
+  };
+
+  // Carrier info from webhook
+  if (event.carrier) {
+    updatePayload.carrier = { ...event.carrier };
+  }
+
+  // Third-party carrier info (when dispatched through 3rd party via Shipday)
+  // We MERGE into existing carrier instead of overwriting, to preserve phone numbers etc.
+  if (event.thirdPartyDeliveryOrder) {
+    const tp = event.thirdPartyDeliveryOrder;
+    if (tp.driverName) {
+      if (!updatePayload.carrier) updatePayload.carrier = {};
+      updatePayload.carrier.name = tp.driverName;
+      updatePayload.carrier.phone = tp.driverPhone || tp.driver_phone_number || updatePayload.carrier.phone;
+      // Preserve customer/restaurant phone numbers from third-party
+      if (tp.customerPhoneNumber || tp.customer_phone_number) {
+        updatePayload.carrier.customerPhoneNumber = tp.customerPhoneNumber || tp.customer_phone_number;
+      }
+      if (tp.restaurantPhoneNumber || tp.restaurant_phone_number) {
+        updatePayload.carrier.restaurantPhoneNumber = tp.restaurantPhoneNumber || tp.restaurant_phone_number;
+      }
+    }
+  }
+
+  const tp = event.thirdPartyDeliveryOrder || {};
+
+  // Extract advanced Shipday fields
+  const thirdPartyName = tp.thirdPartyName || event.thirdPartyName || orderData.thirdPartyName;
+  if (thirdPartyName) {
+    updatePayload.thirdPartyDeliveryName = thirdPartyName;
+  }
+  
+  // Driver image URL — handle all known Shipday / DoorDash / UberEats field variations
+  const imageUrl = tp.driverImageUrl || tp.driverImage || tp.driverPhoto || tp.driver_image_url
+    || tp.carrierPhoto || tp.carrier_photo
+    || event.driverImageUrl || event.driverImage || event.driverPhoto
+    || event.carrier?.carrierPhoto || event.carrier?.photo || event.carrier?.imageUrl
+    || orderData.driverImageUrl || orderData.driverImage;
+  
+  // Vehicle info — handle all known field name variations
+  const vehicle = tp.driverVehicleDescription || tp.vehicleDescription || tp.vehicle_description
+    || tp.vehicleMake || tp.vehicle_make
+    || event.driverVehicleDescription || event.vehicleDescription
+    || event.carrier?.vehicleDescription || event.carrier?.vehicle_description
+    || orderData.driverVehicleDescription || orderData.vehicleDescription;
+  
+  if (imageUrl || vehicle) {
+    if (!updatePayload.carrier) updatePayload.carrier = {};
+    if (imageUrl) updatePayload.carrier.imageUrl = imageUrl;
+    if (vehicle) updatePayload.carrier.vehicle = vehicle;
+  }
+
+  // Debug log: show what carrier data we extracted so we can troubleshoot
+  logger.info('Shipday webhook carrier extraction', {
+    orderNumber,
+    hasCarrier: !!updatePayload.carrier,
+    carrierName: updatePayload.carrier?.name || null,
+    carrierImageUrl: imageUrl || null,
+    carrierVehicle: vehicle || null,
+    hasThirdParty: !!event.thirdPartyDeliveryOrder,
+    thirdPartyKeys: event.thirdPartyDeliveryOrder ? Object.keys(event.thirdPartyDeliveryOrder) : [],
+    eventCarrierKeys: event.carrier ? Object.keys(event.carrier) : []
+  });
+
+  // Carrier location from standard webhook (driverLat, driverLng)
+  const lat = tp.driverLat ?? event.driverLat ?? orderData.driverLat;
+  const lng = tp.driverLng ?? event.driverLng ?? orderData.driverLng;
+  if (lat != null && lng != null) {
+    const parsedLat = Number(lat);
+    const parsedLng = Number(lng);
+    if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+      updatePayload.courierLat = parsedLat;
+      updatePayload.courierLng = parsedLng;
+    }
+  }
+
+  // Tracking URL from Shipday order data
+  const trackingUrl = orderData.trackingUrl || orderData.trackingLink || orderData.tracking_link || event.trackingUrl || event.trackingLink || event.tracking_link;
+  if (trackingUrl) {
+    updatePayload.trackingUrl = trackingUrl;
+  }
+
+  // Third-party delivery tracking URL (DoorDash/UberEats etc.)
+  // This link shows the rider's journey TO the restaurant (useful for restaurant)
+  const thirdPartyTrackingUrl = tp.trackingUrl || tp.tracking_url || tp.trackingLink || tp.tracking_link;
+  if (thirdPartyTrackingUrl) {
+    updatePayload.thirdPartyTrackingUrl = thirdPartyTrackingUrl;
+  }
+
+  // Timing data
+  if (orderData.pickedup_time) updatePayload.pickupTime = new Date(orderData.pickedup_time);
+  if (orderData.delivery_time) updatePayload.deliveryTime = new Date(orderData.delivery_time);
+
+  // Apply the update
+  const oldStatus = order.status;
+  applyDeliveryUpdate(order, updatePayload);
+  order.lastDeliverySyncAt = new Date();
+  const newStatus = order.status;
+
+  // Store Shipday orderId as deliveryId if not already set
+  if (shipdayOrderId && !order.deliveryId) {
+    order.deliveryId = String(shipdayOrderId);
+  }
+
+  try {
+    await order.save();
+  } catch (err) {
+    logger.error('Failed to save order in Shipday webhook', { orderId: order._id, error: err.message });
+  }
+
+  // ── On-Demand Details Enrichment ──────────────────────────────────────────
+  // Fetch driverImageUrl and driverVehicleDescription from Shipday's on-demand
+  // details endpoint. These fields ONLY exist there — not in webhook payloads.
+  const needsEnrichment = order.deliveryId && (!order.courierImageUrl || !order.courierVehicle);
+  if (needsEnrichment) {
+    // Fire-and-forget: don't block the webhook response
+    (async () => {
+      try {
+        logger.info('Attempting on-demand details enrichment', {
+          orderId: order._id,
+          deliveryId: order.deliveryId,
+          hasCourierImageUrl: !!order.courierImageUrl,
+          hasCourierVehicle: !!order.courierVehicle
+        });
+        const details = await getOnDemandDetails(order.deliveryId);
+        if (!details) return;
+
+        let enriched = false;
+        if (details.driverImageUrl && !order.courierImageUrl) {
+          order.courierImageUrl = details.driverImageUrl;
+          enriched = true;
+        }
+        if (details.driverVehicleDescription && !order.courierVehicle) {
+          order.courierVehicle = details.driverVehicleDescription;
+          enriched = true;
+        }
+        // Also backfill tracking URL if missing
+        if (details.trackingUrl && !order.thirdPartyTrackingUrl) {
+          order.thirdPartyTrackingUrl = details.trackingUrl;
+          enriched = true;
+        }
+        if (details.thirdPartyName && !order.thirdPartyDeliveryName) {
+          order.thirdPartyDeliveryName = details.thirdPartyName;
+          enriched = true;
+        }
+
+        if (enriched) {
+          await order.save();
+          logger.info('Shipday on-demand details enrichment succeeded', {
+            orderId: order._id,
+            courierImageUrl: !!order.courierImageUrl,
+            courierVehicle: !!order.courierVehicle,
+            thirdPartyTrackingUrl: !!order.thirdPartyTrackingUrl
+          });
+
+          // Re-emit socket update with enriched data
+          const enrichedIo = req.app.get('io');
+          if (enrichedIo) {
+            const enrichedPayload = buildOrderSocketPayload(order);
+            enrichedIo.to(order.restaurantId.toString()).emit('order_updated', enrichedPayload);
+            enrichedIo.to(`order_${order._id}`).emit('order_status_changed', enrichedPayload);
+          }
+        }
+      } catch (enrichErr) {
+        logger.warn('On-demand details enrichment failed (non-blocking)', {
+          orderId: order._id,
+          error: enrichErr.message
+        });
+      }
+    })();
+  }
+
+  // Emit real-time update via Socket.io
+  const io = req.app.get('io');
+  if (io) {
+    const socketPayload = buildOrderSocketPayload(order);
+    io.to(order.restaurantId.toString()).emit('order_updated', socketPayload);
+    io.to(`order_${order._id}`).emit('order_status_changed', socketPayload);
+  }
+
+  // Trigger customer push notification if status progressed
+  if (oldStatus !== newStatus && order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
+    try {
+      await createNotification(
+        order.userId,
+        `Order ${newStatus}`,
+        `Your order from ${order.restaurantName} is now ${newStatus.replace('_', ' ')}.`,
+        'delivery_update',
+        `/orders/${order._id}`,
+        io,
+        req.getModel
+      );
+    } catch (notifErr) {
+      logger.error('Failed to send webhook customer notification', { error: notifErr.message });
+    }
+  }
+
+  response.status(200).json({ received: true });
+}));
+
+export default router;

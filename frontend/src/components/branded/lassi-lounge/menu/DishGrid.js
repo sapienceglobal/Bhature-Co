@@ -1,0 +1,511 @@
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { Star, Heart, Minus, Plus, Flame, Leaf, SearchX, LayoutGrid, List, ChevronDown, ChevronLeft, ChevronRight, Loader2, UtensilsCrossed } from 'lucide-react';
+import { getItemUrl, resolveImageUrl } from '@/lib/slugUtils';
+import { getCategory3DImage } from '@/lib/category3DHelper';
+
+const getDishImage = (itemName) => {
+  const name = itemName.toLowerCase();
+  if (name.includes('butter chicken')) return '/images/branded/lassi-lounge/dishes/butter-chicken.png';
+  if (name.includes('cheese naan')) return '/images/branded/lassi-lounge/dishes/cheese-naan.jpg';
+  if (name.includes('chicken pakora')) return '/images/branded/lassi-lounge/dishes/chicken-pakora.jpg';
+  if (name.includes('chicken tikka masala')) return '/images/branded/lassi-lounge/dishes/chicken-tikka-masala.jpg';
+  if (name.includes('garlic naan')) return '/images/branded/lassi-lounge/dishes/garlic-naan.png';
+  if (name.includes('kesar badam') || name.includes('badam milk') || name.includes('kesarbadammilk')) return '/images/branded/lassi-lounge/dishes/kesar-badam-milk.jpg';
+  if (name.includes('rogan josh') || name.includes('lamb')) return '/images/branded/lassi-lounge/dishes/lamb-rogan-josh.jpg';
+  if (name.includes('masala chai') || name.includes('tea')) return '/images/branded/lassi-lounge/dishes/masala-chai.jpg';
+  if (name.includes('salt lassi') || name.includes('salted lassi')) return '/images/branded/lassi-lounge/dishes/salt-lassi.jpg';
+  if (name.includes('sweet lassi')) return '/images/branded/lassi-lounge/dishes/sweet-lassi.jpg';
+  if (name.includes('mango lassi')) return '/images/branded/lassi-lounge/dishes/mango-lassi.jpg';
+  if (name.includes('samosa')) return '/images/branded/lassi-lounge/dishes/samosa.jpg';
+  if (name.includes('tandoori chiken') || name.includes('tandoori chicken')) return '/images/branded/lassi-lounge/dishes/tandoori-chiken.png';
+  if (name.includes('paneer tikka')) return '/images/branded/lassi-lounge/dishes/paneer-tikka.jpg';
+  if (name.includes('tandoori roti')) return '/images/branded/lassi-lounge/dishes/tandoori-roti.png';
+
+  if (name.includes('biryani')) return '/images/branded/lassi-lounge/dishes/chicken-biryani.jpg';
+  if (name.includes('dal makhani')) return '/images/branded/lassi-lounge/dishes/dal-makhani.jpg';
+  if (name.includes('roll') || name.includes('spring')) return '/images/branded/lassi-lounge/dishes/veg-spring-rolls.png';
+
+  return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
+};
+
+export default function DishGrid({
+  filteredItems,
+  currentCategory,
+  isAuthenticated,
+  user,
+  items = [],
+  handleCartAdd,
+  handleCartDecrement,
+  toggleFavorite,
+  searchQuery = '',
+  restaurantId = '',
+  onCustomize
+}) {
+  const router = useRouter();
+  const [viewMode, setViewMode] = useState('grid');
+  const [sortBy, setSortBy] = useState('popular');
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  
+  const SINGLE_MODE = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
+  const ITEMS_PER_LOAD = 12;
+  
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_LOAD);
+  const isFirstMount = useRef(true); 
+
+  const sortedItems = useMemo(() => {
+    const sorted = [...filteredItems];
+    if (sortBy === 'price-low') return sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
+    if (sortBy === 'price-high') return sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
+    return sorted.sort((a, b) => Number(b.isBestseller || false) - Number(a.isBestseller || false));
+  }, [filteredItems, sortBy]);
+
+  useEffect(() => {
+    setVisibleCount(ITEMS_PER_LOAD);
+  }, [sortBy]);
+
+  // smooth scroll handling
+  useEffect(() => {
+    setVisibleCount(ITEMS_PER_LOAD);
+
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+
+    setTimeout(() => {
+      const element = document.getElementById('dish-grid-top');
+      if (element) {
+        const rect = element.getBoundingClientRect();
+        
+        // only scroll if the user has scrolled past the top of the grid
+        // if the user is at the top, don't move the page
+        if (rect.top < 100) {
+          const elementPosition = rect.top + window.scrollY;
+          window.scrollTo({
+            top: elementPosition - 120, // 120px offset for sticky header
+            behavior: 'smooth'
+          });
+        }
+      }
+    }, 100);
+
+  }, [currentCategory?._id, searchQuery]);
+
+  const displayedItems = useMemo(() => {
+    return sortedItems.slice(0, visibleCount);
+  }, [sortedItems, visibleCount]);
+
+  const hasMoreItems = visibleCount < sortedItems.length;
+
+  const handleLoadMore = () => {
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount(prev => prev + ITEMS_PER_LOAD);
+      setIsLoadingMore(false);
+    }, 400);
+  };
+
+  return (
+    <div id="dish-grid-top" className="space-y-6 ll-reveal">
+
+      {/* ─── 1. HEADER CONTROLS ─── */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end justify-between bg-transparent pb-4 border-b border-[#e5e7eb]/80">
+        <div className="flex flex-col flex-1 min-w-0 w-full pr-4">
+          <div className="flex items-center gap-3.5 min-w-0 w-full">
+            {!searchQuery.trim() && (() => {
+              const isAll = !currentCategory?.name || currentCategory?.name === 'All Items' || currentCategory?._id === 'all';
+              return (
+                <div 
+                  className="relative w-14 h-14 md:w-16 md:h-16 rounded-2xl shrink-0 flex items-center justify-center shadow-md border border-[#ebdcc1] transition-transform duration-300 hover:scale-105"
+                  style={{
+                    background: 'radial-gradient(circle at center, #ffdcb5 0%, #ffffff 100%)',
+                  }}
+                >
+                  {isAll ? (
+                    <UtensilsCrossed
+                      className="w-7 h-7 md:w-8 md:h-8 text-[#7a0b10] drop-shadow-xs transition-transform duration-300 hover:rotate-6"
+                    />
+                  ) : (
+                    <>
+                      {/* Contact Shadow beneath 3D dish */}
+                      <div
+                        className="absolute bottom-1.5 w-9 md:w-11 h-2 rounded-full pointer-events-none"
+                        style={{
+                          background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 70%)',
+                          filter: 'blur(1.5px)',
+                        }}
+                      />
+                      <img
+                        src={getCategory3DImage(currentCategory?.name)}
+                        alt={currentCategory?.name || 'Category'}
+                        className="w-12 h-12 md:w-14 md:h-14 object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.22)] -mt-1.5 transition-transform duration-300 hover:-translate-y-1 hover:scale-110"
+                      />
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[26px] md:text-[34px] font-serif font-black text-[#1a1a1a] leading-tight truncate">
+                {searchQuery.trim()
+                  ? `Search Results for "${searchQuery.length > 25 ? searchQuery.substring(0, 25) + '...' : searchQuery}"`
+                  : (currentCategory?.name && currentCategory.name !== 'All Items' ? currentCategory.name : (currentCategory?.name || 'All Items'))}
+              </h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className="text-[#e8a020] flex items-center">
+                  <svg width="20" height="6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="12" x2="15" y2="12" /><circle cx="20" cy="12" r="2" fill="currentColor" /></svg>
+                </div>
+                <span className="text-[12px] text-[#6b7280] font-medium leading-none">
+                  {sortedItems.length} Items Total
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[13px] font-medium text-[#1a1a1a] whitespace-nowrap">Sort By:</span>
+            <div className="relative w-[130px] h-[36px]">
+              <select
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value)}
+                className="w-full h-full bg-[#ffffff] border border-[#e5e7eb] rounded-md pl-3 pr-8 text-[13px] font-medium text-[#1a1a1a] focus:outline-none focus:border-[#7a0b10] shadow-sm cursor-pointer appearance-none outline-none ll-focus-ring"
+                style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+              >
+                <option value="popular">Popular</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+              </select>
+              <div className="absolute right-1 top-1 bottom-1 w-7 bg-[#ffffff] flex items-center justify-center pointer-events-none rounded-r-md">
+                <ChevronDown className="w-4 h-4 text-[#1a1a1a] text-[#7a0b10]" strokeWidth={2} />
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden sm:flex gap-2 ml-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`w-[36px] h-[36px] flex items-center justify-center rounded-md border shadow-sm ll-interactive ll-focus-ring
+                ${viewMode === 'grid' ? 'bg-[#7a0b10] text-[#ffffff] border-[#7a0b10]' : 'bg-[#ffffff] text-[#7a0b10] border-[#e5e7eb] hover:bg-gray-50'}`}
+              aria-label="Grid view"
+            >
+              <LayoutGrid className="w-[18px] h-[18px]" strokeWidth={2.5} />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`w-[36px] h-[36px] flex items-center justify-center rounded-md border shadow-sm ll-interactive ll-focus-ring
+                ${viewMode === 'list' ? 'bg-[#7a0b10] text-[#ffffff] border-[#7a0b10]' : 'bg-[#ffffff] text-[#7a0b10] border-[#e5e7eb] hover:bg-gray-50'}`}
+              aria-label="List view"
+            >
+              <List className="w-[20px] h-[20px]" strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 2. ITEMS GRID / LIST ─── */}
+      <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-5 ll-stagger" : "flex flex-col gap-3.5 sm:gap-4 ll-stagger"}>
+        {displayedItems.map((item, index) => {
+          const isFavorite = user?.favoriteItems?.some(f => (f._id || f) === item._id);
+          const isAvailable = item.isAvailable !== false;
+
+          const targetId = item.menuItemId || item._id || item.id;
+          const cartQty = items
+            .filter(i => {
+              const iId = i.menuItemId || i._id || i.id;
+              const sameId = targetId && iId && iId === targetId;
+              const sameName = i.name && item.name && i.name.toLowerCase().trim() === item.name.toLowerCase().trim();
+              return sameId || sameName;
+            })
+            .reduce((sum, i) => sum + (i.quantity || i.qty || 0), 0);
+
+          const hasCustomizations =
+            (item.sizeVariations && item.sizeVariations.length > 0) ||
+            (item.addOns && item.addOns.length > 0);
+
+          const handlePrimaryAction = (e) => {
+            e.stopPropagation();
+            if (hasCustomizations && onCustomize) {
+              onCustomize(item);
+            } else {
+              handleCartAdd(item);
+            }
+          };
+
+          return (
+            <React.Fragment key={item._id}>
+              {/* MOBILE CARD (Matches Customer APK menu_item_card.dart) */}
+              <div
+                style={{ animationFillMode: 'both', animationDelay: `${(index % ITEMS_PER_LOAD) * 40}ms` }}
+                className={`sm:hidden animate-in fade-in slide-in-from-bottom-3 duration-300 ease-out bg-white rounded-xl border border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.03)] flex overflow-hidden relative cursor-pointer select-none ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}
+                onClick={() => {
+                  router.push(getItemUrl(item, restaurantId));
+                }}
+              >
+                {/* Proportional Image Left */}
+                <div className="w-[104px] min-w-[104px] h-[104px] relative bg-gray-100 shrink-0 overflow-hidden">
+                  <img
+                    src={resolveImageUrl(item.image) || getDishImage(item.name)}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const fallback = getDishImage(item.name);
+                      if (e.target.src !== fallback) {
+                        e.target.src = fallback;
+                      }
+                    }}
+                  />
+
+                  {/* Heart Button on Image */}
+                  {isAuthenticated && isAvailable && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(item._id);
+                      }}
+                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-xs cursor-pointer"
+                      aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <Heart
+                        className={`w-3.5 h-3.5 ${isFavorite ? 'fill-[#7a0b10] text-[#7a0b10]' : 'text-gray-400'}`}
+                        strokeWidth={isFavorite ? 0 : 2}
+                      />
+                    </button>
+                  )}
+                </div>
+
+                {/* Content Right */}
+                <div className="flex-1 p-2.5 flex flex-row gap-2 justify-between items-start min-w-0">
+                  {/* Center details: Veg dot + title, description, spice level */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch">
+                    <div>
+                      <div className="flex items-start">
+                        {/* Veg/Non-Veg Indicator */}
+                        <div className={`mt-0.5 mr-1.5 p-[2px] rounded-[4px] border-[1.5px] shrink-0 flex items-center justify-center ${item.isVeg ? 'border-green-600' : 'border-red-600'}`}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${item.isVeg ? 'bg-green-600' : 'bg-red-600'}`} />
+                        </div>
+
+                        <h3 className="font-bold text-[14.5px] text-[#1a1a1a] truncate leading-snug flex-1">
+                          {item.name}
+                        </h3>
+                      </div>
+
+                      <p className="text-[11.5px] text-gray-500 line-clamp-2 leading-tight mt-1">
+                        {item.description || 'Crispy rolls stuffed with fresh vegetables & served hot.'}
+                      </p>
+                    </div>
+
+                    {/* Spice Levels */}
+                    <div className="flex items-center gap-1 mt-1.5 text-[11px] text-gray-500">
+                      <div className="flex items-center gap-0.5">
+                        {[0, 1, 2].map((idx) => {
+                          const isActive = item.isSpicy ? idx < 2 : idx < 1;
+                          return (
+                            <Flame
+                              key={idx}
+                              className={`w-3 h-3 ${isActive ? 'text-[#7a0b10] fill-[#7a0b10]' : 'text-gray-300'}`}
+                            />
+                          );
+                        })}
+                      </div>
+                      <span>({item.isSpicy ? 'Medium' : 'Mild'})</span>
+                    </div>
+                  </div>
+
+                  {/* Right column: Price top, Add button bottom */}
+                  <div className="shrink-0 flex flex-col items-end justify-between self-stretch pl-1">
+                    <span className="text-[#7a0b10] font-bold text-[15px] leading-tight">
+                      ${item.price?.toFixed(2) || '9.99'}
+                    </span>
+
+                    <div className="flex flex-col items-end mt-2">
+                      {cartQty > 0 ? (
+                        <div className="h-8 bg-[#7a0b10] text-white rounded-[6px] flex items-center overflow-hidden shadow-none">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleCartDecrement(item); }}
+                            className="w-7 h-full flex items-center justify-center hover:bg-black/15 transition-colors cursor-pointer"
+                            aria-label={`Remove ${item.name}`}
+                          >
+                            <Minus className="w-3.5 h-3.5 stroke-[3]" />
+                          </button>
+                          <span className="px-1 text-[13px] font-bold text-center min-w-[20px]">
+                            {cartQty}
+                          </span>
+                          <button
+                            onClick={handlePrimaryAction}
+                            className="w-7 h-full flex items-center justify-center hover:bg-black/15 transition-colors cursor-pointer"
+                            aria-label={`Add one more ${item.name}`}
+                          >
+                            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handlePrimaryAction}
+                          className="h-8 px-3.5 bg-[#7a0b10] hover:bg-[#5e080c] text-white text-[12px] font-bold rounded-[6px] flex items-center justify-center uppercase tracking-wider shadow-none transition-colors cursor-pointer"
+                        >
+                          ADD
+                        </button>
+                      )}
+                      {hasCustomizations && (
+                        <span className="text-[9px] text-gray-500 font-medium tracking-tight mt-0.5">
+                          customisable
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* DESKTOP CARD (Preserved 100% untouched for sm: and above) */}
+              <div
+                style={{ animationFillMode: 'both', animationDelay: `${(index % ITEMS_PER_LOAD) * 40}ms` }}
+                className={`hidden sm:flex animate-in fade-in slide-in-from-bottom-8 duration-500 ease-out bg-[#fcfaf5] rounded-xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_34px_rgba(122,11,16,0.12)] overflow-hidden relative group ll-interactive cursor-pointer ${!isAvailable ? 'opacity-50 pointer-events-none' : ''} ${viewMode === 'grid' ? 'flex-col' : 'flex-col sm:flex-row sm:min-h-[210px] h-auto'}`}
+                onClick={() => {
+                  router.push(getItemUrl(item, restaurantId));
+                }}
+              >
+                {/* Image header */}
+                <div className={`relative bg-[#f3f4f6] overflow-hidden shrink-0 ${viewMode === 'grid' ? 'h-[200px] w-full' : 'h-[180px] sm:h-auto w-full sm:w-[240px]'}`}>
+                  <img
+                    src={resolveImageUrl(item.image) || getDishImage(item.name)}
+                    alt={item.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    onError={(e) => {
+                      // Fallback to local/unsplash images if Cloudinary fails (e.g. 401 unauthorized)
+                      const fallback = getDishImage(item.name);
+                      if (e.target.src !== fallback) {
+                        e.target.src = fallback;
+                      }
+                    }}
+                  />
+
+                  {/* Heart Button */}
+                  {isAuthenticated && isAvailable && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(item._id);
+                      }}
+                      className="absolute top-3 right-3 p-1.5 bg-[#000000]/40 backdrop-blur-sm rounded-full border border-[#ffffff]/80 hover:bg-[#000000]/60 shadow-sm ll-interactive ll-focus-ring"
+                      aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <Heart className={`h-4 w-4 ${isFavorite ? 'fill-[#cd131b] text-[#cd131b] border-none' : 'text-[#ffffff]'}`} strokeWidth={isFavorite ? 0 : 2} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Card Content */}
+                <div className={`p-4 flex-grow flex flex-col justify-between ${viewMode === 'list' ? 'sm:py-5 sm:px-6' : ''}`}>
+                  <div>
+                    <h3 className="text-[17px] font-bold text-[#1a1a1a] tracking-tight line-clamp-1 font-serif">
+                      {item.name}
+                    </h3>
+
+                    <p className="text-[12px] text-[#4b5563] leading-relaxed line-clamp-2 mt-2.5">
+                      {item.description || 'Crispy rolls stuffed with fresh vegetables & served hot.'}
+                    </p>
+
+                    {/* Veg & Spice Indicators */}
+                    <div className="flex items-center gap-4 mt-3">
+                      <span className="text-[11px] font-bold text-[#4b5563] flex items-center gap-2">
+                        <span className={`h-3.5 w-3.5 rounded-full flex items-center justify-center ${item.isVeg ? 'bg-[#16a34a]' : 'bg-[#cd131b]'}`}>
+                          <Leaf className="h-3 w-3 text-[#ffffff]" strokeWidth={3} />
+                        </span>
+                        {item.isVeg ? 'Veg' : 'Non Veg'}
+                      </span>
+                      <span className="text-[11px] font-bold text-[#4b5563] flex items-center gap-1">
+                        {item.isSpicy ? <Flame className="h-3.5 w-3.5 text-[#e8a020]" strokeWidth={2.5} /> : <Leaf className="h-3.5 w-3.5 text-[#16a34a]" strokeWidth={2.5} />}
+                        {item.isSpicy ? 'Medium' : 'Mild'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bottom Section: Price & Actions */}
+                  <div className="mt-5 flex items-center justify-between w-full pt-1">
+                    <div className="text-[18px] font-black text-[#1a1a1a] leading-none">
+                      ${item.price?.toFixed(2) || '9.99'}
+                    </div>
+
+                    <div className="flex flex-col items-center select-none">
+                      {cartQty > 0 ? (
+                        <div className="flex items-center border border-[#7a0b10]/20 rounded-lg h-[38px] bg-[#ffffff] shadow-sm shrink-0 w-[110px] overflow-hidden">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleCartDecrement(item); }}
+                            className="w-10 text-[#7a0b10] hover:bg-[#7a0b10]/5 h-full flex items-center justify-center transition-colors font-bold ll-focus-ring"
+                            aria-label={`Remove ${item.name}`}
+                          >
+                            <Minus className="h-[13px] w-[13px]" strokeWidth={3} />
+                          </button>
+                          <span className="flex-1 text-[13px] font-black text-[#7a0b10] text-center">
+                            {cartQty}
+                          </span>
+                          <button
+                            onClick={handlePrimaryAction}
+                            className="w-10 text-[#7a0b10] hover:bg-[#7a0b10]/5 h-full flex items-center justify-center transition-colors font-bold ll-focus-ring"
+                            aria-label={`Add one more ${item.name}`}
+                          >
+                            <Plus className="h-[13px] w-[13px]" strokeWidth={3} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handlePrimaryAction}
+                          className="bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff] text-[12px] font-black h-[38px] px-6 rounded-lg shadow-sm flex items-center justify-center gap-1.5 uppercase tracking-wider min-w-[110px] transition-colors ll-interactive ll-focus-ring"
+                        >
+                          ADD <Plus className="h-[14px] w-[14px]" strokeWidth={3} />
+                        </button>
+                      )}
+                      {hasCustomizations && (
+                        <span className="text-[9px] text-[#6b7280] font-medium tracking-wide uppercase mt-1.5 block">
+                          Customisable
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* ─── 3. LOAD MORE BUTTON ─── */}
+      {sortedItems.length > 0 && hasMoreItems && (
+        <div className="flex justify-center mt-12 mb-8 h-[52px]">
+          <button
+            onClick={handleLoadMore}
+            disabled={isLoadingMore}
+            className="flex items-center justify-center gap-2 w-[240px] h-full bg-white border-2 border-[#7a0b10] text-[#7a0b10] rounded-xl font-bold text-[14px] uppercase tracking-wide hover:bg-[#7a0b10] hover:text-white transition-all duration-300 shadow-sm ll-focus-ring"
+          >
+            {isLoadingMore ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /> Loading...</>
+            ) : (
+              'Load More Dishes'
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* "All Caught Up" Message */}
+      {sortedItems.length > ITEMS_PER_LOAD && !hasMoreItems && (
+        <div className="text-center mt-12 mb-4 text-[#6b7280] text-[13px] font-semibold uppercase tracking-widest flex items-center justify-center gap-4">
+          <div className="h-px w-12 bg-[#e5e7eb]"></div>
+          You've seen all dishes
+          <div className="h-px w-12 bg-[#e5e7eb]"></div>
+        </div>
+      )}
+
+      {/* No Items Message */}
+      {sortedItems.length === 0 && (
+        <div className="text-center py-20 bg-[#ffffff] border border-[#e5e7eb] rounded-xl shadow-sm ll-pop">
+          <SearchX className="h-10 w-10 mx-auto text-[#e8a020] mb-4" strokeWidth={1.6} />
+          <p className="text-[#1a1a1a] text-[15px] font-black">No dishes found</p>
+          <p className="text-[#6b7280] text-sm font-medium mt-1">Try another category or a shorter search.</p>
+        </div>
+      )}
+    </div>
+  );
+}

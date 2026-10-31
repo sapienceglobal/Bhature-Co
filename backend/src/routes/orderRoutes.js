@@ -1,0 +1,62 @@
+import { Router } from 'express';
+import { protect, authorize, optionalAuth } from '../middleware/auth.js';
+import validate from '../middleware/validate.js';
+import { createOrderSchema, rateOrderSchema, deliveryQuoteSchema, replyToReviewSchema, refundOrderSchema } from '../middleware/schemas.js';
+import * as orderController from '../controllers/orderController.js';
+import * as dispatchController from '../controllers/dispatchController.js';
+
+const router = Router();
+
+// ── Public Routes ───────────────────────────────────────────────────────────
+router.get('/:id/pay', orderController.redirectToPayment);
+router.get('/:id/invoice-pdf', orderController.downloadInvoicePdf);
+router.get('/:id/kot', orderController.getKOTDocument);
+
+// ── Customer Routes (Supports both logged-in and guest checkout) ───────────
+router.post('/', optionalAuth, validate(createOrderSchema), orderController.createOrder);
+router.get('/merchant/all', protect, authorize('merchant'), orderController.getMerchantOrders);
+router.get('/my-orders', protect, authorize('customer'), orderController.getMyOrders);
+router.get('/:id', optionalAuth, orderController.getOrderById);
+router.post('/:id/cancel', protect, authorize('customer'), orderController.cancelOrder);
+router.post('/:id/rate', protect, authorize('customer'), validate(rateOrderSchema), orderController.rateOrder);
+router.post('/delivery-quote', optionalAuth, validate(deliveryQuoteSchema), orderController.getDeliveryQuote);
+
+// ── Merchant Routes ─────────────────────────────────────────────────────────
+router.get('/restaurant/:restaurantId', protect, authorize('merchant'), orderController.getRestaurantOrders);
+router.put('/:id/status', protect, authorize('merchant'), orderController.updateOrderStatus);
+router.put('/:id/payment', protect, authorize('merchant'), orderController.updatePaymentStatus);
+router.put('/:id/prep', protect, authorize('merchant'), orderController.updateOrderStatus);
+router.put('/:id/accept', protect, authorize('merchant'), orderController.acceptOrder);
+router.put('/:id/reject', protect, authorize('merchant'), orderController.rejectOrder);
+router.post('/:id/reply', protect, authorize('merchant'), validate(replyToReviewSchema), orderController.replyToReview);
+router.post('/:id/note', protect, authorize('merchant', 'admin'), orderController.addAdminNote);
+router.post('/:id/remake', protect, authorize('merchant'), orderController.remakeOrder);
+router.post('/:id/send-invoice', protect, authorize('merchant'), orderController.sendInvoice);
+router.post('/:id/send-payment-link', protect, authorize('merchant'), orderController.sendPaymentLink);
+router.post('/:id/dispatch-now', protect, authorize('merchant', 'admin'), dispatchController.dispatchNow);
+router.post('/:id/dispatch-postpone', protect, authorize('merchant', 'admin'), dispatchController.dispatchPostpone);
+
+// ── Payment Audit & Document Generation ────────────────────────────────────
+// payment events audit trail (JSON)
+router.get('/:id/payment-events', protect, authorize('merchant', 'admin'), orderController.getPaymentEvents);
+// invoice & KOT — return standalone HTML for new-tab printing
+router.get('/:id/invoice', protect, authorize('merchant', 'admin'), orderController.getInvoiceDocument);
+
+// ── Admin Routes ────────────────────────────────────────────────────────────
+router.get('/', protect, authorize('admin'), orderController.getAllOrders);
+router.post('/:id/refund', protect, authorize('admin', 'merchant'), validate(refundOrderSchema), orderController.refundOrder);
+
+// ── Driver Routes ───────────────────────────────────────────────────────────
+router.get('/driver/available', protect, authorize('driver'), orderController.getAvailableDriverOrders);
+router.get('/driver/active', protect, authorize('driver'), orderController.getActiveDriverOrder);
+router.put('/:id/driver-accept', protect, authorize('driver'), orderController.driverAcceptOrder);
+router.put('/:id/driver-pickup', protect, authorize('driver'), orderController.driverPickupOrder);
+router.put('/:id/driver-deliver', protect, authorize('driver'), orderController.driverDeliverOrder);
+
+// ── Simulation (development only) ───────────────────────────────────────────
+if (process.env.NODE_ENV !== 'production') {
+  router.post('/:id/simulate', protect, authorize('admin'), orderController.simulateStatusAdvance);
+}
+
+export default router;
+

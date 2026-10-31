@@ -1,0 +1,1432 @@
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import User from '../models/User.js';
+import asyncHandler from '../utils/asyncHandler.js';
+import { AppError } from '../middleware/errorHandler.js';
+import * as res from '../utils/responseFormatter.js';
+import { sendPasswordResetEmail, sendWelcomeEmail, sendOtpEmail } from '../services/emailService.js';
+import logger from '../utils/logger.js';
+import { OAuth2Client } from 'google-auth-library';
+import axios from 'axios';
+import appleSignin from 'apple-signin-auth';
+import { generateSecret, generateURI, verify } from 'otplib';
+import QRCode from 'qrcode';
+import { logAuditEvent } from '../utils/auditLogger.js';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const JWT_SECRET = process.env.JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET'; // Falls back only in dev; auth.js already logs warning
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+export const canManageRestaurant = (user, restaurantId) => {
+  if (user?.role === 'admin') return true;
+  return user?.restaurantId?.toString() === restaurantId?.toString();
+};
+
+export const ensureCanManageRestaurant = (reqOrUser, restaurantId) => {
+  const user = reqOrUser.user || reqOrUser;
+  if (!canManageRestaurant(user, restaurantId)) {
+    throw new AppError('You can only manage resources for your own restaurant', 403);
+  }
+};
+
+// role is embedded in JWT so Next.js Edge middleware can verify it without DB access.
+// the backend ALWAYS re-fetches the user from DB (auth.js protect middleware) —
+// the JWT role is only used for routing decisions, never trusted for data access.
+const generateToken = (id, role, tenantId = 'marketplace', tokenVersion = 0, isMobileMerchant = false, rememberMe = true) => {
+  let expiresIn = '30d';
+  if (isMobileMerchant) {
+    expiresIn = rememberMe ? '180d' : '1d';
+  } else {
+    expiresIn = rememberMe ? '90d' : '1d';
+  }
+  return jwt.sign({ id, role, tenantId, tokenVersion }, JWT_SECRET, { expiresIn });
+};
+
+const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace', rememberMe = true) => {
+  const isMobileMerchant =
+    (response.req && response.req.headers['x-platform'] === 'merchant_app') ||
+    user.role === 'merchant' ||
+    user.role === 'admin';
+  const token = generateToken(user._id, user.role, tenantId, user.tokenVersion, isMobileMerchant, rememberMe);
+
+  const req = response.req;
+  const isHttps = Boolean(
+    req && (
+      req.secure ||
+      req.headers['x-forwarded-proto'] === 'https' ||
+      req.protocol === 'https'
+    )
+  );
+
+  // If accessed over HTTP (e.g. direct IP:port 195.35.20.207:8088), secure: true causes modern browsers to drop the cookie.
+  // Only enforce secure cookies when on HTTPS or explicitly forced.
+  const secureCookie = process.env.COOKIE_SECURE === 'true' ||
+    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production' && isHttps);
+
+  const body = {
+    success: true,
+    user: user.toSafeJSON(),
+    token: token // Always include token in body so frontend client can persist it in localStorage/document.cookie
+  };
+
+  const cookieOptions = {
+    httpOnly: true,
+    secure: secureCookie,
+    sameSite: secureCookie ? 'none' : 'lax',
+    path: '/'
+  };
+
+  // industry Standard: If rememberMe is checked, persist the cookie (e.g. 180 days for merchant, 30 days for web).
+  // if not checked, omit 'expires' so it becomes a Session Cookie that deletes on browser close.
+  if (rememberMe) {
+    const days = isMobileMerchant ? 180 : 30;
+    cookieOptions.expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  }
+
+  response
+    .status(statusCode)
+    .cookie('token', token, cookieOptions)
+    .cookie('marketplace_token', token, cookieOptions)
+    .json(body);
+};
+
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+// ── Controllers ─────────────────────────────────────────────────────────────
+
+// ── Controllers ─────────────────────────────────────────────────────────────
+// DROP-IN REPLACEMENT for the existing `register` export. Everything up to
+// the OTP generation is unchanged — only the ending is different (no more
+// sendTokenCookie call). Keep the rest of the file (imports, other exports,
+// sendTokenCookie/AppError/asyncHandler/sendOtpEmail/logger/PASSWORD_REGEX)
+// exactly as-is.
+
+export const register = asyncHandler(async (req, response) => {
+  const { name, email, password, phone, role, agreedToTerms } = req.body;
+
+  if (!agreedToTerms) {
+    throw new AppError('You must agree to the Terms & Conditions and Privacy Policy to register.', 400);
+  }
+
+  if (!name || !email || !password) {
+    throw new AppError('Please provide name, email, and password.', 400);
+  }
+
+  const hasEmoji = (str) => Boolean(str && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(str));
+  if (hasEmoji(name) || !/^[a-zA-Z0-9\s\-'.@_+]+$/.test(name)) {
+    throw new AppError('Name contains restricted characters or emojis. Please use standard letters and numbers only.', 400);
+  }
+
+  if (hasEmoji(email) || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+    throw new AppError('Emojis are not allowed in email addresses. Please use a valid email.', 400);
+  }
+
+  if (phone && (hasEmoji(phone) || !/^[0-9+\-\s()]+$/.test(phone))) {
+    throw new AppError('Phone contains restricted characters. Please use numbers only.', 400);
+  }
+
+  // M3 FIX: ALLOW_PUBLIC_MERCHANT_SIGNUP defaults to false for security.
+  // in production, merchants should be onboarded by an admin, not self-registered.
+  const publicMerchantSignup = process.env.ALLOW_PUBLIC_MERCHANT_SIGNUP === 'true';
+  if (publicMerchantSignup && process.env.NODE_ENV === 'production') {
+    logger.warn('[SECURITY] ALLOW_PUBLIC_MERCHANT_SIGNUP is enabled in production. Anyone can self-register as a merchant.');
+  }
+  const allowedRoles = publicMerchantSignup ? ['customer', 'merchant'] : ['customer'];
+  if (role && !allowedRoles.includes(role)) {
+    throw new AppError('Invalid registration role.', 400);
+  }
+
+  if (!PASSWORD_REGEX.test(password)) {
+    throw new AppError(
+      'Password must be at least 8 characters with one uppercase, one lowercase, one number, and one special character (@$!%*?&).',
+      400
+    );
+  }
+
+  const tenantId = req.tenantId || 'marketplace';
+  const UserModel = req.getModel('User');
+
+  const existing = await UserModel.findOne({ email });
+  if (existing) throw new AppError('An account with this email already exists.', 409);
+
+  // Prevent duplicate accounts with the same phone number (anti-fraud for first-order coupons etc.)
+  if (phone) {
+    const phoneExists = await UserModel.findOne({ phone, _id: { $ne: existing?._id } });
+    if (phoneExists) throw new AppError('An account with this phone number already exists. Please login instead.', 409);
+  }
+
+  const user = new UserModel({ 
+    name, 
+    email, 
+    phone: phone || '', 
+    role: role || 'customer', 
+    password: 'temp',
+    hasAcceptedTerms: true,
+    termsAcceptedAt: new Date()
+  });
+  user.setPassword(password);
+
+  if (phone) {
+    user.savedAddresses = [];
+  }
+
+  // generate random 6-character referral code
+  user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+
+  // brand-new customers get the one-time "Do you have a referral code?" screen
+  if ((role || 'customer') === 'customer') {
+    user.referralOnboarding = 'pending';
+    user.signupIp = req.ip || null;
+  }
+
+  // generate 6-digit OTP for email verification.
+  // using crypto.randomInt instead of Math.random() — this code gates
+  // account access, so it should come from a cryptographically secure
+  // source, not Math.random() (which is predictable).
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+  user.emailOtp = hashedOtp;
+  user.emailOtpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  // (Combined into a single save — the old code saved twice: once
+  // right after setting referralCode, then again after setting the
+  // OTP fields. One write is enough.)
+  await user.save();
+
+  // send OTP email (fire-and-forget — don't block registration)
+  sendOtpEmail(email, name, otp).catch(e =>
+    logger.warn('OTP email failed', { error: e.message, otp: process.env.NODE_ENV !== 'production' ? otp : '[hidden]' })
+  );
+
+  // in dev mode, always log OTP to console for easy testing without email
+  if (process.env.NODE_ENV !== 'production') {
+    logger.info(`[DEV] Email OTP for ${email}: ${otp}`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // THE FIX: registration used to call sendTokenCookie(user, 201, ...)
+  // right here, which authenticated the browser/app immediately — before
+  // the user ever verified their email. That's the actual root cause of
+  // "wrong/skipped OTP still results in a logged-in account" on BOTH the
+  // website and the mobile app: the session already existed the instant
+  // /api/auth/register succeeded, regardless of what happened on the OTP
+  // screen afterwards.
+  //
+  // the account is created as unverified (isEmailVerified: false,
+  // isVerified: false, per the schema defaults) and NO session is issued
+  // here. A session is only created inside verifyOtp() below, once the
+  // code is confirmed correct and unexpired. Do not add sendTokenCookie
+  // back here.
+  // ─────────────────────────────────────────────────────────────────────
+  return response.status(201).json({
+    success: true,
+    message: 'Registration successful. Please check your email for a verification code.',
+    email: user.email,
+  });
+});
+
+// DROP-IN REPLACEMENT for the existing `login` export. Only one block was
+// added (marked below) — everything else, including the H1 lockout logic,
+// is unchanged.
+
+export const login = asyncHandler(async (req, response) => {
+  const { email, password } = req.body;
+  const rememberMe = req.body.rememberMe === undefined ? true : (req.body.rememberMe === true || req.body.rememberMe === 'true' || req.body.rememberMe === 1 || req.body.rememberMe === '1');
+
+  if (!email || !password) {
+    throw new AppError('Please provide email and password.', 400);
+  }
+
+  const tenantId = req.tenantId || 'marketplace';
+  const UserModel = req.getModel('User');
+
+  const identifier = (email || '').trim();
+  const isEmail = identifier.includes('@');
+  const cleanPhone = identifier.replace(/\D/g, '');
+  const user = await UserModel.findOne(
+    isEmail
+      ? { email: identifier.toLowerCase() }
+      : {
+          $or: [
+            { email: identifier.toLowerCase() },
+            { phone: identifier },
+            ...(cleanPhone.length >= 7 ? [{ phone: { $regex: cleanPhone + '$' } }] : [])
+          ]
+        }
+  ).populate('restaurantId', 'timezone name');
+  if (!user) {
+    throw new AppError('Invalid email or password.', 401);
+  }
+
+  // H1 FIX: Account lockout after 5 failed attempts (15-minute cooldown)
+  const MAX_FAILED_ATTEMPTS = 5;
+  const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+  if (user.loginLockedUntil && user.loginLockedUntil > new Date()) {
+    const minsLeft = Math.ceil((user.loginLockedUntil - Date.now()) / 60000);
+    throw new AppError(`Account temporarily locked. Try again in ${minsLeft} minute(s).`, 429);
+  }
+
+  if (!user.validatePassword(password)) {
+    // increment failed attempts atomically
+    const updatedUser = await UserModel.findOneAndUpdate(
+      { _id: user._id },
+      { $inc: { failedLoginAttempts: 1 } },
+      { new: true }
+    );
+
+    // lock if threshold reached
+    if (updatedUser && updatedUser.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+      await UserModel.updateOne(
+        { _id: user._id },
+        { 
+          $set: { 
+            loginLockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS),
+            failedLoginAttempts: 0 
+          } 
+        }
+      );
+      logger.warn('Account locked due to too many failed login attempts', { email });
+      logAuditEvent({
+        req,
+        actorType: 'system',
+        actor: { userId: user._id, name: user.name, email: user.email, role: user.role },
+        event: 'LOGIN_LOCKOUT',
+        action: 'SECURITY',
+        severity: 'warning',
+        message: `Account locked for 15 minutes due to ${MAX_FAILED_ATTEMPTS} failed login attempts: ${email}`
+      }).catch(() => {});
+    }
+    throw new AppError('Invalid email or password.', 401);
+  }
+
+  if (!user.isActive) {
+    throw new AppError('Your account has been deactivated. Contact support.', 403);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // THE FIX: without this check, the entire register → OTP flow was
+  // cosmetic. Nothing here ever looked at isEmailVerified, so anyone who
+  // knew the password (including the person who just registered and
+  // never finished OTP verification) could log in directly and skip
+  // verification entirely — same underlying problem as the register
+  // endpoint issuing a session too early, just reachable through a
+  // different door.
+  //
+  // placed AFTER password validation on purpose: a wrong password still
+  // returns the same generic "Invalid email or password" either way, so
+  // this never leaks whether a given email is registered-but-unverified
+  // to someone who doesn't actually know the password.
+  // ─────────────────────────────────────────────────────────────────────
+  if (!user.isEmailVerified) {
+    throw new AppError(
+      'Please verify your email before logging in. We can resend the verification code if you need it.',
+      403
+    );
+  }
+
+  // successful login — reset failed attempts
+  user.failedLoginAttempts = 0;
+  user.loginLockedUntil = null;
+
+  // transparently upgrade old password hashes
+  if (user.needsPasswordRehash()) {
+    user.setPassword(password);
+  }
+
+  const platform = req.headers['x-platform'];
+  if (platform === 'merchant_app' && user.role === 'customer') {
+    throw new AppError('Access Denied: Customers please use the customer app or website to login.', 403);
+  }
+
+  if (platform && ['web', 'app', 'merchant_app'].includes(platform) && !user.loginPlatforms.includes(platform)) {
+    user.loginPlatforms.push(platform);
+  }
+
+  user.lastLogin = new Date();
+  await user.save();
+
+  // Forensic Security Audit Log for Login
+  const isCustomer = user.role === 'customer';
+  let auditRestaurantId = user.restaurantId?._id || user.restaurantId || null;
+  if (!auditRestaurantId) {
+    try {
+      const RestaurantModel = req.getModel ? req.getModel('Restaurant') : null;
+      if (RestaurantModel) {
+        const r = await RestaurantModel.findOne().select('_id');
+        if (r) auditRestaurantId = r._id;
+      }
+    } catch (e) {}
+  }
+
+  logAuditEvent({
+    req,
+    restaurantId: auditRestaurantId,
+    actorType: isCustomer ? 'customer' : 'merchant',
+    actor: {
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role
+    },
+    event: isCustomer ? 'CUSTOMER_LOGIN' : 'MERCHANT_LOGIN',
+    action: 'LOGIN',
+    severity: 'info',
+    message: `${isCustomer ? 'Customer' : 'Merchant/Staff'} logged in (${user.email}) via ${platform || 'web'}`
+  }).catch(() => {});
+
+  if (user.isTwoFactorEnabled) {
+    const tempToken = jwt.sign({ id: user._id, requires2fa: true, tenantId }, JWT_SECRET, { expiresIn: '5m' });
+    return response.status(200).json({
+      status: 'success',
+      requires2fa: true,
+      tempToken,
+      message: '2FA verification required'
+    });
+  }
+
+  sendTokenCookie(user, 200, response, tenantId, rememberMe);
+});
+
+export const socialLogin = asyncHandler(async (req, response) => {
+  // we expect 'provider' (e.g. 'google', 'apple', 'facebook'), 'token', and optionally 'role'
+  const { provider, token, credential, role, name: clientName, email: clientEmail } = req.body;
+  
+  // fallback for older frontend still sending 'credential' instead of 'token'
+  const jwtToken = token || credential;
+  
+  if (!jwtToken) throw new AppError(`${provider || 'Social'} token is missing.`, 400);
+
+  if (provider === 'google' && !process.env.GOOGLE_CLIENT_ID) {
+    throw new AppError('Google login is not configured on the server yet.', 500);
+  }
+
+  const tenantId = req.tenantId || 'marketplace';
+  const UserModel = req.getModel('User');
+
+  let email, name, socialId, picture;
+  // SECURITY: true only when the email came from the provider itself (verified),
+  // never from the request body. Unverified emails must NOT match existing accounts.
+  let emailVerifiedByProvider = false;
+
+  if (provider === 'google' || !provider) {
+    // google Token Verification
+    const ticket = await googleClient.verifyIdToken({
+      idToken: jwtToken,
+      audience: [
+        process.env.GOOGLE_CLIENT_ID,
+        '960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com'
+      ],
+    });
+
+    const payload = ticket.getPayload();
+    email = payload.email?.toLowerCase();
+    emailVerifiedByProvider = Boolean(payload.email && payload.email_verified);
+    name = payload.name;
+    socialId = payload.sub;
+    picture = payload.picture;
+  } else if (provider === 'facebook') {
+    // Facebook Graph API Token Verification
+    try {
+      const fbResponse = await axios.get('https://graph.facebook.com/v19.0/me', {
+        params: {
+          fields: 'id,name,email,picture.width(400).height(400)',
+          access_token: jwtToken
+        },
+        timeout: 10000
+      });
+
+      const fbData = fbResponse.data;
+      if (!fbData || !fbData.id) {
+        throw new AppError('Unable to verify Facebook account details.', 401);
+      }
+
+      socialId = fbData.id;
+      name = fbData.name || clientName || 'Facebook User';
+      emailVerifiedByProvider = Boolean(fbData.email);
+      email = (fbData.email || `${socialId}@facebook.user`).toLowerCase();
+      picture = fbData.picture?.data?.url || null;
+    } catch (fbErr) {
+      if (fbErr instanceof AppError) throw fbErr;
+      logger.error('Facebook token verification failed:', {
+        error: fbErr.response?.data || fbErr.message
+      });
+      const fbMsg = fbErr.response?.data?.error?.message || 'Invalid or expired Facebook access token.';
+      throw new AppError(`Facebook authentication failed: ${fbMsg}`, 401);
+    }
+  } else if (provider === 'apple') {
+    // Apple ID Token Verification against Apple's public JWKS
+    try {
+      const appleClaims = await appleSignin.verifyIdToken(jwtToken, {
+        audience: [
+          process.env.APPLE_CLIENT_ID || 'com.lassilounge.app',
+          'com.example.singleRestaurantMobile',
+          'com.lassilounge.mobile'
+        ],
+        ignoreExpiration: false
+      });
+
+      if (!appleClaims || !appleClaims.sub) {
+        throw new AppError('Unable to verify Apple account claims.', 401);
+      }
+
+      socialId = appleClaims.sub;
+      // Apple only returns email in token claims or clientEmail on first sign-in
+      emailVerifiedByProvider = Boolean(appleClaims.email);
+      email = (appleClaims.email || `${socialId}@apple.user`).toLowerCase();
+      name = clientName || (email.split('@')[0]) || 'Apple User';
+      picture = null;
+    } catch (appleErr) {
+      if (appleErr instanceof AppError) throw appleErr;
+      logger.error('Apple token verification failed:', {
+        error: appleErr.message || appleErr
+      });
+      throw new AppError(`Apple authentication failed: ${appleErr.message || 'Invalid Apple token'}`, 401);
+    }
+  } else {
+    throw new AppError(`Unsupported provider: ${provider}`, 400);
+  }
+
+  const userQuery = provider === 'facebook'
+    ? {
+        $or: [
+          { email },
+          { 'socialLogin.facebookId': socialId }
+        ]
+      }
+    : provider === 'apple'
+      ? {
+          $or: [
+            { email },
+            { 'socialLogin.appleId': socialId }
+          ]
+        }
+      : (provider === 'google' || !provider)
+        ? {
+            $or: [
+              { email },
+              { 'socialLogin.googleId': socialId }
+            ]
+          }
+        : { email };
+
+  const socialIdField = provider === 'facebook' ? 'socialLogin.facebookId'
+    : provider === 'apple' ? 'socialLogin.appleId' : 'socialLogin.googleId';
+  let user = await UserModel.findOne(
+    emailVerifiedByProvider ? userQuery : { [socialIdField]: socialId }
+  );
+
+  if (!user) {
+    const allowedRoles = process.env.ALLOW_PUBLIC_MERCHANT_SIGNUP === 'true'
+      ? ['customer', 'merchant']
+      : ['customer'];
+    const finalRole = allowedRoles.includes(role) ? role : 'customer';
+
+    const socialLoginData = {};
+    if (provider === 'apple') {
+      socialLoginData.appleId = socialId;
+    } else if (provider === 'facebook') {
+      socialLoginData.facebookId = socialId;
+    } else {
+      socialLoginData.googleId = socialId;
+    }
+
+    user = new UserModel({
+      name,
+      email,
+      role: finalRole,
+      avatar: picture,
+      socialLogin: socialLoginData,
+      isVerified: true,
+      isEmailVerified: true
+    });
+    // create random robust password for DB constraint if needed
+    user.setPassword(crypto.randomBytes(20).toString('hex'));
+    user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+    if (finalRole === 'customer') {
+      user.referralOnboarding = 'pending';
+      user.signupIp = req.ip || null;
+    }
+    await user.save();
+
+    sendWelcomeEmail(email, name).catch(e => logger.warn('Welcome email failed', { error: e.message }));
+  } else {
+    // industry Level: Account Linking!
+    // if user exists (manual register or other social), link this new social ID
+    if (provider === 'apple' && !user.socialLogin?.appleId) {
+      user.socialLogin.appleId = socialId;
+      await user.save();
+    } else if (provider === 'facebook' && !user.socialLogin?.facebookId) {
+      user.socialLogin.facebookId = socialId;
+      if (!user.avatar && picture) user.avatar = picture;
+      await user.save();
+    } else if ((provider === 'google' || !provider) && !user.socialLogin?.googleId) {
+      user.socialLogin.googleId = socialId;
+      if (!user.avatar && picture) user.avatar = picture;
+      await user.save();
+    }
+    
+    // if the user registered manually but never verified OTP, social login auto-verifies them!
+    if (!user.isEmailVerified) {
+      user.isEmailVerified = true;
+      user.isVerified = true;
+      await user.save();
+    }
+  }
+
+  if (!user.isActive) {
+    throw new AppError('Your account has been deactivated. Contact support.', 403);
+  }
+
+  // SECURITY: merchant/admin accounts must use email + password only.
+  if (user.role !== 'customer') {
+    throw new AppError('Please sign in with your email and password.', 403);
+  }
+
+  user.lastLogin = new Date();
+  const platform = req.headers['x-platform'];
+  if (platform === 'merchant_app' && user.role === 'customer') {
+    throw new AppError('Access Denied: Customers please use the customer app or website to login.', 403);
+  }
+
+  if (platform && ['web', 'app', 'merchant_app'].includes(platform) && !user.loginPlatforms.includes(platform)) {
+    user.loginPlatforms.push(platform);
+  }
+  await user.save();
+
+  let auditSocialRestaurantId = user.restaurantId?._id || user.restaurantId || null;
+  if (!auditSocialRestaurantId) {
+    try {
+      const RestaurantModel = req.getModel ? req.getModel('Restaurant') : null;
+      if (RestaurantModel) {
+        const r = await RestaurantModel.findOne().select('_id');
+        if (r) auditSocialRestaurantId = r._id;
+      }
+    } catch (e) {}
+  }
+
+  // Audit log for customer social login
+  logAuditEvent({
+    req,
+    restaurantId: auditSocialRestaurantId,
+    actorType: 'customer',
+    actor: {
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role
+    },
+    event: 'CUSTOMER_SOCIAL_LOGIN',
+    action: 'LOGIN',
+    severity: 'info',
+    message: `Customer logged in via ${provider || 'Google'} (${user.email})`
+  }).catch(() => {});
+
+  sendTokenCookie(user, 200, response, tenantId);
+});
+
+export const logout = asyncHandler(async (req, response) => {
+  const { fcmToken } = req.body;
+
+  if (fcmToken && req.user?._id) {
+    try {
+      const UserModel = req.getModel('User');
+      await UserModel.findByIdAndUpdate(req.user._id, {
+        $pull: { fcmTokens: fcmToken }
+      });
+    } catch (err) {
+      // Non-blocking token cleanup
+    }
+  }
+
+  const isHttps = Boolean(
+    req && (
+      req.secure ||
+      req.headers['x-forwarded-proto'] === 'https' ||
+      req.protocol === 'https'
+    )
+  );
+
+  const secureCookie = process.env.COOKIE_SECURE === 'true' ||
+    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production' && isHttps);
+
+  const clearCookieOptions = {
+    httpOnly: true,
+    secure: secureCookie,
+    sameSite: secureCookie ? 'none' : 'lax',
+    expires: new Date(0),
+    path: '/'
+  };
+
+  response
+    .cookie('token', '', clearCookieOptions)
+    .cookie('marketplace_token', '', clearCookieOptions)
+    .json({ success: true, message: 'Logged out successfully' });
+});
+
+
+export const deleteAccount = asyncHandler(async (req, response) => {
+  const userId = req.user._id;
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findById(userId);
+
+  if (!user) {
+    throw new AppError('User account not found', 404);
+  }
+
+  const { password, confirmation, reason } = req.body;
+  const isSocialUser = !!(user.socialLogin?.googleId || user.socialLogin?.appleId || user.socialLogin?.facebookId);
+
+  // Security Verification
+  if (!isSocialUser) {
+    if (!password) {
+      throw new AppError('Current password is required to verify your identity before deleting your account.', 400);
+    }
+    const isPasswordValid = user.validatePassword(password);
+    if (!isPasswordValid) {
+      throw new AppError('Incorrect password. Please verify your password to proceed.', 401);
+    }
+  } else {
+    if (confirmation !== 'DELETE') {
+      throw new AppError('Please type DELETE to confirm account deletion.', 400);
+    }
+  }
+
+  // Cleanup related customer record
+  try {
+    const CustomerModel = req.getModel('Customer');
+    if (CustomerModel && user.email) {
+      await CustomerModel.deleteMany({ email: user.email.toLowerCase() });
+    }
+  } catch (err) {
+    logger.warn('Failed to clean up customer record during account deletion', { error: err.message });
+  }
+
+  // Delete User
+  await UserModel.findByIdAndDelete(userId);
+
+  logger.info('User permanently deleted account', {
+    userId: user._id.toString(),
+    email: user.email,
+    reason: reason || 'Not specified',
+    deletedAt: new Date().toISOString()
+  });
+
+  const secureCookie = process.env.COOKIE_SECURE === 'true' ||
+    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
+
+  response
+    .cookie('token', '', {
+      httpOnly: true,
+      secure: secureCookie,
+      sameSite: secureCookie ? 'none' : 'lax',
+      expires: new Date(0),
+      path: '/'
+    })
+    .json({
+      success: true,
+      message: 'Your account and all associated personal data have been permanently deleted.'
+    });
+});
+
+export const requestAccountDeletion = asyncHandler(async (req, response) => {
+  const { email, accountType, reason, confirmation } = req.body;
+
+  if (!email || !email.includes('@')) {
+    throw new AppError('A valid email address is required to submit a deletion request.', 400);
+  }
+
+  if (confirmation !== 'DELETE') {
+    throw new AppError('Please type DELETE to confirm your request.', 400);
+  }
+
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+
+  logger.info('Public account deletion request submitted', {
+    email: email.toLowerCase().trim(),
+    accountType: accountType || 'customer',
+    reason: reason || 'Not specified',
+    userExists: !!user,
+    requestedAt: new Date().toISOString()
+  });
+
+  const ticketId = 'DEL-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now().toString().slice(-4);
+
+  response.status(200).json({
+    success: true,
+    ticketId,
+    message: `Your account deletion request has been registered under ticket #${ticketId}. Our security team will review and permanently delete your account and associated records within 24 to 48 hours.`
+  });
+});
+
+export const webDeleteAccount = asyncHandler(async (req, response) => {
+  const { email, password, accountType, reason, confirmation } = req.body;
+
+  if (!email || !email.includes('@')) {
+    throw new AppError('A valid email address is required.', 400);
+  }
+
+  if (!password) {
+    throw new AppError('Your account password is required for security verification.', 400);
+  }
+
+  if (confirmation !== 'DELETE') {
+    throw new AppError('Please type DELETE to confirm permanent account deletion.', 400);
+  }
+
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+
+  if (!user) {
+    throw new AppError('No account found with this email address.', 404);
+  }
+
+  // Validate Role Match
+  if (accountType === 'customer') {
+    if (user.role !== 'customer') {
+      throw new AppError('This email belongs to a Merchant account. Please use the Merchant Account Deletion portal.', 403);
+    }
+  } else if (accountType === 'merchant') {
+    if (user.role !== 'merchant' && user.role !== 'admin') {
+      throw new AppError('This email belongs to a Customer account. Please use the Customer Account Deletion portal.', 403);
+    }
+  }
+
+  // Verify Password
+  const isSocialUser = !!(user.socialLogin?.googleId || user.socialLogin?.appleId || user.socialLogin?.facebookId);
+  if (!isSocialUser) {
+    const isPasswordValid = user.validatePassword(password);
+    if (!isPasswordValid) {
+      throw new AppError('Incorrect password. Identity verification failed.', 401);
+    }
+  }
+
+  // Cleanup related customer record
+  try {
+    const CustomerModel = req.getModel('Customer');
+    if (CustomerModel && user.email) {
+      await CustomerModel.deleteMany({ email: user.email.toLowerCase() });
+    }
+  } catch (err) {
+    logger.warn('Failed to clean up customer record during web account deletion', { error: err.message });
+  }
+
+  // Permanently delete user
+  await UserModel.findByIdAndDelete(user._id);
+
+  logger.info('Account permanently deleted via web verification', {
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role,
+    reason: reason || 'Not specified',
+    deletedAt: new Date().toISOString()
+  });
+
+  const secureCookie = process.env.COOKIE_SECURE === 'true' ||
+    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
+
+  response
+    .cookie('token', '', {
+      httpOnly: true,
+      secure: secureCookie,
+      sameSite: secureCookie ? 'none' : 'lax',
+      expires: new Date(0),
+      path: '/'
+    })
+    .json({
+      success: true,
+      message: `Your ${user.role === 'customer' ? 'Customer' : 'Merchant'} account (${user.email}) and all personal data have been permanently deleted.`
+    });
+});
+
+export const getMe = asyncHandler(async (req, response) => {
+  const user = await req.getModel('User')
+    .findById(req.user._id)
+    .populate('favoriteRestaurants', 'name cuisine banner rating reviewCount deliveryTime deliveryFee distance')
+    .populate('favoriteItems', 'name description price image type')
+    .populate('restaurantId', 'timezone name');
+
+  if (!user) throw new AppError('User not found', 404);
+
+  // ensure referral code exists for old users
+  if (!user.referralCode) {
+    user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+    await user.save();
+  }
+
+  // fetch group tag from Customer table for this user's email
+  const CustomerModel = req.getModel('Customer');
+  const customerRecord = await CustomerModel.findOne({ email: user.email, isDeleted: { $ne: true } }).sort({ createdAt: -1 });
+
+  const userData = user.toSafeJSON();
+  if (customerRecord && customerRecord.group && customerRecord.group !== 'Others') {
+    userData.merchantGroup = customerRecord.group;
+  }
+
+  res.success(response, { data: userData });
+});
+
+export const updateProfile = asyncHandler(async (req, response) => {
+  const allowed = ['name', 'phone', 'avatar', 'notificationPreferences'];
+  const updates = {};
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) updates[key] = req.body[key];
+  }
+
+  const hasEmoji = (str) => Boolean(str && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(str));
+  if (updates.name && (hasEmoji(updates.name) || !/^[a-zA-Z0-9\s\-'.@_+]+$/.test(updates.name))) {
+    throw new AppError('Name contains restricted characters or emojis. Please use standard letters and numbers only.', 400);
+  }
+  if (updates.phone && (hasEmoji(updates.phone) || !/^[0-9+\-\s()]+$/.test(updates.phone))) {
+    throw new AppError('Phone contains restricted characters. Please use numbers only.', 400);
+  }
+
+
+  const user = await req.getModel('User').findByIdAndUpdate(req.user._id, updates, {
+    new: true,
+    runValidators: true
+  });
+
+  res.success(response, {
+    data: user.toSafeJSON(), message: 'Profile updated successfully'
+  });
+});
+
+export const saveFcmToken = asyncHandler(async (req, response) => {
+  const { fcmToken } = req.body;
+  if (!fcmToken) {
+    throw new AppError('fcmToken is required', 400);
+  }
+
+  const UserModel = req.getModel('User');
+
+  // Prevent token duplication across accounts on shared/reinstalled devices
+  await UserModel.updateMany(
+    { _id: { $ne: req.user._id }, fcmTokens: fcmToken },
+    { $pull: { fcmTokens: fcmToken } }
+  );
+
+  const user = await UserModel.findById(req.user._id);
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  if (!user.fcmTokens) {
+    user.fcmTokens = [];
+  }
+
+  if (!user.fcmTokens.includes(fcmToken)) {
+    user.fcmTokens.push(fcmToken);
+    if (user.fcmTokens.length > 10) {
+      user.fcmTokens = user.fcmTokens.slice(-10);
+    }
+    await user.save();
+  }
+
+  res.success(response, { message: 'FCM token saved successfully' });
+});
+
+
+export const changePassword = asyncHandler(async (req, response) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    throw new AppError('Please provide current and new password.', 400);
+  }
+
+  if (!PASSWORD_REGEX.test(newPassword)) {
+    throw new AppError('New password does not meet complexity requirements.', 400);
+  }
+
+  const user = await req.getModel('User').findById(req.user._id);
+  if (!user.validatePassword(currentPassword)) {
+    throw new AppError('Current password is incorrect.', 401);
+  }
+
+  user.setPassword(newPassword);
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
+  await user.save();
+
+  res.success(response, { message: 'Password changed successfully' });
+});
+
+export const forgotPassword = asyncHandler(async (req, response) => {
+  const { email } = req.body;
+  if (!email) throw new AppError('Please provide your email address.', 400);
+
+  const user = await req.getModel('User').findOne({ email });
+  // always respond 200 to avoid email enumeration
+  if (!user) {
+    return res.success(response, { message: 'If that email exists, a reset link has been sent.' });
+  }
+
+  const resetToken = user.createPasswordResetToken();
+  await user.save();
+
+  const resetUrl = `${process.env.FRONTEND_URL || 'http://195.35.20.207:3001'}/reset-password/${resetToken}`;
+
+  await sendPasswordResetEmail(email, resetUrl, user.name);
+
+  res.success(response, { message: 'If that email exists, a reset link has been sent.' });
+});
+
+export const resetPassword = asyncHandler(async (req, response) => {
+  const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+  const user = await req.getModel('User').findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpires: { $gt: Date.now() }
+  });
+
+  if (!user) throw new AppError('Invalid or expired reset token.', 400);
+
+  const { password } = req.body;
+  if (!password || !PASSWORD_REGEX.test(password)) {
+    throw new AppError('Password does not meet complexity requirements.', 400);
+  }
+
+  user.setPassword(password);
+  user.resetPasswordToken = null;
+  user.resetPasswordExpires = null;
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
+  await user.save();
+
+  const tenantId = req.tenantId || 'marketplace';
+  sendTokenCookie(user, 200, response, tenantId);
+});
+
+// ── Addresses ───────────────────────────────────────────────────────────────
+
+export const addAddress = asyncHandler(async (req, response) => {
+  const { label, address, lat, lng, isDefault } = req.body;
+  if (!address) throw new AppError('Address is required.', 400);
+
+  const user = await req.getModel('User').findById(req.user._id);
+
+  if (isDefault) {
+    user.savedAddresses.forEach(a => { a.isDefault = false; });
+  }
+
+  user.savedAddresses.push({ label: label || 'Home', address, lat, lng, isDefault: !!isDefault });
+  await user.save();
+
+  res.success(response, { data: user.savedAddresses, message: 'Address added' });
+});
+
+export const removeAddress = asyncHandler(async (req, response) => {
+  const user = await req.getModel('User').findById(req.user._id);
+  user.savedAddresses = user.savedAddresses.filter(
+    a => a._id.toString() !== req.params.addressId
+  );
+
+  // if we removed the default address, make the first one default (if any)
+  if (user.savedAddresses.length > 0 && !user.savedAddresses.some(a => a.isDefault)) {
+    user.savedAddresses[0].isDefault = true;
+  }
+
+  await user.save();
+
+  res.success(response, { data: user.savedAddresses, message: 'Address removed' });
+});
+
+export const editAddress = asyncHandler(async (req, response) => {
+  const { label, address, lat, lng, isDefault } = req.body;
+  const user = await req.getModel('User').findById(req.user._id);
+
+  const addr = user.savedAddresses.id(req.params.addressId);
+  if (!addr) throw new AppError('Address not found', 404);
+
+  if (isDefault) {
+    user.savedAddresses.forEach(a => { a.isDefault = false; });
+  }
+
+  if (label !== undefined) addr.label = label;
+  if (address !== undefined) addr.address = address;
+  if (lat !== undefined) addr.lat = lat;
+  if (lng !== undefined) addr.lng = lng;
+  if (isDefault !== undefined) addr.isDefault = isDefault;
+
+  await user.save();
+  res.success(response, { data: user.savedAddresses, message: 'Address updated' });
+});
+
+export const setDefaultAddress = asyncHandler(async (req, response) => {
+  const user = await req.getModel('User').findById(req.user._id);
+
+  const addr = user.savedAddresses.id(req.params.addressId);
+  if (!addr) throw new AppError('Address not found', 404);
+
+  user.savedAddresses.forEach(a => { a.isDefault = false; });
+  addr.isDefault = true;
+
+  await user.save();
+  res.success(response, { data: user.savedAddresses, message: 'Default address set' });
+});
+
+// ── Payments ────────────────────────────────────────────────────────────────
+
+export const addCard = asyncHandler(async (req, response) => {
+  const { cardId, title, brand, last4, expMonth, expYear, isDefault } = req.body;
+  if (!cardId || !brand || !last4) throw new AppError('Card details missing.', 400);
+
+  const user = await req.getModel('User').findById(req.user._id);
+
+  if (isDefault || user.savedCards.length === 0) {
+    user.savedCards.forEach(c => { c.isDefault = false; });
+  }
+
+  user.savedCards.push({
+    cardId, title: title || 'Personal Card', brand, last4, expMonth, expYear,
+    isDefault: isDefault || user.savedCards.length === 0
+  });
+
+  await user.save();
+  res.success(response, { data: user.savedCards, message: 'Card saved successfully' });
+});
+
+export const removeCard = asyncHandler(async (req, response) => {
+  const user = await req.getModel('User').findById(req.user._id);
+  user.savedCards = user.savedCards.filter(
+    c => c._id.toString() !== req.params.cardId
+  );
+
+  // reset default if needed
+  if (user.savedCards.length > 0 && !user.savedCards.some(c => c.isDefault)) {
+    user.savedCards[0].isDefault = true;
+  }
+
+  await user.save();
+  res.success(response, { data: user.savedCards, message: 'Card removed' });
+});
+
+export const setDefaultCard = asyncHandler(async (req, response) => {
+  const user = await req.getModel('User').findById(req.user._id);
+
+  const card = user.savedCards.id(req.params.cardId);
+  if (!card) throw new AppError('Card not found', 404);
+
+  user.savedCards.forEach(c => { c.isDefault = false; });
+  card.isDefault = true;
+
+  await user.save();
+  res.success(response, { data: user.savedCards, message: 'Default card set' });
+});
+
+// ── Saved Cart ──────────────────────────────────────────────────────────────
+
+const sanitizeSavedCart = ({ items = [], restaurant = null, specialInstructions = '', tenantId = 'marketplace' }) => {
+  const safeItems = Array.isArray(items)
+    ? items.slice(0, 100).map((item) => {
+      const quantity = Math.max(1, Math.min(99, parseInt(item.quantity || item.qty, 10) || 1));
+      const price = Math.max(0, Number(item.price) || 0);
+      const basePrice = Math.max(0, Number(item.selectedSize?.price ?? item.price) || 0);
+      const addOns = Array.isArray(item.addOns) ? item.addOns.slice(0, 25) : [];
+      const addOnTotal = addOns.reduce((sum, addOn) => sum + (Number(addOn.price) || 0), 0);
+      return {
+        menuItemId: String(item.menuItemId || item._id || item.id || ''),
+        name: String(item.name || '').slice(0, 160),
+        price,
+        image: item.image ? String(item.image).slice(0, 1000) : null,
+        quantity,
+        qty: quantity,
+        selectedSize: item.selectedSize || null,
+        addOns,
+        specialInstructions: String(item.specialInstructions || '').slice(0, 500),
+        lineTotal: Math.round((basePrice + addOnTotal) * quantity * 100) / 100
+      };
+    }).filter((item) => item.menuItemId && item.name)
+    : [];
+
+  return {
+    tenantId: String(tenantId || 'marketplace').slice(0, 80),
+    restaurant: restaurant ? {
+      _id: restaurant._id ? String(restaurant._id) : null,
+      name: restaurant.name ? String(restaurant.name).slice(0, 160) : '',
+      address: restaurant.address ? String(restaurant.address).slice(0, 500) : '',
+      phone: restaurant.phone ? String(restaurant.phone).slice(0, 40) : '',
+      deliveryFee: Number(restaurant.deliveryFee) || 0,
+      taxRate: restaurant.taxRate === null || restaurant.taxRate === undefined ? null : Number(restaurant.taxRate)
+    } : null,
+    items: safeItems,
+    specialInstructions: String(specialInstructions || '').slice(0, 500),
+    updatedAt: new Date()
+  };
+};
+
+export const getSavedCart = asyncHandler(async (req, response) => {
+  const user = await req.getModel('User').findById(req.user._id).select('savedCart');
+  if (!user) throw new AppError('User not found', 404);
+  res.success(response, {
+    data: user.savedCart || { items: [], restaurant: null, updatedAt: null }
+  });
+});
+
+export const updateSavedCart = asyncHandler(async (req, response) => {
+  const tenantId = req.tenantId || 'marketplace';
+  const savedCart = sanitizeSavedCart({ ...req.body, tenantId });
+  const user = await req.getModel('User').findByIdAndUpdate(
+    req.user._id,
+    { savedCart },
+    { new: true, runValidators: true }
+  ).select('savedCart');
+  if (!user) throw new AppError('User not found', 404);
+  res.success(response, { data: user.savedCart, message: 'Cart saved' });
+});
+
+export const clearSavedCart = asyncHandler(async (req, response) => {
+  const tenantId = req.tenantId || 'marketplace';
+  const user = await req.getModel('User').findByIdAndUpdate(
+    req.user._id,
+    { savedCart: { tenantId, restaurant: null, items: [], updatedAt: new Date() } },
+    { new: true }
+  ).select('savedCart');
+  if (!user) throw new AppError('User not found', 404);
+  res.success(response, { data: user.savedCart, message: 'Cart cleared' });
+});
+
+// ── Favorites ───────────────────────────────────────────────────────────────
+
+export const toggleFavoriteRestaurant = asyncHandler(async (req, response) => {
+  const user = await req.getModel('User').findById(req.user._id);
+  const id = req.params.restaurantId;
+  const index = user.favoriteRestaurants.findIndex(r => r.toString() === id);
+
+  if (index > -1) {
+    user.favoriteRestaurants.splice(index, 1);
+  } else {
+    user.favoriteRestaurants.push(id);
+  }
+  await user.save();
+
+  res.success(response, {
+    data: user.favoriteRestaurants,
+    message: index > -1 ? 'Removed from favorites' : 'Added to favorites'
+  });
+});
+
+export const toggleFavoriteItem = asyncHandler(async (req, response) => {
+  const user = await req.getModel('User').findById(req.user._id);
+  const id = req.params.itemId;
+  const index = user.favoriteItems.findIndex(i => i.toString() === id);
+
+  if (index > -1) {
+    user.favoriteItems.splice(index, 1);
+  } else {
+    user.favoriteItems.push(id);
+  }
+  await user.save();
+
+  res.success(response, {
+    data: user.favoriteItems,
+    message: index > -1 ? 'Removed from favorites' : 'Added from favorites'
+  });
+});
+
+// ── OTP Verification ─────────────────────────────────────────────────────────
+
+export const verifyOtp = asyncHandler(async (req, response) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    throw new AppError('Email and OTP are required.', 400);
+  }
+
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+
+  if (!user) {
+    throw new AppError('User not found.', 404);
+  }
+
+  if (user.isEmailVerified) {
+    return res.success(response, { message: 'Email already verified.' });
+  }
+
+  if (!user.emailOtp || !user.emailOtpExpiry) {
+    throw new AppError('No OTP found. Please request a new one.', 400);
+  }
+
+  if (new Date() > user.emailOtpExpiry) {
+    throw new AppError('OTP has expired. Please request a new one.', 400);
+  }
+
+  if ((user.otpAttempts || 0) >= 5) {
+    user.emailOtp = null;
+    user.emailOtpExpiry = null;
+    user.otpAttempts = 0;
+    await user.save();
+    throw new AppError('Too many incorrect attempts. Please request a new code.', 429);
+  }
+
+  const hashedInputOtp = crypto.createHash('sha256').update(otp.toString()).digest('hex');
+  if (user.emailOtp !== hashedInputOtp) {
+    await UserModel.updateOne({ _id: user._id }, { $inc: { otpAttempts: 1 } });
+    throw new AppError('Invalid OTP. Please check and try again.', 400);
+  }
+
+  // mark email as verified and clear OTP
+  user.isEmailVerified = true;
+  user.isVerified = true;
+  user.emailOtp = null;
+  user.emailOtpExpiry = null;
+  user.otpAttempts = 0;
+  
+  const platform = req.headers['x-platform'];
+  if (platform && ['web', 'app', 'merchant_app'].includes(platform) && !user.loginPlatforms.includes(platform)) {
+    user.loginPlatforms.push(platform);
+  }
+  
+  await user.save();
+
+  // send welcome email now that they're verified
+  sendWelcomeEmail(user.email, user.name).catch(e =>
+    logger.warn('Welcome email failed', { error: e.message })
+  );
+
+  const tenantId = req.tenantId || 'marketplace';
+  sendTokenCookie(user, 200, response, tenantId);
+});
+
+export const resendOtp = asyncHandler(async (req, response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new AppError('Email is required.', 400);
+  }
+
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+
+  if (!user) {
+    throw new AppError('User not found.', 404);
+  }
+
+  if (user.isEmailVerified) {
+    throw new AppError('Email is already verified.', 400);
+  }
+
+  // rate limit: allow resend only if previous OTP was sent > 60 seconds ago.
+  // emailOtpExpiry is set to (sendTime + 10 minutes). So the remaining time until
+  // expiry = emailOtpExpiry - Date.now(). If remaining > 9 min (540s), it means
+  // fewer than 60 seconds have elapsed since the OTP was first generated.
+  if (user.emailOtpExpiry) {
+    const secondsRemaining = (user.emailOtpExpiry - Date.now()) / 1000;
+    if (secondsRemaining > (10 * 60 - 60)) { // less than 60s has passed since OTP was generated
+      throw new AppError('Please wait 60 seconds before requesting a new code.', 429);
+    }
+  }
+
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+  user.emailOtp = hashedOtp;
+  user.emailOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+  await user.save();
+
+  sendOtpEmail(user.email, user.name, otp).catch(e =>
+    logger.warn('OTP email failed', { error: e.message })
+  );
+
+  if (process.env.NODE_ENV !== 'production') {
+    logger.info(`[DEV] Resent Email OTP for ${email}: ${otp}`);
+  }
+
+  res.success(response, { message: 'OTP sent successfully.' });
+});
+
+
+// ── Two-Factor Authentication ────────────────────────────────────────────────
+
+export const generate2FA = asyncHandler(async (req, response) => {
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findById(req.user._id);
+  if (!user) throw new AppError('User not found', 404);
+
+  const secret = generateSecret();
+  const otpauthUrl = generateURI({
+    secret,
+    issuer: 'DaaS Delivery Admin',
+    label: user.email,
+  });
+  const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
+
+  res.success(response, {
+    data: {
+      secret,
+      qrCodeUrl
+    }
+  });
+});
+
+export const enable2FA = asyncHandler(async (req, response) => {
+  const { secret, token } = req.body;
+  if (!secret || !token) throw new AppError('Secret and token are required', 400);
+
+  const { valid } = await verify({ token, secret });
+  if (!valid) {
+    throw new AppError('Invalid 2FA code', 400);
+  }
+
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findById(req.user._id);
+  user.twoFactorSecret = secret;
+  user.isTwoFactorEnabled = true;
+  await user.save();
+
+  res.success(response, { message: '2FA enabled successfully' });
+});
+
+export const disable2FA = asyncHandler(async (req, response) => {
+  const { token } = req.body;
+  if (!token) throw new AppError('Token is required', 400);
+
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findById(req.user._id);
+
+  const { valid } = await verify({ token, secret: user.twoFactorSecret });
+  if (!valid) {
+    throw new AppError('Invalid 2FA code', 400);
+  }
+
+  user.twoFactorSecret = null;
+  user.isTwoFactorEnabled = false;
+  await user.save();
+
+  res.success(response, { message: '2FA disabled successfully' });
+});
+
+export const verify2FA = asyncHandler(async (req, response) => {
+  const { tempToken, token, rememberMe = true } = req.body;
+  if (!tempToken || !token) throw new AppError('Temporary token and 2FA code are required', 400);
+
+  let decoded;
+  try {
+    decoded = jwt.verify(tempToken, JWT_SECRET);
+  } catch (err) {
+    throw new AppError('Session expired or invalid token', 401);
+  }
+
+  if (!decoded.requires2fa) {
+    throw new AppError('Invalid token usage', 400);
+  }
+
+  // get the default DB model, since login happens on the primary tenant usually
+  // or we can rely on decoded.tenantId
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findById(decoded.id);
+
+  if (!user || !user.isTwoFactorEnabled) {
+    throw new AppError('2FA is not enabled or user not found', 400);
+  }
+
+  const { valid } = await verify({ token, secret: user.twoFactorSecret });
+  if (!valid) {
+    throw new AppError('Invalid 2FA code', 400);
+  }
+
+  sendTokenCookie(user, 200, response, decoded.tenantId || 'marketplace', rememberMe);
+});

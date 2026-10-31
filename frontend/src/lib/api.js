@@ -1,0 +1,492 @@
+/**
+* Centralized API client for the Restaurant Commerce Platform.
+* All API calls go through this module for consistent error handling,
+* token management, and base URL resolution.
+*/
+
+import { cleanUrl } from '@/lib/slugUtils';
+
+const getApiBaseUrl = () => {
+  // always use relative URLs on the client so Next.js rewrites proxy it to the backend.
+  // this solves ALL CORS and Cross-Origin Cookie problems for live deployments over HTTP.
+  if (typeof window !== 'undefined') {
+    return '';
+  }
+
+  // server-side rendering (SSR) needs absolute URL
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl) {
+    return cleanUrl(envUrl);
+  }
+
+  return 'http://127.0.0.1:5001';
+};
+
+export const API_BASE_URL = getApiBaseUrl();
+
+// core fetch wrapper with built-in auth, error handling, and JSON parsing.
+const request = async (endpoint, options = {}) => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const appSecret = process.env.NEXT_PUBLIC_APP_SECRET;
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-tenant-id': process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true' ? 'lassi-lounge' : 'marketplace',
+    'x-platform': 'web',
+    ...(appSecret ? { 'x-app-secret': appSecret } : {}),
+    ...options.headers,
+  };
+
+  // Fallback: attach Authorization header if token exists in localStorage
+  if (typeof window !== 'undefined') {
+    const savedToken = localStorage.getItem('marketplace_token');
+    if (savedToken && !headers['Authorization']) {
+      headers['Authorization'] = `Bearer ${savedToken}`;
+    }
+  }
+
+  // Attach client device geolocation and network headers if available
+  if (typeof window !== 'undefined') {
+    try {
+      const savedLoc = localStorage.getItem('user_geo_location');
+      if (savedLoc) {
+        const parsed = JSON.parse(savedLoc);
+        if (parsed.display) headers['x-device-location'] = parsed.display;
+        if (parsed.city) headers['x-device-city'] = parsed.city;
+        if (parsed.region) headers['x-device-region'] = parsed.region;
+        if (parsed.country) headers['x-device-country'] = parsed.country;
+        if (parsed.lat) headers['x-device-lat'] = String(parsed.lat);
+        if (parsed.lng) headers['x-device-lng'] = String(parsed.lng);
+      }
+      if (navigator.connection?.effectiveType) {
+        headers['x-network-type'] = navigator.connection.effectiveType;
+      }
+    } catch (e) {}
+  }
+
+  // don't set Content-Type for FormData (browser sets it with boundary)
+  if (options.body instanceof FormData) {
+    delete headers['Content-Type'];
+  }
+
+  const config = {
+    credentials: 'include', // send cookies
+    cache: 'no-store', // Fix: prevent Next.js from caching API responses (critical for real-time socket sync)
+    ...options,
+    headers,
+  };
+
+  // stringify body if it's an object (not FormData)
+  if (config.body && typeof config.body === 'object' && !(config.body instanceof FormData)) {
+    config.body = JSON.stringify(config.body);
+  }
+
+  const response = await fetch(url, config);
+
+  // handle non-JSON responses
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+    return response;
+  }
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const error = new Error(data.message || 'Something went wrong');
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+
+  return data;
+};
+
+// ── Convenience methods ─────────────────────────────────────────────────────
+
+export const api = {
+  get: (endpoint) => request(endpoint, { method: 'GET' }),
+  post: (endpoint, body) => request(endpoint, { method: 'POST', body }),
+  put: (endpoint, body) => request(endpoint, { method: 'PUT', body }),
+  patch: (endpoint, body) => request(endpoint, { method: 'PATCH', body }),
+  delete: (endpoint) => request(endpoint, { method: 'DELETE' }),
+  upload: (endpoint, formData) => request(endpoint, { method: 'POST', body: formData }),
+};
+
+// ── Auth API ────────────────────────────────────────────────────────────────
+
+export const authAPI = {
+  register: (data) => api.post('/api/auth/register', data),
+  login: (data) => api.post('/api/auth/login', data),
+  socialLogin: (data) => api.post('/api/auth/social-login', data),
+  logout: () => api.post('/api/auth/logout'),
+  getMe: () => api.get('/api/auth/me'),
+  updateProfile: (data) => api.put('/api/auth/me', data),
+  changePassword: (data) => api.put('/api/auth/me/password', data),
+  forgotPassword: (email) => api.post('/api/auth/forgot-password', { email }),
+  resetPassword: (token, password) => api.post(`/api/auth/reset-password/${token}`, { password }),
+  verifyOtp: (email, otp) => api.post('/api/auth/verify-otp', { email, otp }),
+  resendOtp: (email) => api.post('/api/auth/resend-otp', { email }),
+  deleteAccount: (data) => request('/api/auth/me', { method: 'DELETE', body: data }),
+  webDeleteAccount: (data) => api.post('/api/auth/web-delete-account', data),
+
+  // two-Factor Authentication
+  generate2FA: () => api.get('/api/auth/2fa/generate'),
+  enable2FA: (data) => api.post('/api/auth/2fa/enable', data),
+  disable2FA: (data) => api.post('/api/auth/2fa/disable', data),
+  verify2FA: (data) => api.post('/api/auth/2fa/verify', data),
+
+  // addresses
+  addAddress: (data) => api.post('/api/auth/me/addresses', data),
+  editAddress: (id, data) => api.put(`/api/auth/me/addresses/${id}`, data),
+  removeAddress: (id) => api.delete(`/api/auth/me/addresses/${id}`),
+  setDefaultAddress: (id) => api.patch(`/api/auth/me/addresses/${id}/default`),
+
+  // cards
+  addCard: (data) => api.post('/api/auth/me/cards', data),
+  removeCard: (id) => api.delete(`/api/auth/me/cards/${id}`),
+  setDefaultCard: (id) => api.patch(`/api/auth/me/cards/${id}/default`),
+
+  // cart
+  getCart: () => api.get('/api/auth/me/cart'),
+  updateCart: (data) => api.put('/api/auth/me/cart', data),
+  clearCart: () => api.delete('/api/auth/me/cart'),
+  toggleFavoriteRestaurant: (id) => api.post(`/api/auth/me/favorites/restaurants/${id}`),
+  toggleFavoriteItem: (id) => api.post(`/api/auth/me/favorites/items/${id}`),
+};
+
+// ── Restaurant API ──────────────────────────────────────────────────────────
+
+export const restaurantAPI = {
+  getAll: (params = '') => api.get(`/api/restaurants${params ? '?' + params : ''}`),
+  getById: (id) => api.get(`/api/restaurants/${id}`),
+  getMyRestaurant: () => api.get('/api/restaurants/merchant/my'),
+  getNearby: (lat, lng, maxDistance) => api.get(`/api/restaurants/nearby?lat=${lat}&lng=${lng}&maxDistance=${maxDistance || 15}`),
+  getEta: (id, address, lat, lng) => {
+    const params = new URLSearchParams();
+    if (address) params.append('address', address);
+    if (lat !== undefined && lat !== null) params.append('lat', lat);
+    if (lng !== undefined && lng !== null) params.append('lng', lng);
+    const q = params.toString();
+    return api.get(`/api/restaurants/${id}/eta${q ? `?${q}` : ''}`);
+  },
+  search: (q) => api.get(`/api/restaurants/search?q=${encodeURIComponent(q)}`),
+  getCuisines: () => api.get('/api/restaurants/cuisines'),
+  create: (data) => api.post('/api/restaurants', data),
+  update: (id, data) => api.put(`/api/restaurants/${id}`, data),
+  updateBanner: (id, data) => api.put(`/api/restaurants/${id}/banner`, data),
+  updateHours: (id, data) => api.put(`/api/restaurants/${id}/hours`, data),
+  toggleActive: (id) => api.put(`/api/restaurants/${id}/toggle`),
+  getFinance: (id, days = 30) => api.get(`/api/restaurants/${id}/finance?days=${days}`),
+  submitOnboarding: (id, data) => api.put(`/api/restaurants/${id}/onboarding`, data),
+  reviewOnboarding: (id, data) => api.put(`/api/restaurants/${id}/onboarding/review`, data),
+  reviewDocument: (id, documentId, data) => api.put(`/api/restaurants/${id}/documents/${documentId}/review`, data),
+  updateStatus: (id, status) => api.put(`/api/restaurants/${id}/status`, { status }),
+  updateCommission: (id, rate) => api.put(`/api/restaurants/${id}/commission`, { commissionRate: rate }),
+};
+
+// ── Menu API ────────────────────────────────────────────────────────────────
+
+export const menuAPI = {
+  getByRestaurant: (restaurantId) => api.get(`/api/menu/restaurant/${restaurantId}`),
+  // `idOrSlug` may be a clean slug ("samosa") or a legacy ObjectId
+  getItem: (idOrSlug, restaurantId) =>
+    api.get(
+      `/api/menu/items/${encodeURIComponent(idOrSlug)}` +
+        (restaurantId ? `?restaurant=${encodeURIComponent(restaurantId)}` : '')
+    ),
+  getCategories: (restaurantId) => api.get(`/api/menu/categories/${restaurantId}`),
+  createCategory: (data) => api.post('/api/menu/categories', data),
+  updateCategory: (id, data) => api.put(`/api/menu/categories/${id}`, data),
+  deleteCategory: (id) => api.delete(`/api/menu/categories/${id}`),
+  createItem: (data) => api.post('/api/menu/items', data),
+  updateItem: (id, data) => api.put(`/api/menu/items/${id}`, data),
+  deleteItem: (id) => api.delete(`/api/menu/items/${id}`),
+  toggleItem: (id) => api.patch(`/api/menu/items/${id}/toggle`),
+  bulkImport: (data) => api.post('/api/menu/bulk-import', data),
+  bulkDelete: (data) => api.post('/api/menu/bulk-delete', data),
+  bulkUpdate: (data) => api.post('/api/menu/bulk-update', data),
+};
+
+// ── Order API ───────────────────────────────────────────────────────────────
+
+export const orderAPI = {
+  create: (data) => api.post('/api/orders', data),
+  getMyOrders: (params = '') => api.get(`/api/orders/my-orders${params ? '?' + params : ''}`),
+  getById: (id, token = '') => api.get(`/api/orders/${id}${token ? '?token=' + encodeURIComponent(token) : ''}`),
+  cancel: (id) => api.post(`/api/orders/${id}/cancel`),
+  rate: (id, data) => api.post(`/api/orders/${id}/rate`, data),
+  getDeliveryQuote: (data) => api.post('/api/orders/delivery-quote', data),
+  // merchant
+  getRestaurantOrders: (restaurantId, params = '') => api.get(`/api/orders/restaurant/${restaurantId}${params ? '?' + params : ''}`),
+  updateStatus: (id, status) => api.put(`/api/orders/${id}/status`, { status }),
+  accept: (id) => api.put(`/api/orders/${id}/accept`),
+  reject: (id, reason) => api.put(`/api/orders/${id}/reject`, { reason }),
+  addNote: (id, text) => api.post(`/api/orders/${id}/note`, { text }),
+  remake: (id, chargeCustomer = false, extra = {}) => api.post(`/api/orders/${id}/remake`, { chargeCustomer, ...extra }),
+  sendInvoice: (id) => api.post(`/api/orders/${id}/send-invoice`),
+  sendPaymentLink: (id) => api.post(`/api/orders/${id}/send-payment-link`),
+  // payment Audit Trail
+  getPaymentEvents: (id) => api.get(`/api/orders/${id}/payment-events`),
+  // document Generation — returns URL string; caller uses window.open(url, '_blank')
+  // auth is handled via session cookie which browser sends automatically.
+  getInvoiceUrl: (id) => `${API_BASE_URL}/api/orders/${id}/invoice`,
+  getKotUrl: (id) => `${API_BASE_URL}/api/orders/${id}/kot`,
+  // admin
+  getAll: (params = '') => api.get(`/api/orders${params ? '?' + params : ''}`),
+  refund: (id, data) => api.post(`/api/orders/${id}/refund`, data),
+  // dev
+  simulate: (id) => api.post(`/api/orders/${id}/simulate`),
+  // delayed dispatch
+  dispatchNow: (id) => api.post(`/api/orders/${id}/dispatch-now`),
+  dispatchPostpone: (id, minutes) => api.post(`/api/orders/${id}/dispatch-postpone`, { minutes }),
+};
+
+
+
+// ── Coupon API ──────────────────────────────────────────────────────────────
+
+export const couponAPI = {
+  validate: (code, cartValue, restaurantId) => api.post('/api/coupons/validate', { code, cartValue, restaurantId }),
+  getActive: () => api.get('/api/coupons/active'),
+  getAll: (params = '') => api.get(`/api/coupons${params ? '?' + params : ''}`),
+  create: (data) => api.post('/api/coupons', data),
+  update: (id, data) => api.put(`/api/coupons/${id}`, data),
+  delete: (id) => api.delete(`/api/coupons/${id}`),
+  getStats: () => api.get('/api/coupons/stats'),
+};
+
+
+
+// ── Upload API ──────────────────────────────────────────────────────────────
+
+export const uploadAPI = {
+  uploadFile: (file, folder) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    if (folder) formData.append('folder', folder);
+    return api.upload('/api/upload', formData);
+  },
+  uploadBase64: (image, folder) => api.post('/api/upload/base64', { image, folder }),
+};
+
+// ── Admin API ───────────────────────────────────────────────────────────────
+
+export const adminAPI = {
+  getDashboard: () => api.get('/api/admin/dashboard'),
+  getUsers: (params = '') => api.get(`/api/admin/users${params ? '?' + params : ''}`),
+  updateUserRole: (id, role) => api.put(`/api/admin/users/${id}/role`, { role }),
+  toggleUserActive: (id) => api.put(`/api/admin/users/${id}/toggle`),
+  getAllRestaurants: (params = '') => api.get(`/api/admin/restaurants${params ? '?' + params : ''}`),
+  createRestaurantTenant: (data) => api.post('/api/admin/restaurants', data),
+  updateRestaurantTheme: (id, data) => api.put(`/api/admin/restaurants/${id}/theme`, data),
+  updateRestaurantDomain: (id, data) => api.put(`/api/admin/restaurants/${id}/domain`, data),
+  toggleRestaurantStatus: (id, data) => api.put(`/api/admin/restaurants/${id}/status`, data),
+  getRevenueAnalytics: (days) => api.get(`/api/admin/analytics/revenue?days=${days || 30}`),
+  getOrderAnalytics: (days) => api.get(`/api/admin/analytics/orders?days=${days || 30}`),
+  getFinanceSummary: (days) => api.get(`/api/admin/finance/summary?days=${days || 30}`),
+  getSettlements: (params = '') => api.get(`/api/admin/settlements${params ? '?' + params : ''}`),
+  generateSettlement: (data) => api.post('/api/admin/settlements', data),
+  markSettlementPaid: (id, data = {}) => api.put(`/api/admin/settlements/${id}/paid`, data),
+};
+
+// ── Payment API ─────────────────────────────────────────────────────────────
+
+export const paymentAPI = {
+  createIntent: (amount, orderId, checkout = null) => api.post(
+    '/api/payments/create-intent',
+    { amount, orderId, ...(checkout || {}) }
+  ),
+  createSetupIntent: () => api.post('/api/payments/create-setup-intent'),
+  createLink: (data) => api.post('/api/payments/create-link', data),
+};
+
+// ── Analytics API ───────────────────────────────────────────────────────────
+
+export const analyticsAPI = {
+  getSalesAnalytics: (restaurantId, days = null, startDate = null, endDate = null) => {
+    let url = `/api/analytics/restaurant/${restaurantId}?`;
+    if (startDate && endDate) {
+      url += `startDate=${startDate}&endDate=${endDate}`;
+    } else if (days) {
+      url += `days=${days}`;
+    }
+    return api.get(url);
+  }
+};
+
+// ── Inventory & Supplier API ────────────────────────────────────────────────
+
+
+export const inventoryAPI = {
+  getInventory: (restaurantId) => api.get(`/api/inventory/restaurant/${restaurantId}`),
+  createItem: (restaurantId, data) => api.post(`/api/inventory/restaurant/${restaurantId}`, data),
+  updateItem: (itemId, data) => api.put(`/api/inventory/${itemId}`, data),
+  deleteItem: (itemId) => api.delete(`/api/inventory/${itemId}`),
+  receiveShipment: (itemId, data) => api.post(`/api/inventory/${itemId}/receive`, data),
+  logWastage: (itemId, data) => api.post(`/api/inventory/${itemId}/wastage`, data),
+};
+
+export const supplierAPI = {
+  getAll: (restaurantId) => api.get(`/api/suppliers/restaurant/${restaurantId}`),
+  create: (restaurantId, data) => api.post(`/api/suppliers/restaurant/${restaurantId}`, data),
+  update: (id, data) => api.put(`/api/suppliers/${id}`, data),
+  delete: (id) => api.delete(`/api/suppliers/${id}`),
+};
+
+// ── Table API ───────────────────────────────────────────────────────────────
+
+export const tableAPI = {
+  getAll: (restaurantId) => api.get(`/api/tables/${restaurantId}`),
+  create: (data) => api.post('/api/tables', data),
+  update: (id, data) => api.put(`/api/tables/${id}`, data),
+  delete: (id) => api.delete(`/api/tables/${id}`),
+  updateStatus: (id, status, currentOrderId = null) => api.put(`/api/tables/${id}/status`, { status, currentOrderId }),
+  move: (data) => api.post('/api/tables/move', data),
+  merge: (data) => api.post('/api/tables/merge', data),
+};
+
+// ── Reservation API ─────────────────────────────────────────────────────────
+
+export const reservationAPI = {
+  create: (data) => api.post('/api/reservations', data),
+  update: (id, data) => api.put(`/api/reservations/${id}`, data),
+  getMyReservations: () => api.get('/api/reservations/my-reservations'),
+  getRestaurantReservations: (restaurantId) => api.get(`/api/reservations/restaurant/${restaurantId}`),
+  updateStatus: (id, status, tableId = null) => api.put(`/api/reservations/${id}/status`, { status, tableId }),
+  bulkUpdateStatus: (data) => api.put('/api/reservations/bulk-status', data),
+};
+
+// ── Catering API ────────────────────────────────────────────────────────────
+
+export const cateringAPI = {
+  submitInquiry: (data) => api.post('/api/catering', data),
+  getRestaurantInquiries: (restaurantId) => api.get(`/api/catering/restaurant/${restaurantId}`),
+  updateStatus: (id, status) => api.put(`/api/catering/${id}/status`, { status }),
+};
+
+// ── Notification API ────────────────────────────────────────────────────────
+
+export const notificationAPI = {
+  getMyNotifications: () => api.get('/api/notifications'),
+  markAsRead: (id) => api.put(`/api/notifications/${id}/read`),
+};
+
+// ── Loyalty API ─────────────────────────────────────────────────────────────
+
+export const loyaltyAPI = {
+  getHistory: (params = '') => api.get(`/api/loyalty/history${params ? '?' + params : ''}`),
+  getStats: () => api.get('/api/loyalty/stats'),
+  getStatus: () => api.get('/api/loyalty/history'),
+  getMyCoupons: () => api.get('/api/loyalty/my-coupons'),
+  joinProgram: () => api.post('/api/loyalty/join'),
+  redeem: (points, expectedDiscount) => api.post('/api/loyalty/redeem', { points, expectedDiscount }),
+};
+
+// ── Referral API ─────────────────────────────────────────────────────────────
+
+export const referralAPI = {
+  getProgram: () => api.get('/api/referrals/program'),
+  getMyReferral: () => api.get('/api/referrals/me'),
+  applyCode: (code) => api.post('/api/referrals/apply', { code }),
+  skipOnboarding: () => api.post('/api/referrals/skip', {}),
+  getAdminSettings: () => api.get('/api/referrals/admin/settings'),
+  updateAdminSettings: (data) => api.put('/api/referrals/admin/settings', data),
+  getAdminStats: () => api.get('/api/referrals/admin/stats'),
+  listReferrals: (params = '') => api.get(`/api/referrals/admin/list${params ? '?' + params : ''}`),
+  cancelReferral: (id) => api.patch(`/api/referrals/admin/${id}/cancel`),
+};
+
+// ── Employee API ────────────────────────────────────────────────────────────
+
+export const employeeAPI = {
+  getEmployees: (restaurantId) => api.get(`/api/employees/restaurant/${restaurantId}`),
+  createEmployee: (restaurantId, data) => api.post(`/api/employees/restaurant/${restaurantId}`, data),
+  updateEmployee: (id, data) => api.put(`/api/employees/${id}`, data),
+  removeEmployee: (id) => api.delete(`/api/employees/${id}`),
+  clockInWithPin: (data) => api.post('/api/employees/pin/clock-in', data),
+  clockOutWithPin: (data) => api.post('/api/employees/pin/clock-out', data),
+  verifyPin: (data) => api.post('/api/employees/pin/verify', data),
+  getPayroll: (restaurantId, startDate, endDate) =>
+    api.get(`/api/employees/restaurant/${restaurantId}/payroll?startDate=${startDate}&endDate=${endDate}`),
+  updateSchedule: (id, schedule) => api.put(`/api/employees/${id}/schedule`, { schedule }),
+};
+
+
+
+// ── CRM API ─────────────────────────────────────────────────────────────────
+
+export const crmAPI = {
+  getCustomers: (restaurantId) => api.get(`/api/crm/restaurant/${restaurantId}/customers`),
+  getCustomerProfile: (restaurantId, customerId) => api.get(`/api/crm/restaurant/${restaurantId}/customers/${customerId}/profile`),
+  createCustomer: (restaurantId, data) => api.post(`/api/crm/restaurant/${restaurantId}/customers`, data),
+  updateCustomer: (restaurantId, customerId, data) => api.put(`/api/crm/restaurant/${restaurantId}/customers/${customerId}`, data),
+  deleteCustomer: (restaurantId, customerId) => api.delete(`/api/crm/restaurant/${restaurantId}/customers/${customerId}`),
+  bulkUpdateCustomers: (restaurantId, data) => api.put(`/api/crm/restaurant/${restaurantId}/customers/bulk`, data),
+  bulkDeleteCustomers: (restaurantId, customerIds) => api.delete(`/api/crm/restaurant/${restaurantId}/customers/bulk`, { data: { customerIds } }),
+  sendPromo: (restaurantId, data) => api.post(`/api/crm/restaurant/${restaurantId}/promo`, data)
+};
+
+export const aiAPI = {
+  predictSales: (restaurantId) => api.post('/api/ai/predict', { restaurantId }),
+  smartPricing: (restaurantId) => api.post('/api/ai/smart-pricing', { restaurantId }),
+  recommendFood: (restaurantId, pastOrdersContext) => api.post('/api/ai/recommend', { restaurantId, pastOrdersContext }),
+  searchMenu: (restaurantId, query) => api.post('/api/ai/search', { restaurantId, query }),
+};
+
+// ── KDS API ─────────────────────────────────────────────────────────────────
+
+export const kdsAPI = {
+  getStations: (restaurantId) => api.get(`/api/kds/restaurants/${restaurantId}/stations`),
+  createStation: (restaurantId, data) => api.post(`/api/kds/restaurants/${restaurantId}/stations`, data),
+  updateStation: (restaurantId, stationId, data) => api.put(`/api/kds/restaurants/${restaurantId}/stations/${stationId}`, data),
+  deleteStation: (restaurantId, stationId) => api.delete(`/api/kds/restaurants/${restaurantId}/stations/${stationId}`),
+  
+  getSettings: (restaurantId) => api.get(`/api/kds/restaurants/${restaurantId}/settings`),
+  updateSettings: (restaurantId, data) => api.put(`/api/kds/restaurants/${restaurantId}/settings`, data),
+  
+  getStats: (restaurantId) => api.get(`/api/kds/restaurants/${restaurantId}/stats`),
+};
+
+// ── Reservation API ──────────────────────────────────────────────────────────
+
+// export const reservationAPI = {
+//   createReservation: (data) => api.post('/api/reservations', data),
+//   getMyReservations: () => api.get('/api/reservations/my-reservations'),
+//   getRestaurantReservations: (restaurantId) => api.get(`/api/reservations/restaurant/${restaurantId}`),
+//   updateStatus: (id, status) => api.put(`/api/reservations/${id}/status`, { status }),
+// };
+
+// // ── Catering API ────────────────────────────────────────────────────────────
+
+// export const cateringAPI = {
+//   createInquiry: (data) => api.post('/api/catering', data),
+//   getRestaurantInquiries: (restaurantId) => api.get(`/api/catering/restaurant/${restaurantId}`),
+//   updateStatus: (id, status) => api.put(`/api/catering/${id}/status`, { status }),
+// };
+
+export const marketingAPI = {
+  getCampaigns: (params = '') => api.get(`/api/marketing${params ? '?' + params : ''}`),
+  getAudienceStats: () => api.get('/api/marketing/audience-stats'),
+  broadcastCampaign: (data) => api.post('/api/marketing', data)
+};
+
+// ── SEO API ──────────────────────────────────────────────────────────────────
+export const seoAPI = {
+  getPage: (path) => api.get(`/api/seo/page?path=${encodeURIComponent(path)}`),
+  getAllPages: () => api.get('/api/seo/pages'),
+  updatePage: (data) => api.put('/api/seo/page', data),
+  getGlobal: () => api.get('/api/seo/global'),
+  updateGlobal: (data) => api.put('/api/seo/global', data),
+};
+
+
+// ── Contact API ──────────────────────────────────────────────────────────────
+export const contactAPI = {
+  submit: (data) => api.post('/api/contact/public/contact', data),
+  getMerchantMessages: (status) =>
+    api.get(`/api/contact/merchant/messages${status && status !== 'all' ? `?status=${encodeURIComponent(status)}` : ''}`),
+  updateStatus: (id, status) => api.patch(`/api/contact/merchant/messages/${id}`, { status }),
+};
