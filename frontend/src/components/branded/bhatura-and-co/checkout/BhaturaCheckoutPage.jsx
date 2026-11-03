@@ -1652,7 +1652,7 @@ export default function BhaturaCheckoutPage() {
                           {/* Item Info & Stepper */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
-                              <h4 className="font-bold text-sm text-[#1C1917] leading-tight truncate">
+                              <h4 className="font-['Playfair_Display'] font-bold text-sm text-[#1C1917] leading-tight truncate">
                                 {item.name}
                               </h4>
                               <button

@@ -359,7 +359,7 @@ export default function BhaturaContactPage() {
                   <MapPin size={22} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-sm sm:text-[15px] font-bold text-[#1C1917] leading-snug">
+                  <h2 className="font-['Playfair_Display'] text-sm sm:text-[15px] font-bold text-[#1C1917] leading-snug">
                     Our Location
                   </h2>
                   <p className="text-xs text-[#57534E] mt-1 leading-relaxed">
@@ -390,7 +390,7 @@ export default function BhaturaContactPage() {
                   <Phone size={21} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-sm sm:text-[15px] font-bold text-[#1C1917] leading-snug">
+                  <h2 className="font-['Playfair_Display'] text-sm sm:text-[15px] font-bold text-[#1C1917] leading-snug">
                     Call Us
                   </h2>
                   <a
@@ -413,7 +413,7 @@ export default function BhaturaContactPage() {
                   <Mail size={21} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-sm sm:text-[15px] font-bold text-[#1C1917] leading-snug">
+                  <h2 className="font-['Playfair_Display'] text-sm sm:text-[15px] font-bold text-[#1C1917] leading-snug">
                     Email Us
                   </h2>
                   <a
@@ -436,7 +436,7 @@ export default function BhaturaContactPage() {
                   <Clock size={22} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-sm sm:text-[15px] font-bold text-[#1C1917] leading-snug">
+                  <h2 className="font-['Playfair_Display'] text-sm sm:text-[15px] font-bold text-[#1C1917] leading-snug">
                     Opening Hours
                   </h2>
                   <p className="text-xs sm:text-[13px] font-bold text-[#1C1917] mt-1">
@@ -797,7 +797,7 @@ export default function BhaturaContactPage() {
                       <Car size={19} />
                     </span>
                     <div className="min-w-0">
-                      <h3 className="text-xs font-bold text-[#1C1917] leading-tight">Parking</h3>
+                      <h3 className="font-['Playfair_Display'] text-xs font-bold text-[#1C1917] leading-tight">Parking</h3>
                       <p className="text-[11px] text-[#6B635B] mt-0.5 leading-tight">
                         Available nearby
                       </p>
@@ -810,7 +810,7 @@ export default function BhaturaContactPage() {
                       <TrainFront size={19} />
                     </span>
                     <div className="min-w-0">
-                      <h3 className="text-xs font-bold text-[#1C1917] leading-tight">
+                      <h3 className="font-['Playfair_Display'] text-xs font-bold text-[#1C1917] leading-tight">
                         Nearest Subway
                       </h3>
                       <p className="text-[11px] text-[#6B635B] mt-0.5 leading-tight">
@@ -825,7 +825,7 @@ export default function BhaturaContactPage() {
                       <Building2 size={19} />
                     </span>
                     <div className="min-w-0">
-                      <h3 className="text-xs font-bold text-[#1C1917] leading-tight">Landmark</h3>
+                      <h3 className="font-['Playfair_Display'] text-xs font-bold text-[#1C1917] leading-tight">Landmark</h3>
                       <p className="text-[11px] text-[#6B635B] mt-0.5 leading-tight">
                         Near Liberty Avenue
                       </p>

@@ -43,9 +43,9 @@
   --color-accent-900: #473212;
 
   /* --- Typography --- */
-  --font-heading: 'Cinzel', 'Playfair Display', serif;
+  --font-heading: 'Playfair Display', serif;
   --font-script:  'Dancing Script', cursive;
-  --font-body:    'Poppins', 'Inter', ui-sans-serif, sans-serif;
+  --font-body:    'Poppins', ui-sans-serif, sans-serif;
 
   /* --- Radius --- */
   --radius-md: 8px;

@@ -47,7 +47,7 @@ export default function EventsHero() {
             Make Every Occasion
           </h2>
           
-          <h1 className="text-[42px] sm:text-[52px] md:text-[76px] font-bold uppercase text-white tracking-tight leading-[0.9] mb-2" style={{ fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
+          <h1 className="text-[42px] sm:text-[52px] md:text-[76px] font-bold uppercase text-white tracking-tight leading-[0.9] mb-2" style={{ fontFamily: "Poppins, sans-serif" }}>
             EXTRA SPECIAL
           </h1>
           

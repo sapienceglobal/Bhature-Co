@@ -30,7 +30,7 @@ export default function SiteChrome({ children }) {
   // industry Standard: Wrap everything in a flex-col with min-h-screen
   if (SINGLE_MODE && !isAdminOrMerchant) {
     return (
-      <div className="flex flex-col min-h-screen pb-16 lg:pb-0 relative">
+      <div className="flex flex-col min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+64px)] md:pb-0 relative">
         <BhaturaHeader />
         <CartSidebar />
         <MobileBottomNav />
@@ -42,7 +42,7 @@ export default function SiteChrome({ children }) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen pb-16 lg:pb-0 relative">
+    <div className="flex flex-col min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+64px)] md:pb-0 relative">
       <Header />
       <CartSidebar />
       <MobileBottomNav />

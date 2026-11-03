@@ -53,7 +53,7 @@ export default function BhaturaFeaturesStrip() {
                 {item.icon}
               </div>
               <div>
-                <h4 className="text-xs sm:text-[15px] font-bold text-[#1C1917] leading-tight">
+                <h4 className="font-['Playfair_Display'] text-xs sm:text-[15px] font-bold text-[#1C1917] leading-tight">
                   {item.title}
                 </h4>
                 <p className="text-[11px] sm:text-xs text-[#78716C] mt-1 leading-tight">

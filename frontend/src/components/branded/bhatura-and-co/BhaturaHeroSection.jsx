@@ -798,12 +798,12 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
             {/* ── UNIFIED FIXED-HEIGHT ACTION BAR + RESERVED STATUS ROW (ZERO LAYOUT SHIFT) ── */}
             <div ref={wrapperRef} className="w-full max-w-lg relative z-40">
               {/* Fixed 60px Card Container so Delivery / Pickup / Dine-in never shift page height */}
-              <div className="h-[60px] w-full">
+              <div className="h-[116px] sm:h-[60px] w-full">
                 {/* MODE 1: DELIVERY */}
                 {orderMode === 'delivery' && (
-                  <form onSubmit={handleOrderSubmit} className="w-full h-full">
+                  <form onSubmit={handleOrderSubmit} className="w-full h-full flex flex-col gap-2 sm:block">
                     <div
-                      className={`h-full flex items-center bg-white rounded-2xl shadow-lg border transition-colors duration-200 px-2 ${
+                      className={`h-[58px] sm:h-full flex items-center bg-white rounded-2xl shadow-lg border transition-colors duration-200 px-2 ${
                         addressError || (selectedAddressObj && eta.isOutOfRange)
                           ? 'border-red-500 ring-2 ring-red-500/20'
                           : dropdownOpen
@@ -823,14 +823,14 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                       <input
                         ref={inputRef}
                         type="text"
-                        placeholder="Enter your delivery address, street or ZIP..."
+                        placeholder="Enter delivery address or ZIP code"
                         value={addressInput}
                         onChange={handleInputChange}
                         onFocus={() => {
                           setAddressError('');
                           setDropdownOpen(true);
                         }}
-                        className="w-full bg-transparent py-2 pr-2 text-sm text-[#1C1917] placeholder:text-[#78716C] focus:outline-none font-medium"
+                        className="w-full min-w-0 bg-transparent py-2 pr-2 text-[15px] sm:text-sm text-[#1C1917] placeholder:text-[#78716C] focus:outline-none font-medium"
                       />
 
                       {addressInput && (
@@ -867,7 +867,7 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                       <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="h-[44px] shrink-0 px-4 sm:px-5 rounded-xl bg-[#8B1E1E] hover:bg-[#701515] text-white text-xs sm:text-sm font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                        className="hidden sm:flex h-[44px] shrink-0 px-5 rounded-xl bg-[#8B1E1E] hover:bg-[#701515] text-white text-sm font-bold shadow-md transition-all items-center gap-1.5 cursor-pointer disabled:opacity-60"
                       >
                         {isSubmitting ? (
                           <Loader2 size={16} className="animate-spin" />
@@ -879,13 +879,29 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                         )}
                       </button>
                     </div>
+
+                    {/* Mobile: full-width CTA below the input so the placeholder is fully readable */}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="sm:hidden h-[50px] w-full rounded-2xl bg-gradient-to-r from-[#8B1E1E] via-[#A61922] to-[#6E1015] text-white text-[15px] font-bold shadow-[0_8px_20px_rgba(139,30,30,0.35)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                    >
+                      {isSubmitting ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : (
+                        <>
+                          <span>{itemCount > 0 ? `Checkout (${itemCount} item${itemCount > 1 ? 's' : ''})` : 'Order Now'}</span>
+                          <span className="text-[#F5B53D] font-black">→</span>
+                        </>
+                      )}
+                    </button>
                   </form>
                 )}
 
                 {/* MODE 2: PICKUP (Exact same 60px height) */}
                 {orderMode === 'pickup' && (
-                  <div className="h-full w-full bg-white rounded-2xl shadow-lg border border-[#E8DEC8] px-2 flex items-center justify-between gap-2.5 animate-in fade-in duration-150">
-                    <div className="flex items-center gap-2.5 min-w-0 pl-1.5">
+                  <div className="h-full w-full flex flex-col gap-2 sm:flex-row sm:gap-2.5 sm:items-center sm:justify-between sm:bg-white sm:rounded-2xl sm:shadow-lg sm:border sm:border-[#E8DEC8] sm:px-2 animate-in fade-in duration-150">
+                    <div className="h-[58px] sm:h-auto flex items-center gap-2.5 min-w-0 pl-3 sm:pl-1.5 bg-white sm:bg-transparent rounded-2xl sm:rounded-none shadow-lg sm:shadow-none border border-[#E8DEC8] sm:border-0">
                       <div className="w-10 h-10 rounded-xl bg-[#8B1E1E]/10 flex items-center justify-center text-[#8B1E1E] shrink-0">
                         <Store size={19} />
                       </div>
@@ -907,7 +923,7 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                     <button
                       type="button"
                       onClick={handleOrderSubmit}
-                      className="h-[44px] shrink-0 px-4 sm:px-5 rounded-xl bg-[#8B1E1E] hover:bg-[#701515] text-white text-xs sm:text-sm font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="h-[50px] sm:h-[44px] w-full sm:w-auto shrink-0 px-4 sm:px-5 rounded-2xl sm:rounded-xl bg-[#8B1E1E] hover:bg-[#701515] text-white text-[15px] sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <span>{itemCount > 0 ? `Checkout (${itemCount})` : 'Order Pickup'}</span>
                       <span className="text-[#D4AF37] font-black">→</span>
@@ -917,8 +933,8 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
 
                 {/* MODE 3: DINE-IN (Exact same 60px height) */}
                 {orderMode === 'dinein' && (
-                  <div className="h-full w-full bg-white rounded-2xl shadow-lg border border-[#E8DEC8] px-2 flex items-center justify-between gap-2.5 animate-in fade-in duration-150">
-                    <div className="flex items-center gap-2.5 min-w-0 pl-1.5">
+                  <div className="h-full w-full flex flex-col gap-2 sm:flex-row sm:gap-2.5 sm:items-center sm:justify-between sm:bg-white sm:rounded-2xl sm:shadow-lg sm:border sm:border-[#E8DEC8] sm:px-2 animate-in fade-in duration-150">
+                    <div className="h-[58px] sm:h-auto flex items-center gap-2.5 min-w-0 pl-3 sm:pl-1.5 bg-white sm:bg-transparent rounded-2xl sm:rounded-none shadow-lg sm:shadow-none border border-[#E8DEC8] sm:border-0">
                       <div className="w-10 h-10 rounded-xl bg-[#D48228]/15 flex items-center justify-center text-[#8B1E1E] shrink-0">
                         <CalendarDays size={19} />
                       </div>
@@ -932,7 +948,7 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0 w-full sm:w-auto">
                       <button
                         type="button"
                         onClick={() => router.push('/order-online')}
@@ -943,7 +959,7 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                       <button
                         type="button"
                         onClick={() => router.push('/book-a-table')}
-                        className="h-[44px] px-4 sm:px-5 rounded-xl bg-[#8B1E1E] hover:bg-[#701515] text-white text-xs sm:text-sm font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="h-[50px] sm:h-[44px] flex-1 sm:flex-none px-4 sm:px-5 rounded-2xl sm:rounded-xl bg-[#8B1E1E] hover:bg-[#701515] text-white text-[15px] sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <span>Book Table</span>
                         <span className="text-[#D4AF37] font-black">→</span>
@@ -953,48 +969,49 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                 )}
               </div>
 
-              {/* Reserved 24px Status / Helper Row (Prevents vertical page jump when error or status shows) */}
-              <div className="h-6 mt-1.5 px-2 flex items-center justify-between text-xs">
+                            {/* Status / Helper Row (Adapts cleanly on mobile without truncation) */}
+              <div className="min-h-[26px] mt-2 px-1 text-xs">
                 {orderMode === 'delivery' && addressError ? (
-                  <p className="font-semibold text-red-600 flex items-center gap-1.5 truncate animate-in fade-in duration-150">
-                    <AlertCircle size={13} className="shrink-0" />
-                    <span className="truncate">{addressError}</span>
+                  <p className="font-semibold text-red-600 flex items-center gap-1.5 text-xs animate-in fade-in duration-150">
+                    <AlertCircle size={14} className="shrink-0 text-red-600" />
+                    <span>{addressError}</span>
                   </p>
                 ) : orderMode === 'delivery' && loadingEta ? (
                   <div className="w-full flex items-center gap-1.5 text-[#8B1E1E] font-semibold animate-in fade-in duration-150">
                     <Loader2 size={13} className="animate-spin shrink-0" />
-                    <span className="truncate">Checking delivery availability &amp; ETA...</span>
+                    <span>Checking delivery availability &amp; ETA...</span>
                   </div>
                 ) : orderMode === 'delivery' && selectedAddressObj && eta.isOutOfRange ? (
-                  <div className="w-full flex items-center justify-between gap-2 animate-in fade-in duration-150">
-                    <p className="text-[11px] text-red-600 font-bold uppercase tracking-wider flex items-center gap-1.5 truncate">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping inline-block shrink-0" />
-                      <span className="truncate">
-                        Out of range — Too far for delivery (
-                        {selectedAddressObj.displayLine1 || selectedAddressObj.street})
+                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 animate-in fade-in duration-150">
+                    <div className="flex items-center gap-1.5 text-red-600 font-bold text-[11px] sm:text-xs uppercase tracking-wider">
+                      <span className="w-2 h-2 rounded-full bg-red-600 animate-ping inline-block shrink-0" />
+                      <span className="font-extrabold text-red-700">Out of delivery range</span>
+                      <span className="text-[#78716C] font-medium normal-case text-[11px]">
+                        • Too far for delivery
                       </span>
-                    </p>
-                    <div className="flex items-center gap-2.5 shrink-0">
+                    </div>
+                    <div className="flex items-center gap-2.5 shrink-0 pl-3.5 sm:pl-0">
                       <button
                         type="button"
                         onClick={onOpenAddressModal}
-                        className="text-[11px] text-[#4A090B] hover:text-[#D48228] font-bold uppercase tracking-wider underline cursor-pointer"
+                        className="text-[11.5px] sm:text-[11px] text-[#4A090B] hover:text-[#D48228] font-bold uppercase tracking-wider underline cursor-pointer"
                       >
                         Change
                       </button>
+                      <span className="text-stone-300">•</span>
                       <button
                         type="button"
                         onClick={() => handleModeSwitch('pickup')}
-                        className="text-[11px] text-[#8B1E1E] hover:text-[#D48228] font-bold uppercase tracking-wider underline cursor-pointer"
+                        className="text-[11.5px] sm:text-[11px] text-[#8B1E1E] hover:text-[#D48228] font-bold uppercase tracking-wider underline cursor-pointer"
                       >
-                        Pickup
+                        Switch to Pickup
                       </button>
                     </div>
                   </div>
                 ) : orderMode === 'delivery' && selectedAddressObj ? (
                   <div className="w-full flex items-center justify-between text-[#15803D] font-semibold animate-in fade-in duration-150">
-                    <span className="flex items-center gap-1.5 truncate">
-                      <CheckCircle2 size={13} className="shrink-0" />
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <CheckCircle2 size={14} className="shrink-0 text-emerald-600" />
                       <span className="truncate">
                         Delivering to:{' '}
                         <strong className="font-bold">
@@ -1042,38 +1059,9 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                 )}
               </div>
 
-              {/* Floating Autocomplete Dropdown (Positioned cleanly over the wave with high z-index) */}
-              {orderMode === 'delivery' && dropdownOpen && (
-                <div className="absolute left-0 right-0 top-[66px] bg-white rounded-2xl shadow-[0_20px_50px_rgba(28,25,23,0.22)] border border-[#E8DEC8] overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-                  {/* Quick Action Row: Current GPS + Interactive Map */}
-                  <div className="grid grid-cols-2 divide-x divide-stone-100 border-b border-stone-100 bg-[#FAF6F0]">
-                    <button
-                      type="button"
-                      onClick={handleUseCurrentLocation}
-                      disabled={isLocating}
-                      className="flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold text-[#8B1E17] hover:bg-[#8B1E1E]/5 transition-colors cursor-pointer"
-                    >
-                      {isLocating ? (
-                        <Loader2 size={15} className="animate-spin shrink-0" />
-                      ) : (
-                        <Navigation size={15} className="shrink-0" />
-                      )}
-                      <span className="truncate">Use Current Location</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDropdownOpen(false);
-                        onOpenAddressModal?.();
-                      }}
-                      className="flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold text-[#1C1917] hover:bg-stone-100 transition-colors cursor-pointer"
-                    >
-                      <Map size={15} className="text-[#D48228] shrink-0" />
-                      <span className="truncate">Pin Location on Map</span>
-                    </button>
-                  </div>
-
+                            {/* Floating Autocomplete Dropdown (Only shows when searching, suggestions exist, or saved addresses exist) */}
+              {orderMode === 'delivery' && dropdownOpen && (isSearching || suggestions.length > 0 || (user?.savedAddresses?.length > 0 && !addressInput.trim())) && (
+                <div className="absolute left-0 right-0 top-[62px] sm:top-[66px] bg-white rounded-2xl shadow-[0_20px_50px_rgba(28,25,23,0.22)] border border-[#E8DEC8] overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
                   {/* Loading state */}
                   {isSearching && (
                     <div className="px-4 py-3 text-xs text-stone-500 flex items-center gap-2">

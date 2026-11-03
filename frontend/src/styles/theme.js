@@ -88,12 +88,14 @@ const status = {
  * and technical/numeric data.
  */
 const fontFamily = {
-  heading: ['Outfit', 'Inter', 'Space Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-  body:    ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  heading: ['Playfair Display', 'Georgia', 'serif'],
+  serif:   ['Playfair Display', 'Georgia', 'serif'],
+  sans:    ['Poppins', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  body:    ['Poppins', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
   mono:    ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
   /* No script face at the platform level — branded overrides (e.g.
      lassi-lounge.css) replace --font-script with an actual cursive face. */
-  script:  ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  script:  ['Dancing Script', 'cursive'],
 };
 
 /* Each size ships with its paired line-height and letter-spacing — always

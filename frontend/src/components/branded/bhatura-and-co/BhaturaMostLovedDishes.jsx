@@ -205,7 +205,7 @@ export default function BhaturaMostLovedDishes() {
           {/* Dishes Cards Grid */}
           <div
             ref={scrollRef}
-            className="relative z-10 flex overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-5 scrollbar-none scroll-smooth py-8 px-6 -my-8 -mx-6"
+            className="relative z-10 flex overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-5 scrollbar-none scroll-smooth py-6 sm:py-8 px-4 sm:px-6 -my-6 sm:-my-8 -mx-4 sm:-mx-6 scroll-pl-4 sm:scroll-pl-0"
           >
             {dishes.map((dish) => {
               const qty = getItemQuantity(dish);
@@ -222,7 +222,7 @@ export default function BhaturaMostLovedDishes() {
                       handleCardClick(dish);
                     }
                   }}
-                  className="w-[220px] shrink-0 snap-start sm:w-auto bg-white rounded-2xl overflow-hidden border border-[#EBE3D7] shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col group min-w-[215px] sm:min-w-0 cursor-pointer"
+                  className="w-[220px] shrink-0 snap-start sm:w-auto bg-white rounded-2xl overflow-hidden border border-[#EBE3D7] shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col group min-w-[215px] sm:min-w-0 cursor-pointer first:ml-1 sm:first:ml-0"
                 >
                   {/* Dish Photo Box */}
                   <div

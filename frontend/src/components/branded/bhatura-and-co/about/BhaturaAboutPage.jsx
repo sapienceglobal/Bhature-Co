@@ -247,7 +247,7 @@ export default function BhaturaAboutPage() {
                     <span className="block text-2xl sm:text-[28px] font-black text-[#9E141D] leading-none">
                       10K+
                     </span>
-                    <h3 className="text-xs sm:text-sm font-bold text-[#1C1917] mt-1">
+                    <h3 className="font-['Playfair_Display'] text-xs sm:text-sm font-bold text-[#1C1917] mt-1">
                       Happy Customers
                     </h3>
                     <p className="text-[11px] sm:text-xs text-[#6B635B] mt-0.5 leading-snug">
@@ -267,7 +267,7 @@ export default function BhaturaAboutPage() {
                     <span className="block text-2xl sm:text-[28px] font-black text-[#9E141D] leading-none">
                       50+
                     </span>
-                    <h3 className="text-xs sm:text-sm font-bold text-[#1C1917] mt-1">
+                    <h3 className="font-['Playfair_Display'] text-xs sm:text-sm font-bold text-[#1C1917] mt-1">
                       Delicious Dishes
                     </h3>
                     <p className="text-[11px] sm:text-xs text-[#6B635B] mt-0.5 leading-snug">
@@ -284,7 +284,7 @@ export default function BhaturaAboutPage() {
                     <Leaf size={21} />
                   </span>
                   <div>
-                    <h3 className="text-sm sm:text-base font-extrabold text-[#1C1917] leading-snug">
+                    <h3 className="font-['Playfair_Display'] text-sm sm:text-base font-extrabold text-[#1C1917] leading-snug">
                       Fresh Ingredients
                     </h3>
                     <p className="text-xs text-[#44403C] mt-1 leading-snug">
@@ -305,7 +305,7 @@ export default function BhaturaAboutPage() {
                     <span className="block text-2xl sm:text-[28px] font-black text-[#9E141D] leading-none">
                       4.8/5
                     </span>
-                    <h3 className="text-xs sm:text-sm font-bold text-[#1C1917] mt-1">
+                    <h3 className="font-['Playfair_Display'] text-xs sm:text-sm font-bold text-[#1C1917] mt-1">
                       Customer Satisfaction
                     </h3>
                     <p className="text-[11px] sm:text-xs text-[#6B635B] mt-0.5 leading-snug">
@@ -449,7 +449,7 @@ export default function BhaturaAboutPage() {
                       />
                     </div>
                     <div className="p-3.5 sm:p-4">
-                      <h3 className="text-xs sm:text-sm font-bold text-[#1C1917] leading-snug">
+                      <h3 className="font-['Playfair_Display'] text-xs sm:text-sm font-bold text-[#1C1917] leading-snug">
                         {card.title}
                       </h3>
                       <p className="text-[11px] sm:text-xs text-[#6B635B] mt-1 leading-relaxed whitespace-pre-line">

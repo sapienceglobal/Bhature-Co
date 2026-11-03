@@ -70,7 +70,7 @@ export default function BhaturaFooter() {
 
           {/* Col 2: Quick Links (2 cols) */}
           <div className="col-span-1 lg:col-span-2">
-            <h4 className="font-semibold text-[15px] mb-4 text-white">
+            <h4 className="font-['Playfair_Display'] font-semibold text-[15px] mb-4 text-white">
               Quick Links
             </h4>
             <ul className="space-y-1.5 text-sm text-white/85">
@@ -86,7 +86,7 @@ export default function BhaturaFooter() {
 
           {/* Col 3: Customer Support (3 cols) */}
           <div className="col-span-1 lg:col-span-3">
-            <h4 className="font-semibold text-[15px] mb-4 text-white">
+            <h4 className="font-['Playfair_Display'] font-semibold text-[15px] mb-4 text-white">
               Customer Support
             </h4>
             <ul className="space-y-1.5 text-sm text-white/85">
@@ -102,7 +102,7 @@ export default function BhaturaFooter() {
 
           {/* Col 4: Follow Us & Subscribe (3 cols) */}
           <div className="col-span-2 lg:col-span-3 flex flex-col">
-            <h4 className="font-semibold text-[15px] mb-3 text-white">
+            <h4 className="font-['Playfair_Display'] font-semibold text-[15px] mb-3 text-white">
               Follow Us
             </h4>
             
@@ -121,7 +121,7 @@ export default function BhaturaFooter() {
             </div>
 
             {/* Newsletter */}
-            <h4 className="font-semibold text-[15px] mb-3 text-white">
+            <h4 className="font-['Playfair_Display'] font-semibold text-[15px] mb-3 text-white">
               Subscribe for Offers
             </h4>
             <form onSubmit={handleSubscribe} noValidate className="space-y-1.5">

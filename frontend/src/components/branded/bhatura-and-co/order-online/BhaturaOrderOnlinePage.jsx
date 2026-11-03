@@ -144,6 +144,18 @@ function OrderOnlineInner() {
   const manualScrollLockRef = useRef(false);
   const [rightColHeight, setRightColHeight] = useState(null);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const chipStripRef = useRef(null);
+  const chipBtnRefs = useRef({});
+
+  /* ── Track mobile breakpoint (<768px) for the app-style mobile menu layout ── */
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   /* ── Hydrate saved address & orderMode ── */
   useEffect(() => {
@@ -298,7 +310,7 @@ function OrderOnlineInner() {
         return;
       }
 
-      const containerTop = isWindow ? 175 : (container?.getBoundingClientRect().top || 0);
+      const containerTop = isWindow ? (window.innerWidth < 768 ? 128 : 175) : (container?.getBoundingClientRect().top || 0);
       let bestCatId = categories[0]?._id;
 
       for (let i = 0; i < categories.length; i++) {
@@ -341,6 +353,17 @@ function OrderOnlineInner() {
       leftCol?.removeEventListener('scroll', onLeftColScroll);
     };
   }, [categories, activeCategoryId]);
+
+  /* ── Keep Active Mobile Chip Centered in Sticky Chip Bar ── */
+  useEffect(() => {
+    if (!activeCategoryId || !chipStripRef.current) return;
+    const btn = chipBtnRefs.current[activeCategoryId];
+    const container = chipStripRef.current;
+    if (btn) {
+      const targetLeft = btn.offsetLeft - container.clientWidth / 2 + btn.clientWidth / 2;
+      container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+    }
+  }, [activeCategoryId]);
 
   /* ── Keep Active Category Pill Centered in Horizontal Strip ── */
   useEffect(() => {
@@ -409,7 +432,11 @@ function OrderOnlineInner() {
         }
       } else if (el) {
         // On mobile, the entire window scrolls to the category
-        if (isFirst) {
+        if (window.innerWidth < 768) {
+          const elRect = el.getBoundingClientRect();
+          const targetTop = window.scrollY + elRect.top - 124;
+          window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+        } else if (isFirst) {
           const heroEl = document.querySelector('main > section:first-child');
           const targetTop = heroEl ? heroEl.offsetHeight : 350;
           window.scrollTo({ top: targetTop, behavior: 'smooth' });
@@ -755,8 +782,59 @@ function OrderOnlineInner() {
             2. HIGH Z-INDEX (z-[85]) CATEGORY CAROUSEL STRIP
             Non-sticky on mobile (<md), sticky on desktop (md:)
         ═══════════════════════════════════════════════════════════════════ */}
+        {/* ═══ MOBILE: App-style sticky category chip bar (Swiggy / Zomato pattern) ═══ */}
+        <div className="md:hidden sticky top-16 z-[85] bg-[#FDF6EA]/95 backdrop-blur-md border-b border-[#EADBC8] shadow-[0_6px_16px_rgba(92,6,18,0.08)]">
+          <div className="px-4 pt-2.5 pb-1 flex items-center justify-between">
+            <span className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-[#9E141D]">Browse Menu</span>
+            <span className="text-[10.5px] font-semibold text-[#78716C]">
+              {categories.reduce((n, c) => n + (c.items?.length || 0), 0)} dishes • {categories.length} categories
+            </span>
+          </div>
+          <div
+            ref={chipStripRef}
+            className="flex items-center gap-2 overflow-x-auto px-4 pb-2.5 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth"
+          >
+            {(loading ? Array.from({ length: 5 }).map((_, i) => ({ _id: `sk-${i}`, skeleton: true })) : categories).map((cat) => {
+              if (cat.skeleton) {
+                return <span key={cat._id} className="h-9 w-24 shrink-0 rounded-full bg-[#EFE3D2] animate-pulse" />;
+              }
+              const isActive = cat._id === activeCategoryId;
+              const thumb = resolveImageUrl(cat.image) || getCategoryThumb(cat.name);
+              return (
+                <button
+                  key={cat._id}
+                  ref={(el) => {
+                    chipBtnRefs.current[cat._id] = el;
+                  }}
+                  type="button"
+                  onClick={() => handleSelectCategory(cat._id)}
+                  className={`shrink-0 h-9 pl-1 pr-3.5 rounded-full flex items-center gap-2 text-[12.5px] font-bold whitespace-nowrap border transition-all duration-200 active:scale-95 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-[#9E141D] to-[#7A0F16] text-white border-transparent shadow-[0_4px_12px_rgba(158,20,29,0.35)]'
+                      : 'bg-white text-[#1C1917] border-[#E8D9C5]'
+                  }`}
+                >
+                  <img
+                    src={thumb}
+                    alt=""
+                    className={`w-7 h-7 rounded-full object-cover ${isActive ? 'ring-2 ring-[#F5B53D]' : ''}`}
+                    onError={(e) => {
+                      const fallback = getCategoryThumb(cat.name);
+                      if (!e.currentTarget.src.endsWith(fallback)) e.currentTarget.src = fallback;
+                    }}
+                  />
+                  <span>{cat.name}</span>
+                  <span className={`text-[10.5px] font-bold ${isActive ? 'text-[#F5D28A]' : 'text-[#A8A29E]'}`}>
+                    {cat.items?.length || 0}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <section
-          className={`relative md:sticky md:top-[70px] z-[85] transition-all duration-200 border-b border-[#EADBC8] ${
+          className={`hidden md:block relative md:sticky md:top-[70px] z-[85] transition-all duration-200 border-b border-[#EADBC8] ${
             isStripStuck
               ? 'bg-[#FDF6EA] py-2 md:shadow-[0_6px_20px_rgba(92,6,18,0.12)]'
               : 'bg-[#FDF6EA] pt-2 sm:pt-3 pb-3.5 sm:pb-5'
@@ -1004,7 +1082,7 @@ function OrderOnlineInner() {
                 <div className="space-y-8 pb-8">
                   {filteredCategories.map((cat, catIdx) => {
                     const totalInCat = (cat.items || []).length;
-                    const isExpanded = Boolean(expandedCategories[cat._id] || searchQuery.trim());
+                    const isExpanded = Boolean(expandedCategories[cat._id] || searchQuery.trim() || isMobile);
                     const visibleItems = isExpanded ? cat.items : (cat.items || []).slice(0, 3);
                     const isFeaturedFirstSection = catIdx === 0;
 
@@ -1014,7 +1092,7 @@ function OrderOnlineInner() {
                         ref={(el) => {
                           sectionRefs.current[cat._id] = el;
                         }}
-                        className="scroll-mt-6"
+                        className="scroll-mt-[124px] md:scroll-mt-6"
                       >
                         {/* Section Header Row */}
                         <div className="flex items-center justify-between gap-2 mb-3.5">
@@ -1040,7 +1118,7 @@ function OrderOnlineInner() {
                                   [cat._id]: !prev[cat._id],
                                 }))
                               }
-                              className="shrink-0 text-xs sm:text-[13px] font-bold text-[#9E141D] hover:text-[#6E0D14] inline-flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-[#9E141D]/5 transition-colors cursor-pointer"
+                              className="hidden md:inline-flex shrink-0 text-xs sm:text-[13px] font-bold text-[#9E141D] hover:text-[#6E0D14] items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-[#9E141D]/5 transition-colors cursor-pointer"
                             >
                               {isExpanded ? (
                                 <>
@@ -1058,11 +1136,107 @@ function OrderOnlineInner() {
                         </div>
 
                         {/* 3-Column Dish Cards Grid (Scrollable box on mobile when expanded with >6 items) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 max-h-[680px] overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:#D8C4AB_transparent] md:max-h-none md:overflow-visible md:pr-0">
+                        <div className="flex flex-col gap-3 md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-4">
                           {visibleItems.map((item) => {
                             const inCartQty = getItemQuantity(item);
                             const isFav = user?.favoriteItems?.some((f) => (f._id || f) === item._id);
                             const imgSrc = resolveImageUrl(item.image) || getDishImage(item.name);
+
+                            if (isMobile) {
+                              return (
+                                <article
+                                  key={item._id}
+                                  onClick={() => router.push(getItemUrl(item, RESTAURANT_ID))}
+                                  className="relative flex gap-3 bg-white rounded-2xl border border-[#EDE0CE] p-3 shadow-[0_3px_14px_rgba(92,6,18,0.06)] active:scale-[0.99] transition-transform cursor-pointer"
+                                >
+                                  {/* Left: Info */}
+                                  <div className="flex-1 min-w-0 flex flex-col">
+                                    <div className="flex items-center gap-1.5">
+                                      <span
+                                        className={`w-[14px] h-[14px] bg-white rounded-[3px] border-[1.5px] flex items-center justify-center shrink-0 ${
+                                          item.isVeg === false ? 'border-[#C0262D]' : 'border-[#15803D]'
+                                        }`}
+                                      >
+                                        <span className={`w-[6px] h-[6px] rounded-full ${item.isVeg === false ? 'bg-[#C0262D]' : 'bg-[#15803D]'}`} />
+                                      </span>
+                                      {isFeaturedFirstSection && (
+                                        <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-[#B45309] bg-[#FEF3C7] px-1.5 py-[1px] rounded">
+                                          ★ Bestseller
+                                        </span>
+                                      )}
+                                    </div>
+                                    <h4 className="font-['Playfair_Display'] font-bold text-[16px] text-[#1C1917] leading-snug mt-1 line-clamp-2">
+                                      {item.name}
+                                    </h4>
+                                    <span className="text-[15px] font-black text-[#9E141D] mt-0.5">
+                                      ${Number(item.price || 0).toFixed(2)}
+                                    </span>
+                                    <p className="text-[11.5px] text-[#6B625A] leading-relaxed line-clamp-2 mt-1">
+                                      {item.description || 'Traditional North Indian delicacy prepared fresh with authentic spices.'}
+                                    </p>
+                                  </div>
+
+                                  {/* Right: Image + floating ADD / stepper */}
+                                  <div className="relative w-[112px] shrink-0 pb-4">
+                                    <div className="relative w-[112px] h-[104px] rounded-xl overflow-hidden bg-[#231109] shadow-sm">
+                                      <img
+                                        src={imgSrc}
+                                        alt={item.name}
+                                        loading="lazy"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          const f = getDishImage(item.name);
+                                          if (!e.currentTarget.src.endsWith(f)) e.currentTarget.src = f;
+                                        }}
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={(e) => handleToggleFavorite(item, e)}
+                                        aria-label={`Favourite ${item.name}`}
+                                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/45 text-white flex items-center justify-center"
+                                      >
+                                        <Heart size={12} className={isFav ? 'fill-[#E11D2A] text-[#E11D2A]' : 'text-white'} />
+                                      </button>
+                                    </div>
+
+                                    <div
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[92px]"
+                                    >
+                                      {inCartQty > 0 ? (
+                                        <div className="h-9 rounded-lg bg-[#9E141D] text-white flex items-center justify-between shadow-[0_6px_14px_rgba(158,20,29,0.35)] overflow-hidden">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => handleCardStepMinus(item, e)}
+                                            aria-label="Decrease quantity"
+                                            className="w-8 h-full flex items-center justify-center active:bg-black/20"
+                                          >
+                                            <Minus size={14} strokeWidth={3} />
+                                          </button>
+                                          <span className="text-[13px] font-extrabold">{inCartQty}</span>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => handleCardAddOrPlus(item, e)}
+                                            aria-label="Increase quantity"
+                                            className="w-8 h-full flex items-center justify-center active:bg-black/20"
+                                          >
+                                            <Plus size={14} strokeWidth={3} />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => handleCardAddOrPlus(item, e)}
+                                          className="w-full h-9 rounded-lg bg-white border border-[#9E141D]/40 text-[#9E141D] text-[13px] font-extrabold tracking-wide shadow-[0_6px_14px_rgba(92,6,18,0.18)] active:scale-95 transition-transform flex items-center justify-center gap-1"
+                                        >
+                                          ADD <Plus size={13} strokeWidth={3} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </article>
+                              );
+                            }
 
                             return (
                               <article
@@ -1112,7 +1286,7 @@ function OrderOnlineInner() {
                                 {/* Card Content */}
                                 <div className="p-3.5 flex-1 flex flex-col justify-between">
                                   <div>
-                                    <h4 className="font-bold text-[15px] text-[#1C1917] leading-snug line-clamp-1">
+                                    <h4 className="font-['Playfair_Display'] font-bold text-[15px] text-[#1C1917] leading-snug line-clamp-1">
                                       {item.name}
                                     </h4>
                                     <p className="text-[11.5px] text-[#6B625A] leading-relaxed line-clamp-2 mt-1 min-h-[34px]">
@@ -1221,7 +1395,7 @@ function OrderOnlineInner() {
                 Natural page flow: scrolling over this area scrolls the page,
                 smoothly bringing the footer into view!
             ─────────────────────────────────────────────────────────────── */}
-            <aside ref={rightColRef} className="w-full lg:w-[350px] xl:w-[365px] shrink-0">
+            <aside ref={rightColRef} className="hidden md:block w-full lg:w-[350px] xl:w-[365px] shrink-0">
               
               {/* 1. Top "Deliver to" Address Pill Card */}
               <div
@@ -1327,7 +1501,7 @@ function OrderOnlineInner() {
                           />
 
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-[13.5px] font-bold text-[#1C1917] truncate">{ci.name}</h4>
+                            <h4 className="font-['Playfair_Display'] text-[13.5px] font-bold text-[#1C1917] truncate">{ci.name}</h4>
                             <p className="text-[13px] font-extrabold text-[#9E141D] mt-0.5">
                               ${unitPrice.toFixed(2)}
                             </p>
@@ -1660,7 +1834,7 @@ function OrderOnlineInner() {
       {conflictModal && (
         <PortalModal isOpen={true} onClose={() => setConflictModal(null)}>
           <div className="bg-white rounded-2xl p-6 max-w-sm mx-auto">
-            <h3 className="text-lg font-bold text-[#1C1917] mb-2">Start a new cart?</h3>
+            <h3 className="font-['Playfair_Display'] text-lg font-bold text-[#1C1917] mb-2">Start a new cart?</h3>
             <p className="text-sm text-[#57534E] mb-4">
               Your cart contains items from another order. Adding this dish will clear your current cart.
             </p>

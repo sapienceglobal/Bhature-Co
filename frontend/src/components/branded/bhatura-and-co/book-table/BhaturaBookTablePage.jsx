@@ -651,7 +651,7 @@ export default function BhaturaBookTablePage() {
                     <Users size={18} />
                   </span>
                   <div>
-                    <h3 className="text-xs sm:text-sm font-bold text-[#1C1917] leading-tight">Family Gatherings</h3>
+                    <h3 className="font-['Playfair_Display'] text-xs sm:text-sm font-bold text-[#1C1917] leading-tight">Family Gatherings</h3>
                     <p className="text-[11px] sm:text-xs text-[#78716C] mt-0.5 leading-snug">Create special moments with your loved ones</p>
                   </div>
                 </div>
@@ -662,7 +662,7 @@ export default function BhaturaBookTablePage() {
                     <PartyPopper size={18} />
                   </span>
                   <div>
-                    <h3 className="text-xs sm:text-sm font-bold text-[#1C1917] leading-tight">Birthdays &amp; Anniversaries</h3>
+                    <h3 className="font-['Playfair_Display'] text-xs sm:text-sm font-bold text-[#1C1917] leading-tight">Birthdays &amp; Anniversaries</h3>
                     <p className="text-[11px] sm:text-xs text-[#78716C] mt-0.5 leading-snug">Make your celebrations more special</p>
                   </div>
                 </div>
@@ -673,7 +673,7 @@ export default function BhaturaBookTablePage() {
                     <Users size={18} />
                   </span>
                   <div>
-                    <h3 className="text-xs sm:text-sm font-bold text-[#1C1917] leading-tight">Corporate Meetings</h3>
+                    <h3 className="font-['Playfair_Display'] text-xs sm:text-sm font-bold text-[#1C1917] leading-tight">Corporate Meetings</h3>
                     <p className="text-[11px] sm:text-xs text-[#78716C] mt-0.5 leading-snug">Ideal for business lunches and team gatherings</p>
                   </div>
                 </div>
@@ -684,7 +684,7 @@ export default function BhaturaBookTablePage() {
                     <Wine size={18} />
                   </span>
                   <div>
-                    <h3 className="text-xs sm:text-sm font-bold text-[#1C1917] leading-tight">Special Occasions</h3>
+                    <h3 className="font-['Playfair_Display'] text-xs sm:text-sm font-bold text-[#1C1917] leading-tight">Special Occasions</h3>
                     <p className="text-[11px] sm:text-xs text-[#78716C] mt-0.5 leading-snug">Authentic food and warm hospitality</p>
                   </div>
                 </div>

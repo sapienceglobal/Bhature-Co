@@ -73,7 +73,7 @@ function NavContent() {
 
 export default function MobileBottomNav() {
   return (
-    <div className="md:hidden fixed bottom-0 inset-x-0 bg-[#FCF3E8]/98 backdrop-blur-md border-t border-[#E5D4C0] z-[90] py-1.5 px-1.5 shadow-[0_-4px_20px_rgba(60,10,10,0.1)]">
+    <div className="md:hidden fixed bottom-0 inset-x-0 bg-[#FCF3E8] border-t border-[#E5D4C0] z-[90] pt-1.5 px-1.5 shadow-[0_-4px_20px_rgba(60,10,10,0.1)]" style={{ backgroundColor: '#FCF3E8', paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))' }}>
       <Suspense fallback={<div className="h-12 w-full" />}>
         <NavContent />
       </Suspense>
