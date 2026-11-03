@@ -104,14 +104,14 @@ class TimeSlotPickerSheet extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.schedule, size: 11, color: Color(0xFF7A0B10)),
+                                const Icon(Icons.schedule, size: 11, color: Color(0xFF8B1E1E)),
                                 const SizedBox(width: 3.5),
                                 Text(
                                   'NY Time: $currentNyTimeStr',
                                   style: const TextStyle(
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF7A0B10),
+                                    color: Color(0xFF8B1E1E),
                                   ),
                                 ),
                               ],
@@ -161,7 +161,7 @@ class TimeSlotPickerSheet extends StatelessWidget {
                         size: 20,
                         color: schedule.isClosed
                             ? const Color(0xFFDC2626)
-                            : (isAllTodaySlotsPassed ? const Color(0xFFD97706) : const Color(0xFF7A0B10)),
+                            : (isAllTodaySlotsPassed ? const Color(0xFFD97706) : const Color(0xFF8B1E1E)),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -221,7 +221,7 @@ class TimeSlotPickerSheet extends StatelessWidget {
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF7A0B10),
+                              backgroundColor: const Color(0xFF8B1E1E),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -250,7 +250,7 @@ class TimeSlotPickerSheet extends StatelessWidget {
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF7A0B10),
+                              backgroundColor: const Color(0xFF8B1E1E),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -280,7 +280,7 @@ class TimeSlotPickerSheet extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
                           child: Row(
                             children: [
-                              Icon(categoryIcon, size: 16, color: const Color(0xFF7A0B10)),
+                              Icon(categoryIcon, size: 16, color: const Color(0xFF8B1E1E)),
                               const SizedBox(width: 6),
                               Text(
                                 category,
@@ -321,19 +321,19 @@ class TimeSlotPickerSheet extends StatelessWidget {
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? const Color(0xFF7A0B10)
+                                      ? const Color(0xFF8B1E1E)
                                       : (!isAvailable ? const Color(0xFFF1F5F9) : Colors.white),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: isSelected
-                                        ? const Color(0xFF7A0B10)
+                                        ? const Color(0xFF8B1E1E)
                                         : (!isAvailable ? const Color(0xFFE2E8F0) : const Color(0xFFCBD5E1)),
                                     width: isSelected ? 1.5 : 1.0,
                                   ),
                                   boxShadow: isSelected
                                       ? [
                                           BoxShadow(
-                                            color: const Color(0xFF7A0B10).withValues(alpha: 0.25),
+                                            color: const Color(0xFF8B1E1E).withValues(alpha: 0.25),
                                             blurRadius: 6,
                                             offset: const Offset(0, 2),
                                           )
@@ -428,7 +428,7 @@ class TimeSlotPickerSheet extends StatelessWidget {
                 return Theme(
                   data: Theme.of(context).copyWith(
                     colorScheme: const ColorScheme.light(
-                      primary: Color(0xFF7A0B10),
+                      primary: Color(0xFF8B1E1E),
                       onPrimary: Colors.white,
                       onSurface: Color(0xFF0F172A),
                     ),
@@ -472,7 +472,7 @@ class TimeSlotPickerSheet extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.tune_rounded, size: 18, color: Color(0xFF7A0B10)),
+                const Icon(Icons.tune_rounded, size: 18, color: Color(0xFF8B1E1E)),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(

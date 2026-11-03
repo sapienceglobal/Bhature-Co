@@ -122,7 +122,7 @@ class LoginRegisterFields extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF800A12), width: 1.2),
+              borderSide: const BorderSide(color: Color(0xFF8B1E1E), width: 1.2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),

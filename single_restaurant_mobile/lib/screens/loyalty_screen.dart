@@ -8,7 +8,7 @@ import 'package:single_restaurant_mobile/widgets/loyalty/loyalty_guest_view.dart
 import 'package:single_restaurant_mobile/widgets/loyalty/loyalty_join_view.dart';
 import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
 
-const _kMaroon = Color(0xFF6E1111);
+const _kMaroon = Color(0xFF5C0612);
 const _kBackBtnBg = Color(0xFFFBE4E1);
 const _kErrorBadgeBg = Color(0xFFFDECE9);
 

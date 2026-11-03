@@ -58,10 +58,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF800A12) : const Color(0xFFF9EFEF),
+            color: isSelected ? const Color(0xFF8B1E1E) : const Color(0xFFF9EFEF),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isSelected ? const Color(0xFF800A12) : const Color(0xFFF2DEDE),
+              color: isSelected ? const Color(0xFF8B1E1E) : const Color(0xFFF2DEDE),
               width: 1,
             ),
           ),
@@ -70,7 +70,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
             style: TextStyle(
               fontSize: 11.5,
               fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : const Color(0xFF800A12),
+              color: isSelected ? Colors.white : const Color(0xFF8B1E1E),
             ),
           ),
         ),
@@ -111,7 +111,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back,
-            color: Color(0xFF800A12),
+            color: Color(0xFF8B1E1E),
             size: 24,
           ),
           onPressed: () {
@@ -124,7 +124,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           'Help & Support',
           style: TextStyle(
             fontFamily: 'serif',
-            color: Color(0xFF800A12),
+            color: Color(0xFF8B1E1E),
             fontWeight: FontWeight.w900,
             fontSize: 22,
             letterSpacing: -0.3,
@@ -150,7 +150,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isSearching ? const Color(0xFF800A12) : const Color(0xFFF1E5E5),
+                    color: isSearching ? const Color(0xFF8B1E1E) : const Color(0xFFF1E5E5),
                     width: isSearching ? 1.5 : 1,
                   ),
                   boxShadow: [
@@ -167,7 +167,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                       padding: EdgeInsets.symmetric(horizontal: 14),
                       child: Icon(
                         Icons.search,
-                        color: Color(0xFF800A12),
+                        color: Color(0xFF8B1E1E),
                         size: 20,
                       ),
                     ),
@@ -251,7 +251,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.lightbulb_outline, size: 18, color: Color(0xFF800A12)),
+                              const Icon(Icons.lightbulb_outline, size: 18, color: Color(0xFF8B1E1E)),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -259,7 +259,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                                   style: const TextStyle(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF800A12),
+                                    color: Color(0xFF8B1E1E),
                                   ),
                                 ),
                               ),
@@ -275,7 +275,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF800A12),
+                                    color: Color(0xFF8B1E1E),
                                     decoration: TextDecoration.underline,
                                   ),
                                 ),

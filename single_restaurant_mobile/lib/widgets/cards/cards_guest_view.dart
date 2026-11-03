@@ -39,7 +39,7 @@ class CardsGuestView extends StatelessWidget {
                   },
                   child: const Icon(
                     Icons.arrow_back,
-                    color: Color(0xFF800A12),
+                    color: Color(0xFF8B1E1E),
                     size: 20,
                   ),
                 ),
@@ -51,7 +51,7 @@ class CardsGuestView extends StatelessWidget {
         title: const Text(
           'Payment Methods',
           style: TextStyle(
-            color: Color(0xFF800A12),
+            color: Color(0xFF8B1E1E),
             fontWeight: FontWeight.w900,
             fontSize: 22,
             letterSpacing: -0.3,
@@ -233,11 +233,11 @@ class CardsGuestView extends StatelessWidget {
                               child: Container(
                                 height: isTall ? 54 : 48,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF800A12),
+                                  color: const Color(0xFF8B1E1E),
                                   borderRadius: BorderRadius.circular(28),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF800A12)
+                                      color: const Color(0xFF8B1E1E)
                                           .withValues(alpha: 0.35),
                                       blurRadius: 12,
                                       offset: const Offset(0, 4),
@@ -327,7 +327,7 @@ class CardsGuestView extends StatelessWidget {
             ),
             child: Icon(
               icon,
-              color: const Color(0xFF800A12),
+              color: const Color(0xFF8B1E1E),
               size: 22,
             ),
           ),

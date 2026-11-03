@@ -33,11 +33,11 @@ class LoginTabSwitcher extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 7),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF800A12),
+                  color: const Color(0xFF8B1E1E),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF800A12).withValues(alpha: 0.25),
+                      color: const Color(0xFF8B1E1E).withValues(alpha: 0.25),
                       blurRadius: 4,
                       offset: const Offset(0, 1.5),
                     ),

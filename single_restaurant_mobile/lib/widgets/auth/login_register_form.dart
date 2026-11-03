@@ -168,7 +168,7 @@ class _LoginRegisterFormState extends State<LoginRegisterForm> {
           ElevatedButton(
             onPressed: _isLoading ? null : _register,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF800A12),
+              backgroundColor: const Color(0xFF8B1E1E),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(

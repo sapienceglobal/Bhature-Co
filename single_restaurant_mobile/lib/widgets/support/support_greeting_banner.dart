@@ -50,7 +50,7 @@ class SupportGreetingBanner extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: 'serif',
-                          color: const Color(0xFF800A12),
+                          color: const Color(0xFF8B1E1E),
                           fontWeight: FontWeight.w900,
                           fontSize: isSmall ? 19 : 22,
                           letterSpacing: -0.3,

@@ -11,6 +11,7 @@ import 'package:single_restaurant_mobile/screens/orders_screen.dart';
 import 'package:single_restaurant_mobile/screens/profile_screen.dart';
 import 'package:single_restaurant_mobile/services/ota_update_service.dart';
 import 'package:single_restaurant_mobile/services/push_notification_service.dart';
+import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/theme/app_radius.dart';
 
 class MainScreen extends StatefulWidget {
@@ -136,7 +137,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         }
       },
       child: Scaffold(
-        backgroundColor: isOrdersGuest ? const Color(0xFF680D13) : null,
+        backgroundColor: isOrdersGuest ? AppColors.primaryDark : null,
         body: IndexedStack(
           index: _currentIndex,
           children: widget.tabs ??
@@ -155,10 +156,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               ],
         ),
         bottomNavigationBar: Container(
-          color: isOrdersGuest ? const Color(0xFF680D13) : Colors.transparent,
+          color: isOrdersGuest ? AppColors.primaryDark : Colors.transparent,
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF680D13),
+              color: AppColors.primaryDark,
             borderRadius: AppRadius.topXxl,
             boxShadow: [
               BoxShadow(
@@ -173,8 +174,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             child: BottomNavigationBar(
               type: BottomNavigationBarType.fixed,
               elevation: 0,
-              backgroundColor: const Color(0xFF680D13),
-              selectedItemColor: const Color(0xFFFFC107),
+              backgroundColor: AppColors.primaryDark,
+              selectedItemColor: AppColors.goldLight,
               unselectedItemColor: Colors.white70,
               selectedLabelStyle: const TextStyle(
                 fontWeight: FontWeight.bold,

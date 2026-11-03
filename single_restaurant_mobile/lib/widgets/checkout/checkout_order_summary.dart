@@ -62,7 +62,7 @@ class _CheckoutOrderSummaryState extends State<CheckoutOrderSummary> {
                       Text(
                         '${cart.items.length} Items',
                         style: const TextStyle(
-                          color: Color(0xFF7A0B10),
+                          color: Color(0xFF8B1E1E),
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -70,7 +70,7 @@ class _CheckoutOrderSummaryState extends State<CheckoutOrderSummary> {
                       const SizedBox(width: 4),
                       Icon(
                         _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                        color: const Color(0xFF7A0B10),
+                        color: const Color(0xFF8B1E1E),
                       ),
                     ],
                   ),
@@ -162,7 +162,7 @@ class _CheckoutOrderSummaryState extends State<CheckoutOrderSummary> {
                                   onTap: () => cart.updateQuantity(cart.items.indexOf(item), quantity - 1),
                                   child: const Padding(
                                     padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    child: Icon(Icons.remove, size: 16, color: Color(0xFF7A0B10)),
+                                    child: Icon(Icons.remove, size: 16, color: Color(0xFF8B1E1E)),
                                   ),
                                 ),
                                 Padding(
@@ -176,7 +176,7 @@ class _CheckoutOrderSummaryState extends State<CheckoutOrderSummary> {
                                   },
                                   child: const Padding(
                                     padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    child: Icon(Icons.add, size: 16, color: Color(0xFF7A0B10)),
+                                    child: Icon(Icons.add, size: 16, color: Color(0xFF8B1E1E)),
                                   ),
                                 ),
                               ],

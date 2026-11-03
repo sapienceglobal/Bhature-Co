@@ -51,7 +51,7 @@ class SecurityVerificationSheet extends StatelessWidget {
         width: double.infinity,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF800A12),
+            backgroundColor: const Color(0xFF8B1E1E),
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -155,7 +155,7 @@ class SecurityVerificationSheet extends StatelessWidget {
             // Feature 1: Zero Card Storage
             _buildSecurityCard(
               icon: Icons.credit_card_off_rounded,
-              iconColor: const Color(0xFF800A12),
+              iconColor: const Color(0xFF8B1E1E),
               iconBgColor: const Color(0xFFFDECEE),
               badgeText: 'PCI-DSS LEVEL 1',
               badgeColor: const Color(0xFF991B1B),

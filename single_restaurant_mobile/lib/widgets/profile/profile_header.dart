@@ -79,7 +79,7 @@ class ProfileHeader extends StatelessWidget {
                     child: const Icon(
                       Icons.edit,
                       size: 11,
-                      color: Color(0xFF7A0B10),
+                      color: Color(0xFF8B1E1E),
                     ),
                   ),
                 ),
@@ -169,13 +169,13 @@ class ProfileHeader extends StatelessWidget {
                           Icon(
                             Icons.add_call,
                             size: 11,
-                            color: Color(0xFF7A0B10),
+                            color: Color(0xFF8B1E1E),
                           ),
                           SizedBox(width: 4),
                           Text(
                             'Add Mobile',
                             style: TextStyle(
-                              color: Color(0xFF7A0B10),
+                              color: Color(0xFF8B1E1E),
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.1,
@@ -222,14 +222,14 @@ class ProfileHeader extends StatelessWidget {
                       Text(
                         'Edit Profile',
                         style: TextStyle(
-                          color: Color(0xFF7A0B10),
+                          color: Color(0xFF8B1E1E),
                           fontWeight: FontWeight.bold,
                           fontSize: 11.5,
                         ),
                       ),
                       SizedBox(width: 2),
                       Icon(Icons.chevron_right,
-                          color: Color(0xFF7A0B10), size: 14),
+                          color: Color(0xFF8B1E1E), size: 14),
                     ],
                   ),
                 ),

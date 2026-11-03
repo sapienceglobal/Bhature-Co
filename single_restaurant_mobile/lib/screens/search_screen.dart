@@ -152,7 +152,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final searchProvider = Provider.of<SearchProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFCF9F2),
+      backgroundColor: const Color(0xFFFAF3E8),
       body: SafeArea(
         child: ResponsiveCenter(
           maxWidth: AppResponsive.maxContentWidth,

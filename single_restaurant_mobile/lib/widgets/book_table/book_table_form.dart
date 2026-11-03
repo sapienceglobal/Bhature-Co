@@ -262,7 +262,7 @@ class BookTableForm extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.access_time_filled, size: 15, color: Color(0xFF7A0B10)),
+          const Icon(Icons.access_time_filled, size: 15, color: Color(0xFF8B1E1E)),
           const SizedBox(width: 8),
           Expanded(
             child: RichText(
@@ -273,11 +273,11 @@ class BookTableForm extends StatelessWidget {
                   TextSpan(text: '${schedule.openStr} – ${schedule.closeStr}  •  '),
                   const TextSpan(
                     text: 'Last: ',
-                    style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF7A0B10)),
+                    style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF8B1E1E)),
                   ),
                   TextSpan(
                     text: '${schedule.lastBookingStr} $tzAbbr',
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF7A0B10)),
+                    style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF8B1E1E)),
                   ),
                 ],
               ),

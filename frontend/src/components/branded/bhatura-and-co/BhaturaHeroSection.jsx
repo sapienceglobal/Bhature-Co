@@ -974,7 +974,7 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                 {orderMode === 'delivery' && addressError ? (
                   <p className="font-semibold text-red-600 flex items-center gap-1.5 text-xs animate-in fade-in duration-150">
                     <AlertCircle size={14} className="shrink-0 text-red-600" />
-                    <span>{addressError}</span>
+                    <span className="leading-snug">{addressError}</span>
                   </p>
                 ) : orderMode === 'delivery' && loadingEta ? (
                   <div className="w-full flex items-center gap-1.5 text-[#8B1E1E] font-semibold animate-in fade-in duration-150">
@@ -982,27 +982,27 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                     <span>Checking delivery availability &amp; ETA...</span>
                   </div>
                 ) : orderMode === 'delivery' && selectedAddressObj && eta.isOutOfRange ? (
-                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 animate-in fade-in duration-150">
-                    <div className="flex items-center gap-1.5 text-red-600 font-bold text-[11px] sm:text-xs uppercase tracking-wider">
-                      <span className="w-2 h-2 rounded-full bg-red-600 animate-ping inline-block shrink-0" />
-                      <span className="font-extrabold text-red-700">Out of delivery range</span>
-                      <span className="text-[#78716C] font-medium normal-case text-[11px]">
-                        • Too far for delivery
+                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 py-0.5 animate-in fade-in duration-150">
+                    <div className="flex items-start sm:items-center gap-1.5 text-red-600 font-bold text-xs">
+                      <span className="w-2 h-2 rounded-full bg-red-600 animate-ping inline-block shrink-0 mt-1 sm:mt-0" />
+                      <span className="leading-snug">
+                        <strong className="font-extrabold text-red-700 uppercase tracking-wide">Out of delivery range:</strong>{' '}
+                        <span className="text-stone-700 font-medium normal-case">Too far for delivery from our location</span>
                       </span>
                     </div>
-                    <div className="flex items-center gap-2.5 shrink-0 pl-3.5 sm:pl-0">
+                    <div className="flex items-center gap-3 shrink-0 pt-0.5 sm:pt-0 pl-3.5 sm:pl-0">
                       <button
                         type="button"
                         onClick={onOpenAddressModal}
-                        className="text-[11.5px] sm:text-[11px] text-[#4A090B] hover:text-[#D48228] font-bold uppercase tracking-wider underline cursor-pointer"
+                        className="text-xs text-[#8B1E1E] hover:text-[#5C0612] font-bold uppercase tracking-wider underline cursor-pointer"
                       >
-                        Change
+                        Change Address
                       </button>
                       <span className="text-stone-300">•</span>
                       <button
                         type="button"
                         onClick={() => handleModeSwitch('pickup')}
-                        className="text-[11.5px] sm:text-[11px] text-[#8B1E1E] hover:text-[#D48228] font-bold uppercase tracking-wider underline cursor-pointer"
+                        className="text-xs text-[#F26522] hover:text-[#D48228] font-bold uppercase tracking-wider underline cursor-pointer"
                       >
                         Switch to Pickup
                       </button>

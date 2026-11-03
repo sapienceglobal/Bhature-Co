@@ -10,40 +10,10 @@ class LoginBrandingHeader extends StatelessWidget {
   });
 
   Widget _buildLogo(bool isCompact) {
-    if (true) {
-      return Image.asset(
-        'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-        height: isCompact ? (isSignIn ? 64.0 : 52.0) : 92.0,
-        fit: BoxFit.contain,
-      );
-    }
-
-    final double targetHeight = isSignIn ? 64.0 : 50.0;
-    return SizedBox(
-      height: targetHeight,
-      child: FittedBox(
-        fit: BoxFit.contain,
-        alignment: Alignment.center,
-        child: ClipRect(
-          child: SizedBox(
-            width: 4400,
-            height: 2250,
-            child: OverflowBox(
-              minWidth: 0,
-              maxWidth: 4500,
-              minHeight: 0,
-              maxHeight: 4500,
-              alignment: Alignment.center,
-              child: Image.asset(
-                'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-                width: 4500,
-                height: 4500,
-                fit: BoxFit.fill,
-              ),
-            ),
-          ),
-        ),
-      ),
+    return Image.asset(
+      'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
+      height: isCompact ? (isSignIn ? 64.0 : 52.0) : 92.0,
+      fit: BoxFit.contain,
     );
   }
 

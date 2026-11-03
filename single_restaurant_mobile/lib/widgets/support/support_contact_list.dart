@@ -115,7 +115,7 @@ class SupportContactList extends StatelessWidget {
               child: _buildContactCard(
                 context: context,
                 icon: Icons.phone,
-                iconBgColor: const Color(0xFF800A12),
+                iconBgColor: const Color(0xFF8B1E1E),
                 title: 'Call Us',
                 isOnline: false,
                 valueText: displayPhone,
@@ -274,7 +274,7 @@ class SupportContactList extends StatelessWidget {
                     Text(
                       valueText,
                       style: const TextStyle(
-                        color: Color(0xFF800A12),
+                        color: Color(0xFF8B1E1E),
                         fontWeight: FontWeight.bold,
                         fontSize: 10.5,
                       ),
@@ -299,7 +299,7 @@ class SupportContactList extends StatelessWidget {
             const SizedBox(width: 2),
             const Icon(
               Icons.chevron_right,
-              color: Color(0xFF800A12),
+              color: Color(0xFF8B1E1E),
               size: 16,
             ),
           ],

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:single_restaurant_mobile/services/order_service.dart';
 import 'package:single_restaurant_mobile/services/coupon_service.dart';
 import 'package:single_restaurant_mobile/services/location_service.dart';
@@ -674,7 +673,7 @@ class CheckoutProvider with ChangeNotifier {
             allowsDelayedPaymentMethods: false,
             appearance: const PaymentSheetAppearance(
               colors: PaymentSheetAppearanceColors(
-                primary: Color(0xFF7A0B10), // Red
+                primary: Color(0xFF8B1E1E), // Red
               ),
             ),
           ),

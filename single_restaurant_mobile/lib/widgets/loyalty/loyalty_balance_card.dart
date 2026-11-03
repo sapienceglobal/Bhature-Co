@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 const _kMaroonGradient = [Color(0xFF6A0C0C), Color(0xFF4C0808)];
 const _kBadgeBg = Color(0xFFFCEBE8);
-const _kMaroon = Color(0xFF6E1111);
+const _kMaroon = Color(0xFF5C0612);
 
 class LoyaltyBalanceCard extends StatelessWidget {
   final int points;

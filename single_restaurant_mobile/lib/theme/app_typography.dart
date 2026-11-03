@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 
-/// Centralized typography scale for Lassi Lounge.
-/// Uses Inter for clean modern UI legibility and an optional serif
-/// accent font for signature culinary headlines.
+/// Centralized typography scale for Bhatura & Co.
+/// Uses Inter for clean modern UI legibility and signature warm styling.
 class AppTypography {
   static TextStyle get displayLarge => GoogleFonts.inter(
         fontSize: 32,
@@ -85,11 +84,11 @@ class AppTypography {
         color: AppColors.textLight,
       );
 
-  // Unified heading style matching HomeScreen font
+  // Unified heading style matching Bhatura & Co branding
   static TextStyle serifHeading({
     double fontSize = 22,
     FontWeight fontWeight = FontWeight.bold,
-    Color color = AppColors.secondary,
+    Color color = AppColors.primary,
     double height = 1.2,
   }) {
     return GoogleFonts.inter(

@@ -5,9 +5,9 @@ import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/theme/app_radius.dart';
 import 'package:single_restaurant_mobile/theme/app_typography.dart';
 
-/// Centralized application theme definition.
-/// Extends existing AppTheme with complete Material 3 color schemes,
-/// typography scale, and dark mode support while preserving brand identity.
+/// Centralized application theme definition for Bhatura & Co.
+/// Material 3 color schemes, typography scale, and dark mode support
+/// matching the Bhatura & Co authentic warm culinary aesthetic.
 class AppTheme {
   static ThemeData get lightTheme {
     final baseFont = GoogleFonts.inter().fontFamily;
@@ -23,7 +23,7 @@ class AppTheme {
         secondary: AppColors.secondary,
         surface: AppColors.surface,
         error: AppColors.error,
-        onPrimary: Colors.black,
+        onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: AppColors.textDark,
         onError: Colors.white,
@@ -67,9 +67,9 @@ class AppTheme {
         space: 1,
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: AppColors.secondary,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Colors.white60,
+        backgroundColor: AppColors.primaryDark,
+        selectedItemColor: AppColors.goldLight,
+        unselectedItemColor: Colors.white70,
         elevation: 8,
       ),
     );
@@ -89,7 +89,7 @@ class AppTheme {
         secondary: AppColors.secondary,
         surface: AppColors.darkSurface,
         error: AppColors.error,
-        onPrimary: Colors.black,
+        onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: AppColors.darkTextPrimary,
         onError: Colors.white,
@@ -121,8 +121,8 @@ class AppTheme {
         space: 1,
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: Color(0xFF1A1A1A),
-        selectedItemColor: AppColors.primary,
+        backgroundColor: Color(0xFF1A0D07),
+        selectedItemColor: AppColors.goldLight,
         unselectedItemColor: Colors.white60,
         elevation: 8,
       ),

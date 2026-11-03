@@ -132,11 +132,11 @@ class _CartScreenState extends State<CartScreen> {
                 ? const SizedBox.shrink()
                 : TextButton.icon(
                     onPressed: () => cart.clearCart(),
-                    icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF7A0B10)),
+                    icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF8B1E1E)),
                     label: const Text(
                       'Clear Cart',
                       style: TextStyle(
-                        color: Color(0xFF7A0B10),
+                        color: Color(0xFF8B1E1E),
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),

@@ -10,7 +10,7 @@ class AuthInputHelper {
         color: const Color(0xFFFFF2F0),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Icon(icon, color: const Color(0xFF800A12), size: 17),
+      child: Icon(icon, color: const Color(0xFF8B1E1E), size: 17),
     );
   }
 
@@ -33,7 +33,7 @@ class AuthInputHelper {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF800A12), width: 1.2),
+        borderSide: const BorderSide(color: Color(0xFF8B1E1E), width: 1.2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

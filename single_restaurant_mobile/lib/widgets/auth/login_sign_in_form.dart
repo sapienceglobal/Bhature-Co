@@ -137,12 +137,12 @@ class LoginSignInForm extends StatelessWidget {
                       height: 17,
                       decoration: BoxDecoration(
                         color: rememberMe
-                            ? const Color(0xFF800A12)
+                            ? const Color(0xFF8B1E1E)
                             : Colors.white,
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(
                           color: rememberMe
-                              ? const Color(0xFF800A12)
+                              ? const Color(0xFF8B1E1E)
                               : const Color(0xFFD1D5DB),
                           width: 1.5,
                         ),
@@ -172,7 +172,7 @@ class LoginSignInForm extends StatelessWidget {
                 child: const Text(
                   'Forgot Password?',
                   style: TextStyle(
-                    color: Color(0xFF800A12),
+                    color: Color(0xFF8B1E1E),
                     fontWeight: FontWeight.w600,
                     fontSize: 12.0,
                   ),
@@ -184,7 +184,7 @@ class LoginSignInForm extends StatelessWidget {
           ElevatedButton(
             onPressed: isLoading ? null : onLogin,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF800A12),
+              backgroundColor: const Color(0xFF8B1E1E),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(

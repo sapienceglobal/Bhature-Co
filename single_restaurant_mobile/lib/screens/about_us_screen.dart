@@ -45,7 +45,7 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFCF9F2),
+      backgroundColor: const Color(0xFFFAF3E8),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,

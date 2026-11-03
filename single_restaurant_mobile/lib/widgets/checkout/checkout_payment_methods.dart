@@ -94,7 +94,7 @@ class CheckoutPaymentMethods extends StatelessWidget {
                     child: const Text(
                       'Remove',
                       style: TextStyle(
-                        color: Color(0xFF7A0B10),
+                        color: Color(0xFF8B1E1E),
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),
@@ -131,7 +131,7 @@ class CheckoutPaymentMethods extends StatelessWidget {
           children: [
             SizedBox(
               width: 32,
-              child: Icon(icon, color: isSelected ? const Color(0xFF7A0B10) : Colors.grey.shade600),
+              child: Icon(icon, color: isSelected ? const Color(0xFF8B1E1E) : Colors.grey.shade600),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -171,7 +171,7 @@ class CheckoutPaymentMethods extends StatelessWidget {
             ),
             Icon(
               isSelected ? Icons.check_circle : Icons.circle_outlined,
-              color: isSelected ? const Color(0xFF7A0B10) : Colors.grey.shade400,
+              color: isSelected ? const Color(0xFF8B1E1E) : Colors.grey.shade400,
             ),
           ],
         ),

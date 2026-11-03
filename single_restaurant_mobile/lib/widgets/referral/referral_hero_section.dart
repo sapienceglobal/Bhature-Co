@@ -182,7 +182,7 @@ class ReferralHeroSection extends StatelessWidget {
                         TextSpan(
                           text: '\$$discountStr OFF',
                           style: const TextStyle(
-                            color: Color(0xFF800A12),
+                            color: Color(0xFF8B1E1E),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -192,7 +192,7 @@ class ReferralHeroSection extends StatelessWidget {
                         TextSpan(
                           text: '\$$rewardStr in loyalty rewards',
                           style: const TextStyle(
-                            color: Color(0xFF800A12),
+                            color: Color(0xFF8B1E1E),
                             fontWeight: FontWeight.bold,
                           ),
                         ),

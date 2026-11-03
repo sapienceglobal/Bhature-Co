@@ -192,7 +192,7 @@ class ProfileMenuList extends StatelessWidget {
           color: Color(0xFFFDF1EF),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: const Color(0xFF680D13), size: 20),
+        child: Icon(icon, color: const Color(0xFF5C0612), size: 20),
       ),
       title: Text(
         title,

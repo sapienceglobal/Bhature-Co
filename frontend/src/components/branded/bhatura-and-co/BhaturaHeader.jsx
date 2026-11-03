@@ -118,7 +118,14 @@ export default function BhaturaHeader({ onOpenAddressModal }) {
 
       {/* APK-Style Mobile Floating View Cart Bar (Only on <md when cart has items) */}
       {cartCount > 0 && !isCartOpen && !pathname?.startsWith('/checkout') && (
-        <div className="md:hidden fixed inset-x-3 z-[90] pointer-events-none" style={{ bottom: 'calc(max(8px, env(safe-area-inset-bottom, 8px)) + 64px)' }}>
+        <div
+          className="md:hidden fixed inset-x-3 z-[90] pointer-events-none"
+          style={{
+            bottom: 'calc(max(10px, env(safe-area-inset-bottom, 10px)) + 60px)',
+            transform: 'translateZ(0)',
+            WebkitTransform: 'translateZ(0)',
+          }}
+        >
           <button
             type="button"
             onClick={() => openCart?.()}
@@ -149,48 +156,50 @@ export default function BhaturaHeader({ onOpenAddressModal }) {
           Order: 1. Home | 2. Menu | 3. Order Online (Center) | 4. Book Table | 5. Contact Us */}
       <nav
         aria-label="Mobile Navigation"
-        className="md:hidden fixed bottom-0 inset-x-0 z-[95] bg-[#FCF3E8] border-t border-[#E5D4C0] shadow-[0_-4px_25px_rgba(60,10,10,0.12)] px-1 pt-1.5 flex items-center justify-around"
+        className="md:hidden fixed bottom-0 inset-x-0 z-[95] bg-[#FCF3E8] border-t border-[#E5D4C0] shadow-[0_-4px_25px_rgba(60,10,10,0.12)] px-1 pt-1.5 flex items-center justify-around select-none"
         style={{
           backgroundColor: '#FCF3E8',
-          paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))',
+          paddingBottom: 'max(10px, env(safe-area-inset-bottom, 10px))',
+          transform: 'translateZ(0)',
+          WebkitTransform: 'translateZ(0)',
         }}
       >
         <Link
           href="/"
-          className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-xl transition-colors ${
-            pathname === '/' ? 'text-[#C0262D]' : 'text-[#57534E] hover:text-[#C0262D]'
+          className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-xl transition-colors shrink-0 ${
+            pathname === '/' ? 'text-[#8B1E1E]' : 'text-[#57534E] hover:text-[#8B1E1E]'
           }`}
         >
           <Home size={20} strokeWidth={pathname === '/' ? 2.4 : 1.8} />
-          <span className="text-[10px] font-bold mt-0.5 leading-none">Home</span>
+          <span className="text-[10.5px] font-bold mt-0.5 leading-none">Home</span>
         </Link>
 
         <Link
           href="/menu"
-          className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-xl transition-colors ${
-            pathname?.startsWith('/menu') ? 'text-[#C0262D]' : 'text-[#57534E] hover:text-[#C0262D]'
+          className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-xl transition-colors shrink-0 ${
+            pathname?.startsWith('/menu') ? 'text-[#8B1E1E]' : 'text-[#57534E] hover:text-[#8B1E1E]'
           }`}
         >
           <UtensilsCrossed size={20} strokeWidth={pathname?.startsWith('/menu') ? 2.4 : 1.8} />
-          <span className="text-[10px] font-bold mt-0.5 leading-none">Menu</span>
+          <span className="text-[10.5px] font-bold mt-0.5 leading-none">Menu</span>
         </Link>
 
         <Link
           href="/order-online"
-          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-colors ${
-            pathname?.startsWith('/order-online') ? 'text-[#C0262D]' : 'text-[#57534E] hover:text-[#C0262D]'
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-colors shrink-0 ${
+            pathname?.startsWith('/order-online') ? 'text-[#8B1E1E]' : 'text-[#57534E] hover:text-[#8B1E1E]'
           }`}
         >
           <Bike size={21} strokeWidth={pathname?.startsWith('/order-online') ? 2.4 : 1.8} />
-          <span className="text-[10px] font-bold mt-0.5 leading-none">Order Online</span>
+          <span className="text-[10.5px] font-bold mt-0.5 leading-none">Order Online</span>
         </Link>
 
         <Link
           href="/book-a-table"
-          className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-xl transition-colors ${
+          className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-xl transition-colors shrink-0 ${
             pathname?.startsWith('/book-a-table') || pathname?.startsWith('/book-table')
-              ? 'text-[#C0262D]'
-              : 'text-[#57534E] hover:text-[#C0262D]'
+              ? 'text-[#8B1E1E]'
+              : 'text-[#57534E] hover:text-[#8B1E1E]'
           }`}
         >
           <CalendarDays
@@ -199,17 +208,17 @@ export default function BhaturaHeader({ onOpenAddressModal }) {
               pathname?.startsWith('/book-a-table') || pathname?.startsWith('/book-table') ? 2.4 : 1.8
             }
           />
-          <span className="text-[10px] font-bold mt-0.5 leading-none">Book Table</span>
+          <span className="text-[10.5px] font-bold mt-0.5 leading-none">Book Table</span>
         </Link>
 
         <Link
           href="/contact-us"
-          className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-xl transition-colors ${
-            pathname?.startsWith('/contact') ? 'text-[#C0262D]' : 'text-[#57534E] hover:text-[#C0262D]'
+          className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-xl transition-colors shrink-0 ${
+            pathname?.startsWith('/contact') ? 'text-[#8B1E1E]' : 'text-[#57534E] hover:text-[#8B1E1E]'
           }`}
         >
           <PhoneCall size={20} strokeWidth={pathname?.startsWith('/contact') ? 2.4 : 1.8} />
-          <span className="text-[10px] font-bold mt-0.5 leading-none">Contact Us</span>
+          <span className="text-[10.5px] font-bold mt-0.5 leading-none">Contact Us</span>
         </Link>
       </nav>
     </>

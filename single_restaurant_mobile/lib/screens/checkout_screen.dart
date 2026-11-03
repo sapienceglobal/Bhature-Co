@@ -111,13 +111,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     if (auth.user == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFFCF9F2),
+        backgroundColor: const Color(0xFFFAF3E8),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF7A0B10)),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF8B1E1E)),
             onPressed: () => Navigator.pop(context),
           ),
           title: const Text('Checkout', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
@@ -144,13 +144,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final int pointsEarned = (loyaltyEnabled && total > 0) ? (total * pointsPerDollar).floor() : 0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFCF9F2),
+      backgroundColor: const Color(0xFFFAF3E8),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF7A0B10)),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF8B1E1E)),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Checkout', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
@@ -165,14 +165,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFF7A0B10)),
+                    border: Border.all(color: const Color(0xFF8B1E1E)),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     children: const [
-                      Icon(Icons.headset_mic_outlined, color: Color(0xFF7A0B10), size: 16),
+                      Icon(Icons.headset_mic_outlined, color: Color(0xFF8B1E1E), size: 16),
                       SizedBox(width: 4),
-                      Text('Support', style: TextStyle(color: Color(0xFF7A0B10), fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text('Support', style: TextStyle(color: Color(0xFF8B1E1E), fontSize: 12, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),

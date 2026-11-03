@@ -31,7 +31,7 @@ class CheckoutBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF7A0B10),
+        color: const Color(0xFF8B1E1E),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.15),
@@ -87,12 +87,12 @@ class CheckoutBottomBar extends StatelessWidget {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.stars_rounded, size: 13, color: Color(0xFFFDB714)),
+                                const Icon(Icons.stars_rounded, size: 13, color: Color(0xFFF5B53D)),
                                 const SizedBox(width: 4),
                                 Text(
                                   '+$pointsEarned pts on delivery',
                                   style: const TextStyle(
-                                    color: Color(0xFFFDB714),
+                                    color: Color(0xFFF5B53D),
                                     fontWeight: FontWeight.w700,
                                     fontSize: 11,
                                     letterSpacing: 0.1,
@@ -111,11 +111,11 @@ class CheckoutBottomBar extends StatelessWidget {
                             (isPlacingOrder || !canProceed) ? null : onPlaceOrder,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF7A0B10),
+                          foregroundColor: const Color(0xFF8B1E1E),
                           disabledBackgroundColor:
                               Colors.white.withValues(alpha: 0.6),
                           disabledForegroundColor:
-                              const Color(0xFF7A0B10).withValues(alpha: 0.6),
+                              const Color(0xFF8B1E1E).withValues(alpha: 0.6),
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(
                             vertical: 13,
@@ -135,7 +135,7 @@ class CheckoutBottomBar extends StatelessWidget {
                                       width: 18,
                                       height: 18,
                                       child: CircularProgressIndicator(
-                                        color: Color(0xFF7A0B10),
+                                        color: Color(0xFF8B1E1E),
                                         strokeWidth: 2.5,
                                       ),
                                     ),
@@ -143,7 +143,7 @@ class CheckoutBottomBar extends StatelessWidget {
                                     Text(
                                       'Processing...',
                                       style: TextStyle(
-                                        color: Color(0xFF7A0B10),
+                                        color: Color(0xFF8B1E1E),
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
@@ -157,13 +157,13 @@ class CheckoutBottomBar extends StatelessWidget {
                                         Icon(
                                           Icons.phone_outlined,
                                           size: 16,
-                                          color: Color(0xFF7A0B10),
+                                          color: Color(0xFF8B1E1E),
                                         ),
                                         SizedBox(width: 6),
                                         Text(
                                           'Add Phone to Order',
                                           style: TextStyle(
-                                            color: Color(0xFF7A0B10),
+                                            color: Color(0xFF8B1E1E),
                                             fontWeight: FontWeight.bold,
                                             fontSize: 13,
                                           ),
@@ -176,13 +176,13 @@ class CheckoutBottomBar extends StatelessWidget {
                                         Icon(
                                           Icons.lock_outline,
                                           size: 17,
-                                          color: Color(0xFF7A0B10),
+                                          color: Color(0xFF8B1E1E),
                                         ),
                                         SizedBox(width: 6),
                                         Text(
                                           'Place Order',
                                           style: TextStyle(
-                                            color: Color(0xFF7A0B10),
+                                            color: Color(0xFF8B1E1E),
                                             fontWeight: FontWeight.bold,
                                             fontSize: 15,
                                             letterSpacing: 0.3,
@@ -192,7 +192,7 @@ class CheckoutBottomBar extends StatelessWidget {
                                         Icon(
                                           Icons.arrow_forward,
                                           size: 17,
-                                          color: Color(0xFF7A0B10),
+                                          color: Color(0xFF8B1E1E),
                                         ),
                                       ],
                                     ),

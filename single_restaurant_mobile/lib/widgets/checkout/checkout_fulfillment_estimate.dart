@@ -41,7 +41,7 @@ class CheckoutFulfillmentEstimate extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.access_time, color: Color(0xFF7A0B10)),
+          const Icon(Icons.access_time, color: Color(0xFF8B1E1E)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -55,7 +55,7 @@ class CheckoutFulfillmentEstimate extends StatelessWidget {
                 Text(
                   etaText,
                   style: const TextStyle(
-                    color: Color(0xFF7A0B10),
+                    color: Color(0xFF8B1E1E),
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -66,14 +66,14 @@ class CheckoutFulfillmentEstimate extends StatelessWidget {
           OutlinedButton(
             onPressed: onChange,
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFF7A0B10)),
+              side: const BorderSide(color: Color(0xFF8B1E1E)),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               minimumSize: const Size(0, 36),
             ),
             child: const Text(
               'Change',
-              style: TextStyle(color: Color(0xFF7A0B10), fontWeight: FontWeight.bold),
+              style: TextStyle(color: Color(0xFF8B1E1E), fontWeight: FontWeight.bold),
             ),
           ),
         ],

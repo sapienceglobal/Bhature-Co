@@ -45,7 +45,7 @@ class CartPickupLocation extends StatelessWidget {
               ),
               child: const Icon(
                 Icons.storefront_outlined,
-                color: Color(0xFF7A0B10),
+                color: Color(0xFF8B1E1E),
                 size: 24,
               ),
             ),

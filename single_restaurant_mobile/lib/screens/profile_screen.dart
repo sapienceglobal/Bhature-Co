@@ -73,7 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFCF9F2),
+      backgroundColor: const Color(0xFFFAF3E8),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -88,7 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (Navigator.canPop(context)) ...[
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.arrow_back, color: Color(0xFF680D13)),
+                  child: const Icon(Icons.arrow_back, color: Color(0xFF5C0612)),
                 ),
                 const SizedBox(width: 6),
               ],
@@ -246,10 +246,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         child: const Row(
           children: [
-            Icon(Icons.logout, color: Color(0xFF7A0B10), size: 22),
+            Icon(Icons.logout, color: Color(0xFF8B1E1E), size: 22),
             SizedBox(width: 16),
-            Expanded(child: Text('Logout', style: TextStyle(color: Color(0xFF7A0B10), fontWeight: FontWeight.bold, fontSize: 16))),
-            Icon(Icons.chevron_right, color: Color(0xFF7A0B10), size: 20),
+            Expanded(child: Text('Logout', style: TextStyle(color: Color(0xFF8B1E1E), fontWeight: FontWeight.bold, fontSize: 16))),
+            Icon(Icons.chevron_right, color: Color(0xFF8B1E1E), size: 20),
           ],
         ),
       ),

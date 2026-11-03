@@ -68,7 +68,7 @@ class SupportPopularTopics extends StatelessWidget {
                     Text(
                       'View All',
                       style: TextStyle(
-                        color: Color(0xFF800A12),
+                        color: Color(0xFF8B1E1E),
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
@@ -76,7 +76,7 @@ class SupportPopularTopics extends StatelessWidget {
                     SizedBox(width: 2),
                     Icon(
                       Icons.chevron_right,
-                      color: Color(0xFF800A12),
+                      color: Color(0xFF8B1E1E),
                       size: 16,
                     ),
                   ],
@@ -177,7 +177,7 @@ class SupportPopularTopics extends StatelessWidget {
               ),
               child: Icon(
                 icon,
-                color: const Color(0xFF800A12),
+                color: const Color(0xFF8B1E1E),
                 size: 20,
               ),
             ),
@@ -203,7 +203,7 @@ class SupportPopularTopics extends StatelessWidget {
               child: const Icon(
                 Icons.chevron_right,
                 size: 13,
-                color: Color(0xFF800A12),
+                color: Color(0xFF8B1E1E),
               ),
             ),
           ],
@@ -242,11 +242,11 @@ class SupportPopularTopics extends StatelessWidget {
           color: Color(0xFFFDECEE),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: const Color(0xFF800A12), size: 20),
+        child: Icon(icon, color: const Color(0xFF8B1E1E), size: 20),
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
       subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-      trailing: const Icon(Icons.chevron_right, color: Color(0xFF800A12), size: 18),
+      trailing: const Icon(Icons.chevron_right, color: Color(0xFF8B1E1E), size: 18),
       onTap: () {
         if (Navigator.canPop(context)) {
           Navigator.pop(context);
@@ -368,7 +368,7 @@ class _TopicFaqSheetContentState extends State<TopicFaqSheetContent> {
                               ),
                               child: Icon(
                                 faq.icon,
-                                color: const Color(0xFF800A12),
+                                color: const Color(0xFF8B1E1E),
                                 size: 18,
                               ),
                             ),
@@ -380,14 +380,14 @@ class _TopicFaqSheetContentState extends State<TopicFaqSheetContent> {
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13.5,
                                   color: isExpanded
-                                      ? const Color(0xFF800A12)
+                                      ? const Color(0xFF8B1E1E)
                                       : const Color(0xFF1F2937),
                                 ),
                               ),
                             ),
                             Icon(
                               isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                              color: const Color(0xFF800A12),
+                              color: const Color(0xFF8B1E1E),
                               size: 20,
                             ),
                           ],
@@ -427,8 +427,8 @@ class _TopicFaqSheetContentState extends State<TopicFaqSheetContent> {
                                       icon: const Icon(Icons.arrow_forward, size: 14),
                                       label: Text(faq.actionLabel!),
                                       style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(0xFF800A12),
-                                        side: const BorderSide(color: Color(0xFF800A12)),
+                                        foregroundColor: const Color(0xFF8B1E1E),
+                                        side: const BorderSide(color: Color(0xFF8B1E1E)),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(10),
                                         ),
@@ -465,7 +465,7 @@ class _TopicFaqSheetContentState extends State<TopicFaqSheetContent> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.support_agent, color: Color(0xFF800A12), size: 22),
+                const Icon(Icons.support_agent, color: Color(0xFF8B1E1E), size: 22),
                 const SizedBox(width: 10),
                 const Expanded(
                   child: Text(
@@ -482,7 +482,7 @@ class _TopicFaqSheetContentState extends State<TopicFaqSheetContent> {
                     SupportActions.makePhoneCall(context, widget.phone);
                   },
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF800A12),
+                    foregroundColor: const Color(0xFF8B1E1E),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   ),
                   child: const Text('Call Us', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),

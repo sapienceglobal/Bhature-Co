@@ -256,7 +256,7 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF6E1111), Color(0xFF430805)],
+          colors: [Color(0xFF5C0612), Color(0xFF5C0612)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

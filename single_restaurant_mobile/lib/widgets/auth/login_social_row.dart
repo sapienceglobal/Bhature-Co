@@ -115,7 +115,7 @@ class _SocialTile extends StatelessWidget {
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Color(0xFF800A12),
+                        color: Color(0xFF8B1E1E),
                       ),
                     ),
                   )

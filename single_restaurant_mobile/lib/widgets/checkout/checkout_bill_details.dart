@@ -160,7 +160,7 @@ class CheckoutBillDetails extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 child: Text(
                   Formatters.formatCurrency(total, restaurant?['currency']),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF7A0B10)),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF8B1E1E)),
                 ),
               ),
             ],
@@ -318,7 +318,7 @@ class CheckoutBillDetails extends StatelessWidget {
                         child: const Center(
                           child: Icon(
                             Icons.card_giftcard_rounded,
-                            color: Color(0xFF7A0B10),
+                            color: Color(0xFF8B1E1E),
                             size: 20,
                           ),
                         ),
@@ -334,7 +334,7 @@ class CheckoutBillDetails extends StatelessWidget {
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.6,
-                                color: Color(0xFF7A0B10),
+                                color: Color(0xFF8B1E1E),
                               ),
                             ),
                             const SizedBox(height: 3),
@@ -351,7 +351,7 @@ class CheckoutBillDetails extends StatelessWidget {
                                   TextSpan(
                                     text: '$pointsToEarn Points',
                                     style: const TextStyle(
-                                      color: Color(0xFF7A0B10),
+                                      color: Color(0xFF8B1E1E),
                                       fontWeight: FontWeight.w900,
                                     ),
                                   ),

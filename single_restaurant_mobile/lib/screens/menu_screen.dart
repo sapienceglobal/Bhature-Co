@@ -138,7 +138,7 @@ class _MenuScreenState extends State<MenuScreen> {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFCF9F2),
+      backgroundColor: const Color(0xFFFAF3E8),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

@@ -148,7 +148,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           'Edit Profile',
                           style: TextStyle(
                             fontFamily: 'serif',
-                            color: Color(0xFF6E1111),
+                            color: Color(0xFF5C0612),
                             fontWeight: FontWeight.bold,
                             fontSize: 24,
                           ),

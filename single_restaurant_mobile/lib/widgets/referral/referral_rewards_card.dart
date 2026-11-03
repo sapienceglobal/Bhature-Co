@@ -163,7 +163,7 @@ class ReferralRewardsCard extends StatelessWidget {
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) => const Icon(
               Icons.card_giftcard,
-              color: Color(0xFF800A12),
+              color: Color(0xFF8B1E1E),
               size: 44,
             ),
           ),

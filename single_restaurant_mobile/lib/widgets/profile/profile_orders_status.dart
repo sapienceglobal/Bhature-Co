@@ -62,13 +62,13 @@ class ProfileOrdersStatus extends StatelessWidget {
                   Text(
                     'View All Orders',
                     style: TextStyle(
-                      color: Color(0xFF7A0B10),
+                      color: Color(0xFF8B1E1E),
                       fontWeight: FontWeight.bold,
                       fontSize: 12.5,
                     ),
                   ),
                   SizedBox(width: 3),
-                  Icon(Icons.chevron_right, color: Color(0xFF7A0B10), size: 16),
+                  Icon(Icons.chevron_right, color: Color(0xFF8B1E1E), size: 16),
                 ],
               ),
             ),

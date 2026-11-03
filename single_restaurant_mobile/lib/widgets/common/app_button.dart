@@ -4,10 +4,10 @@ import 'package:single_restaurant_mobile/theme/app_radius.dart';
 import 'package:single_restaurant_mobile/theme/app_spacing.dart';
 
 enum AppButtonVariant {
-  primary, // Yellow #FDB714 with black text
-  secondary, // Dark Maroon #430805 with white text
-  accent, // Burgundy #7A0B10 with white text
-  outlined, // Transparent with border
+  primary, // Signature Crimson #8B1E1E with white text
+  secondary, // Saffron Orange #F26522 with white text
+  accent, // Warm Amber Gold #F5B53D with dark text
+  outlined, // Transparent with crimson border
   ghost, // Text button with subtle ripple
   destructive, // Error Red #DC2626
 }
@@ -19,7 +19,7 @@ enum AppButtonSize {
 }
 
 /// Standardized high-performance button widget with variants, sizes,
-/// loading spinner, tap ripple feedback, and full-width toggle.
+/// loading spinner, tap ripple feedback, and full-width toggle for Bhatura & Co.
 class AppButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
@@ -54,15 +54,15 @@ class AppButton extends StatelessWidget {
     switch (variant) {
       case AppButtonVariant.primary:
         backgroundColor = isEnabled ? AppColors.primary : Colors.grey.shade300;
-        foregroundColor = isEnabled ? Colors.black : Colors.grey.shade600;
+        foregroundColor = isEnabled ? Colors.white : Colors.grey.shade600;
         break;
       case AppButtonVariant.secondary:
         backgroundColor = isEnabled ? AppColors.secondary : Colors.grey.shade300;
         foregroundColor = isEnabled ? Colors.white : Colors.grey.shade600;
         break;
       case AppButtonVariant.accent:
-        backgroundColor = isEnabled ? AppColors.accent : Colors.grey.shade300;
-        foregroundColor = isEnabled ? Colors.white : Colors.grey.shade600;
+        backgroundColor = isEnabled ? AppColors.goldLight : Colors.grey.shade300;
+        foregroundColor = isEnabled ? AppColors.textDark : Colors.grey.shade600;
         break;
       case AppButtonVariant.destructive:
         backgroundColor = isEnabled ? AppColors.error : Colors.grey.shade300;
@@ -70,15 +70,15 @@ class AppButton extends StatelessWidget {
         break;
       case AppButtonVariant.outlined:
         backgroundColor = Colors.transparent;
-        foregroundColor = isEnabled ? AppColors.textDark : Colors.grey.shade400;
+        foregroundColor = isEnabled ? AppColors.primary : Colors.grey.shade400;
         borderSide = BorderSide(
-          color: isEnabled ? AppColors.border : Colors.grey.shade300,
+          color: isEnabled ? AppColors.primary : Colors.grey.shade300,
           width: 1.5,
         );
         break;
       case AppButtonVariant.ghost:
         backgroundColor = Colors.transparent;
-        foregroundColor = isEnabled ? AppColors.accent : Colors.grey.shade400;
+        foregroundColor = isEnabled ? AppColors.primary : Colors.grey.shade400;
         break;
     }
 

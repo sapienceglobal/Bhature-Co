@@ -24,8 +24,8 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> {
 
   static const List<Map<String, String>> _slides = [
     {
-      'tag': 'Authentic',
-      'title': 'INDIAN\nFLAVORS',
+      'tag': 'Signature Dish',
+      'title': 'AMRITSARI\\nCHOLE BHATURE',
       'subtitle': 'Delicious food, delivered\nhot and fresh to your doorstep!',
       'cta': 'ORDER NOW',
       'image': 'assets/images/branded/lassi-lounge/hero-curry.jpg',
@@ -171,7 +171,7 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> {
                             Text(
                               slide['title']!,
                               style: const TextStyle(
-                                color: Color(0xFFF5B027),
+                                color: Color(0xFFF5B53D),
                                 fontSize: 27,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 0.5,
@@ -200,8 +200,8 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> {
                                 }
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFF7B928),
-                                foregroundColor: Colors.black,
+                                backgroundColor: const Color(0xFF8B1E1E),
+                                foregroundColor: Colors.white,
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(22),
@@ -258,9 +258,7 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> {
                         width: isActive ? 9 : 6,
                         height: isActive ? 9 : 6,
                         decoration: BoxDecoration(
-                          color: isActive
-                              ? const Color(0xFFB71C1C)
-                              : Colors.white.withValues(alpha: 0.65),
+                          color: isActive ? const Color(0xFFF5B53D) : Colors.white.withValues(alpha: 0.65),
                           shape: BoxShape.circle,
                         ),
                       ),

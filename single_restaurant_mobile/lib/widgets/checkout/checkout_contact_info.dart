@@ -115,7 +115,7 @@ class CheckoutContactInfo extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: isEditingContact ? Colors.grey.shade700 : const Color(0xFF7A0B10),
+                          color: isEditingContact ? Colors.grey.shade700 : const Color(0xFF8B1E1E),
                         ),
                       ),
                     ),

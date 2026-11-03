@@ -101,7 +101,7 @@ class ToastUtils {
       title: Text(message, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
       alignment: Alignment.topCenter,
       autoCloseDuration: const Duration(seconds: 3),
-      primaryColor: const Color(0xFF7A0B10), // Brand Primary
+      primaryColor: const Color(0xFF8B1E1E), // Brand Primary
       backgroundColor: Colors.white,
       foregroundColor: Colors.black87,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

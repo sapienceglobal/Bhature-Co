@@ -93,7 +93,7 @@ class _SupportFaqListState extends State<SupportFaqList> {
                       Text(
                         _showAll ? 'Show Less' : 'View All (${filteredFaqs.length})',
                         style: const TextStyle(
-                          color: Color(0xFF800A12),
+                          color: Color(0xFF8B1E1E),
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
@@ -101,7 +101,7 @@ class _SupportFaqListState extends State<SupportFaqList> {
                       const SizedBox(width: 2),
                       Icon(
                         _showAll ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                        color: const Color(0xFF800A12),
+                        color: const Color(0xFF8B1E1E),
                         size: 16,
                       ),
                     ],
@@ -148,7 +148,7 @@ class _SupportFaqListState extends State<SupportFaqList> {
                       icon: const Icon(Icons.phone, size: 16),
                       label: const Text('Call Us'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF800A12),
+                        backgroundColor: const Color(0xFF8B1E1E),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -239,7 +239,7 @@ class _SupportFaqListState extends State<SupportFaqList> {
                                   ),
                                   child: Icon(
                                     faq.icon,
-                                    color: const Color(0xFF800A12),
+                                    color: const Color(0xFF8B1E1E),
                                     size: 18,
                                   ),
                                 ),
@@ -254,7 +254,7 @@ class _SupportFaqListState extends State<SupportFaqList> {
                                           fontWeight: FontWeight.w600,
                                           fontSize: 13,
                                           color: isExpanded
-                                              ? const Color(0xFF800A12)
+                                              ? const Color(0xFF8B1E1E)
                                               : const Color(0xFF1F2937),
                                         ),
                                       ),
@@ -272,7 +272,7 @@ class _SupportFaqListState extends State<SupportFaqList> {
                                 ),
                                 Icon(
                                   isExpanded ? Icons.keyboard_arrow_up : Icons.chevron_right,
-                                  color: const Color(0xFF800A12),
+                                  color: const Color(0xFF8B1E1E),
                                   size: 18,
                                 ),
                               ],
@@ -308,8 +308,8 @@ class _SupportFaqListState extends State<SupportFaqList> {
                                             icon: const Icon(Icons.arrow_forward, size: 13),
                                             label: Text(faq.actionLabel!),
                                             style: OutlinedButton.styleFrom(
-                                              foregroundColor: const Color(0xFF800A12),
-                                              side: const BorderSide(color: Color(0xFF800A12)),
+                                              foregroundColor: const Color(0xFF8B1E1E),
+                                              side: const BorderSide(color: Color(0xFF8B1E1E)),
                                               shape: RoundedRectangleBorder(
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
@@ -401,7 +401,7 @@ class _SupportFaqListState extends State<SupportFaqList> {
                                 ? 'Show Less'
                                 : 'View All FAQs (${filteredFaqs.length})',
                             style: const TextStyle(
-                              color: Color(0xFF800A12),
+                              color: Color(0xFF8B1E1E),
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
                             ),
@@ -409,7 +409,7 @@ class _SupportFaqListState extends State<SupportFaqList> {
                           const SizedBox(width: 4),
                           Icon(
                             _showAll ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                            color: const Color(0xFF800A12),
+                            color: const Color(0xFF8B1E1E),
                             size: 18,
                           ),
                         ],

@@ -20,7 +20,7 @@ class GuestLoginCard extends StatelessWidget {
         color: isLoading ? const Color(0xFFFFF0EC) : const Color(0xFFFFF7F5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isLoading ? const Color(0xFF800A12) : const Color(0xFFF3CBC4),
+          color: isLoading ? const Color(0xFF8B1E1E) : const Color(0xFFF3CBC4),
           width: 1.2,
         ),
       ),
@@ -30,14 +30,14 @@ class GuestLoginCard extends StatelessWidget {
         child: InkWell(
           onTap: isLoading ? null : onTap,
           borderRadius: BorderRadius.circular(16),
-          splashColor: const Color(0xFF800A12).withValues(alpha: 0.1),
+          splashColor: const Color(0xFF8B1E1E).withValues(alpha: 0.1),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
             child: Row(
               children: [
                 const Icon(
                   Icons.person,
-                  color: Color(0xFF800A12),
+                  color: Color(0xFF8B1E1E),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -49,7 +49,7 @@ class GuestLoginCard extends StatelessWidget {
                       const Text(
                         'Continue as Guest',
                         style: TextStyle(
-                          color: Color(0xFF800A12),
+                          color: Color(0xFF8B1E1E),
                           fontWeight: FontWeight.bold,
                           fontSize: 13.5,
                         ),
@@ -78,7 +78,7 @@ class GuestLoginCard extends StatelessWidget {
                               textAlign: TextAlign.left,
                               style: TextStyle(
                                 color: isLoading
-                                    ? const Color(0xFF800A12)
+                                    ? const Color(0xFF8B1E1E)
                                     : const Color(0xFF6B7280),
                                 fontSize: 10.5,
                                 fontWeight: isLoading
@@ -103,13 +103,13 @@ class GuestLoginCard extends StatelessWidget {
                       child: isLoading
                           ? const ThreeDotsLoading(
                               key: ValueKey('guest_loader'),
-                              color: Color(0xFF800A12),
+                              color: Color(0xFF8B1E1E),
                               size: 6.5,
                             )
                           : const Icon(
                               Icons.chevron_right,
                               key: ValueKey('guest_chevron'),
-                              color: Color(0xFF800A12),
+                              color: Color(0xFF8B1E1E),
                               size: 20,
                             ),
                     ),

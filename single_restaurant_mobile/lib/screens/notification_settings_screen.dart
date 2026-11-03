@@ -69,7 +69,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     }
   }
 
-  static const _maroon = Color(0xFF6E1111);
+  static const _maroon = Color(0xFF5C0612);
   static const _pinkTint = Color(0xFFFDEEEE);
   static const _peachTint = Color(0xFFFDF3E4);
   static const _pinkIconBg = Color(0xFFFADCDC);

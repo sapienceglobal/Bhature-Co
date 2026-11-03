@@ -201,7 +201,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                       'Bhatura & Co',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
-                                        color: const Color(0xFF800A12),
+                                        color: const Color(0xFF8B1E1E),
                                         fontSize: isCompact ? 29 : 34,
                                         fontWeight: FontWeight.w900,
                                         letterSpacing:
@@ -243,13 +243,13 @@ class _SplashScreenState extends State<SplashScreen> {
                                             isUppercase: true,
                                             height: isCompact ? 46.0 : 54.0,
                                             icon: MenuDocumentIcon(
-                                              color: const Color(0xFF800A12),
+                                              color: const Color(0xFF8B1E1E),
                                               size: isCompact ? 22 : 26,
                                             ),
                                             backgroundColor:
                                               const Color(0xFFFEEDE6),
-                                            textColor: const Color(0xFF800A12),
-                                            arrowColor: const Color(0xFF800A12),
+                                            textColor: const Color(0xFF8B1E1E),
+                                            arrowColor: const Color(0xFF8B1E1E),
                                             isLoading: _isExploreLoading,
                                             onTap: _onExploreMenu,
                                           ),
@@ -279,13 +279,13 @@ class _SplashScreenState extends State<SplashScreen> {
                                             isUppercase: true,
                                             height: isCompact ? 46.0 : 54.0,
                                             icon: DiningTableIcon(
-                                              color: const Color(0xFF800A12),
+                                              color: const Color(0xFF8B1E1E),
                                               size: isCompact ? 22 : 26,
                                             ),
                                             backgroundColor: Colors.white,
-                                            borderColor: const Color(0xFF800A12),
-                                            textColor: const Color(0xFF800A12),
-                                            arrowColor: const Color(0xFF800A12),
+                                            borderColor: const Color(0xFF8B1E1E),
+                                            textColor: const Color(0xFF8B1E1E),
+                                            arrowColor: const Color(0xFF8B1E1E),
                                             isLoading: _isReserveLoading,
                                             onTap: _onReserveTable,
                                           ),
