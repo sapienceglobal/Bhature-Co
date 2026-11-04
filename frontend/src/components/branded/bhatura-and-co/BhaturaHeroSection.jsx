@@ -1133,12 +1133,12 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
       </div>
 
       {/* Bottom Smooth Organic Wave Transition into Categories */}
-      <div className="absolute bottom-0 left-0 right-0 h-14 sm:h-20 pointer-events-none z-10 overflow-hidden">
+      <div className="absolute -bottom-[2px] left-0 right-0 h-14 sm:h-20 pointer-events-none z-10 overflow-hidden">
         <svg
           viewBox="0 0 1440 80"
           fill="none"
           preserveAspectRatio="none"
-          className="w-full h-full"
+          className="w-full h-full block"
         >
           <path
             d="M0,30 C360,62 720,66 1080,44 C1260,33 1360,26 1440,24"
@@ -1149,7 +1149,7 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
             style={{ filter: 'blur(3px)' }}
           />
           <path
-            d="M0,30 C360,62 720,66 1080,44 C1260,33 1360,26 1440,24 L1440,80 L0,80 Z"
+            d="M0,30 C360,62 720,66 1080,44 C1260,33 1360,26 1440,24 L1440,90 L0,90 Z"
             fill="#FDF7ED"
           />
           <path

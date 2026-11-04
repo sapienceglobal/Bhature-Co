@@ -183,15 +183,15 @@ export default function BhaturaMenuPage() {
           </div>
 
           {/* bottom wave into categories strip */}
-          <div className="absolute bottom-0 left-0 right-0 h-8 sm:h-10 pointer-events-none z-10">
-            <svg viewBox="0 0 1440 40" preserveAspectRatio="none" className="w-full h-full">
-              <path d="M0,22 C360,40 900,4 1440,20 L1440,40 L0,40 Z" fill="#FDF7EE" />
+          <div className="absolute -bottom-[2px] left-0 right-0 h-8 sm:h-10 pointer-events-none z-10 overflow-hidden">
+            <svg viewBox="0 0 1440 40" preserveAspectRatio="none" className="w-full h-full block">
+              <path d="M0,22 C360,40 900,4 1440,20 L1440,50 L0,50 Z" fill="#FDF7EE" />
             </svg>
           </div>
         </section>
 
         {/* ═══ 2. CATEGORY STRIP ═══ */}
-        <section className="relative z-30 bg-[#FDF7EE] pt-3 sm:pt-4 pb-3.5 sm:pb-6 border-b border-[#EFE2CF]">
+        <section className="relative z-30 bg-[#FDF7EE] pt-3 sm:pt-4 pb-3.5 sm:pb-6 border-b border-[#EFE2CF] -mt-1 sm:-mt-1.5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <button onClick={() => scrollStrip(-1)} aria-label="Previous categories" className="hidden md:flex absolute left-0 lg:left-2 top-[42px] z-10 w-9 h-9 rounded-full bg-white shadow-md border border-[#EADFCF] items-center justify-center hover:bg-[#8B1E1E] hover:text-white transition-colors">
               <ChevronLeft size={18} />

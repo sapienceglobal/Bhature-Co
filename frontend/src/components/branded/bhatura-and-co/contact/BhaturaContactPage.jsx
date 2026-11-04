@@ -331,10 +331,10 @@ export default function BhaturaContactPage() {
           </div>
 
           {/* Smooth Curved Wave Transition at Bottom of Hero */}
-          <div className="absolute -bottom-[1px] left-0 right-0 h-8 sm:h-10 lg:h-11 pointer-events-none z-10">
+          <div className="absolute -bottom-[2px] left-0 right-0 h-8 sm:h-10 lg:h-11 pointer-events-none z-10 overflow-hidden">
             <svg viewBox="0 0 1440 44" preserveAspectRatio="none" className="w-full h-full block">
               <path
-                d="M0,26 C180,0 380,4 680,22 C940,37 1180,38 1440,10 L1440,44 L0,44 Z"
+                d="M0,26 C180,0 380,4 680,22 C940,37 1180,38 1440,10 L1440,50 L0,50 Z"
                 fill="#FAF3E8"
               />
             </svg>
@@ -342,7 +342,7 @@ export default function BhaturaContactPage() {
         </section>
 
         {/* ═══ 3. TOP 4 CONTACT INFO CARDS STRIP ═══ */}
-        <section className="relative bg-[#FAF3E8] pt-5 pb-7 border-b border-[#EBDDD0] overflow-hidden">
+        <section className="relative z-20 bg-[#FAF3E8] pt-5 pb-7 border-b border-[#EBDDD0] overflow-hidden -mt-1 sm:-mt-1.5">
           {/* Subtle Mandala Watermarks on Left & Right */}
           <div className="hidden xl:block absolute -left-24 top-1/2 -translate-y-1/2 w-52 h-52 opacity-20 pointer-events-none">
             <MandalaWatermark className="w-full h-full" />

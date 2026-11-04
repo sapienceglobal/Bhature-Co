@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
+import toast from 'react-hot-toast';
 
 import BhaturaHeader from '../BhaturaHeader';
 import BhaturaFooter from '../BhaturaFooter';
@@ -242,6 +243,10 @@ export default function BhaturaCheckoutPage() {
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
+      const firstMsg = newErrors[firstField];
+      if (firstMsg) {
+        toast.error(firstMsg);
+      }
       return false;
     }
 
@@ -254,9 +259,55 @@ export default function BhaturaCheckoutPage() {
     await c.handlePlaceOrder();
   };
 
-  const handleStep3Click = async () => {
+  const handleReviewOrderClick = async () => {
+    if (c.itemCount === 0) {
+      toast.error('Your cart is empty. Please add items before checking out.');
+      return;
+    }
+
     if (!validateFields()) return;
-    c.handleContinueToReview();
+
+    if (c.orderType === 'delivery') {
+      let currentLat = c.addressLat;
+      let currentLng = c.addressLng;
+
+      if (!c.addressVerified || currentLat === null || currentLng === null) {
+        toast.error('Please select a valid address from suggestions or pin on map.');
+        return;
+      }
+
+      if (c.quoteError) {
+        toast.error(c.quoteError);
+        return;
+      }
+    }
+
+    c.setStep(3);
+  };
+
+  const handleStep1Click = () => {
+    if (c.step === 3) c.setStep(2);
+    if (typeof c.openCart === 'function') {
+      c.openCart();
+    } else {
+      c.router?.push('/order-online');
+    }
+  };
+
+  const handleStep2Click = () => {
+    if (c.step === 3) {
+      c.setStep(2);
+    }
+    const el = document.getElementById('delivery-section') || document.querySelector('main');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: 220, behavior: 'smooth' });
+    }
+  };
+
+  const handleStep3Click = () => {
+    handleReviewOrderClick();
   };
 
   // Sync user's DB savedAddresses & hero/order-online selected address
@@ -463,7 +514,7 @@ export default function BhaturaCheckoutPage() {
               <span className="text-[#F5B53D] font-semibold">Checkout</span>
             </nav>
 
-            <h1 className="font-['Playfair_Display'] text-4xl sm:text-5xl lg:text-[56px] font-black text-white leading-[1.08] tracking-tight">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-[1.08] tracking-tight">
               Checkout
             </h1>
 
@@ -474,10 +525,10 @@ export default function BhaturaCheckoutPage() {
         </div>
 
         {/* Smooth Bottom Curve Wave */}
-        <div className="absolute bottom-0 left-0 right-0 h-8 sm:h-11 pointer-events-none z-20">
-          <svg viewBox="0 0 1440 44" preserveAspectRatio="none" className="w-full h-full">
+        <div className="absolute -bottom-[2px] left-0 right-0 h-8 sm:h-11 pointer-events-none z-20 overflow-hidden">
+          <svg viewBox="0 0 1440 44" preserveAspectRatio="none" className="w-full h-full block">
             <path
-              d="M0,26 C180,0 380,4 680,22 C940,37 1180,38 1440,10 L1440,44 L0,44 Z"
+              d="M0,26 C180,0 380,4 680,22 C940,37 1180,38 1440,10 L1440,50 L0,50 Z"
               fill="#FAF3E8"
             />
           </svg>
@@ -485,88 +536,81 @@ export default function BhaturaCheckoutPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          2. 3-STEP HORIZONTAL PROGRESS STEPPER
+          2. 3-STEP HORIZONTAL PROGRESS STEPPER (Pixel-Perfect & Responsive)
          ═══════════════════════════════════════════════════════════════════ */}
-      <section className="bg-[#FAF3E8] pt-3 pb-5 border-b border-[#EFE3D2]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="relative flex items-start justify-between">
+      <section className="relative z-20 bg-[#FAF3E8] pt-4 pb-4 border-b border-[#EFE3D2] -mt-1 sm:-mt-1.5">
+        <div className="max-w-xl mx-auto px-3 sm:px-6">
+          <div className="relative flex items-center justify-between">
             {/* Background Connecting Track Line */}
-            <div className="absolute top-[22px] left-[12%] right-[12%] h-[2px] bg-[#E2D6C5] z-0" />
+            <div className="absolute top-[20px] left-[16.7%] right-[16.7%] h-[2px] bg-[#E2D6C5] z-0" />
             {/* Active Red Progress Fill Line */}
             <div
-              className="absolute top-[22px] left-[12%] h-[2.5px] bg-[#A61922] z-0 transition-all duration-500"
+              className="absolute top-[20px] left-[16.7%] h-[2.5px] bg-[#A61922] z-0 transition-all duration-500 ease-out"
               style={{
-                width: c.step === 1 ? '18%' : c.step === 2 ? '38%' : '76%',
+                width: c.step === 3 ? '66.6%' : '33.3%',
               }}
             />
 
-            {/* Step 1: Cart */}
+            {/* Step 1: Cart (Completed) */}
             <button
               type="button"
-              onClick={() => c.openCart?.()}
-              className="relative z-10 flex flex-col items-center group focus:outline-none w-1/3"
+              onClick={handleStep1Click}
+              className="relative z-10 flex flex-col items-center group focus:outline-none flex-1 cursor-pointer"
             >
-              <div className="w-11 h-11 rounded-full bg-[#A61922] text-white flex items-center justify-center shadow-[0_4px_12px_rgba(166,25,34,0.35)] border-2 border-white">
-                <ShoppingCart size={18} strokeWidth={2.2} />
+              <div className="w-10 h-10 rounded-full bg-[#A61922] text-white flex items-center justify-center shadow-[0_2px_8px_rgba(166,25,34,0.3)] border-2 border-white transition-all group-hover:scale-105">
+                <Check size={18} strokeWidth={2.8} />
               </div>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="w-4 h-4 rounded-full bg-[#A61922] text-white text-[10px] font-bold flex items-center justify-center">
-                  1
-                </span>
-                <span className="text-xs sm:text-[13px] font-bold text-[#1C1917] group-hover:text-[#A61922] transition-colors">
-                  Cart
-                </span>
-              </div>
+              <span className="text-[11px] sm:text-xs md:text-sm font-bold text-[#1C1917] group-hover:text-[#A61922] transition-colors whitespace-nowrap mt-2 text-center">
+                1. Cart
+              </span>
             </button>
 
-            {/* Step 2: Delivery & Payment */}
+            {/* Step 2: Delivery & Pay (Active on Checkout) */}
             <button
               type="button"
-              onClick={() => c.setStep(2)}
-              className="relative z-10 flex flex-col items-center group focus:outline-none w-1/3"
+              onClick={handleStep2Click}
+              className="relative z-10 flex flex-col items-center group focus:outline-none flex-1 cursor-pointer"
             >
               <div
-                className={`w-11 h-11 rounded-full flex items-center justify-center shadow-sm border-2 transition-all ${
-                  c.step >= 2
-                    ? 'bg-white border-[#D8CBB8] text-[#1C1917]'
-                    : 'bg-white border-[#E5D9C8] text-[#78716C]'
+                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 border-white transition-all group-hover:scale-105 ${
+                  c.step < 3
+                    ? 'bg-[#A61922] text-white shadow-[0_4px_14px_rgba(166,25,34,0.35)] ring-4 ring-[#A61922]/15'
+                    : 'bg-[#A61922] text-white shadow-sm'
                 }`}
               >
-                <MapPin size={18} strokeWidth={2.2} />
+                {c.step === 3 ? (
+                  <Check size={18} strokeWidth={2.8} />
+                ) : (
+                  <MapPin size={17} strokeWidth={2.2} />
+                )}
               </div>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="w-4 h-4 rounded-full bg-[#EFE6D8] border border-[#D5C7B4] text-[#57534E] text-[10px] font-bold flex items-center justify-center">
-                  2
-                </span>
-                <span className="text-xs sm:text-[13px] font-bold text-[#1C1917]">
-                  Delivery &amp; Payment
-                </span>
-              </div>
+              <span className={`text-[11px] sm:text-xs md:text-sm font-extrabold whitespace-nowrap transition-colors mt-2 text-center ${
+                c.step < 3 ? 'text-[#A61922]' : 'text-[#1C1917]'
+              }`}>
+                2. Delivery &amp; Pay
+              </span>
             </button>
 
-            {/* Step 3: Review & Place Order */}
+            {/* Step 3: Review Order (Popup / Final Step) */}
             <button
               type="button"
               onClick={handleStep3Click}
-              className="relative z-10 flex flex-col items-center group focus:outline-none w-1/3"
+              className="relative z-10 flex flex-col items-center group focus:outline-none flex-1 cursor-pointer"
             >
               <div
-                className={`w-11 h-11 rounded-full flex items-center justify-center shadow-sm border-2 transition-all ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all group-hover:scale-105 ${
                   c.step === 3
-                    ? 'bg-[#A61922] border-white text-white shadow-[0_4px_12px_rgba(166,25,34,0.35)]'
-                    : 'bg-white border-[#E5D9C8] text-[#1C1917]'
+                    ? 'bg-[#A61922] border-white text-white shadow-[0_4px_14px_rgba(166,25,34,0.35)] ring-4 ring-[#A61922]/15'
+                    : 'bg-white border-[#D5C6B4] text-[#8C7E72] shadow-xs'
                 }`}
               >
                 <Check size={18} strokeWidth={2.5} />
               </div>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="w-4 h-4 rounded-full bg-[#EFE6D8] border border-[#D5C7B4] text-[#57534E] text-[10px] font-bold flex items-center justify-center">
-                  3
-                </span>
-                <span className="text-xs sm:text-[13px] font-bold text-[#1C1917] group-hover:text-[#A61922] transition-colors">
-                  Review &amp; Place Order
-                </span>
-              </div>
+              <span className={`text-[11px] sm:text-xs md:text-sm font-bold whitespace-nowrap transition-colors mt-2 text-center ${
+                c.step === 3 ? 'text-[#A61922]' : 'text-[#8C7E72] group-hover:text-[#1C1917]'
+              }`}>
+                3. Review Order
+              </span>
             </button>
           </div>
         </div>
@@ -582,7 +626,7 @@ export default function BhaturaCheckoutPage() {
               <div className="w-20 h-20 rounded-full bg-[#FDF3E7] border border-[#EAD4B4] text-[#8B1E1E] flex items-center justify-center mx-auto mb-5">
                 <ShoppingCart size={34} strokeWidth={1.8} />
               </div>
-              <h2 className="font-['Playfair_Display'] text-3xl font-black text-[#1C1917]">
+              <h2 className="text-2xl sm:text-3xl font-black text-[#1C1917]">
                 Your Cart is Empty
               </h2>
               <p className="text-sm text-[#6B5E53] mt-2 max-w-sm mx-auto leading-relaxed">
@@ -609,7 +653,7 @@ export default function BhaturaCheckoutPage() {
                       1
                     </span>
                     <Truck size={20} className="text-[#A61922]" strokeWidth={2.2} />
-                    <h2 className="font-['Playfair_Display'] text-lg sm:text-xl font-bold text-[#1C1917]">
+                    <h2 className="text-base sm:text-lg font-bold text-[#1C1917]">
                       Delivery Option
                     </h2>
                   </div>
@@ -685,7 +729,7 @@ export default function BhaturaCheckoutPage() {
                         2
                       </span>
                       <MapPin size={20} className="text-[#A61922]" strokeWidth={2.2} />
-                      <h2 className="font-['Playfair_Display'] text-lg sm:text-xl font-bold text-[#1C1917]">
+                      <h2 className="text-base sm:text-lg font-bold text-[#1C1917]">
                         {c.orderType === 'delivery' ? 'Delivery Address' : 'Pickup & Contact Details'}
                       </h2>
                     </div>
@@ -1162,7 +1206,7 @@ export default function BhaturaCheckoutPage() {
                       3
                     </span>
                     <Clock size={20} className="text-[#A61922]" strokeWidth={2.2} />
-                    <h2 className="font-['Playfair_Display'] text-lg sm:text-xl font-bold text-[#1C1917]">
+                    <h2 className="text-base sm:text-lg font-bold text-[#1C1917]">
                       {c.orderType === 'delivery' ? 'Delivery Time' : 'Pickup Time'}
                     </h2>
                   </div>
@@ -1275,7 +1319,7 @@ export default function BhaturaCheckoutPage() {
                       4
                     </span>
                     <CreditCard size={20} className="text-[#A61922]" strokeWidth={2.2} />
-                    <h2 className="font-['Playfair_Display'] text-lg sm:text-xl font-bold text-[#1C1917]">
+                    <h2 className="text-base sm:text-lg font-bold text-[#1C1917]">
                       Payment Method
                     </h2>
                   </div>
@@ -1588,7 +1632,7 @@ export default function BhaturaCheckoutPage() {
                   <div className="flex items-center justify-between gap-2 pb-4 border-b border-[#E5D5C0]">
                     <div className="flex items-center gap-2">
                       <ShoppingCart size={20} className="text-[#A61922]" strokeWidth={2.3} />
-                      <h2 className="font-['Playfair_Display'] text-xl font-black text-[#8B1E1E]">
+                      <h2 className="text-lg sm:text-xl font-black text-[#8B1E1E]">
                         Your Order
                       </h2>
                       <span className="text-xs sm:text-sm font-semibold text-[#44403C]">
@@ -1652,7 +1696,7 @@ export default function BhaturaCheckoutPage() {
                           {/* Item Info & Stepper */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
-                              <h4 className="font-['Playfair_Display'] font-bold text-sm text-[#1C1917] leading-tight truncate">
+                              <h4 className="font-bold text-sm text-[#1C1917] leading-tight truncate">
                                 {item.name}
                               </h4>
                               <button
@@ -1768,26 +1812,26 @@ export default function BhaturaCheckoutPage() {
                       </div>
                     )}
 
-                    {/* Loyalty Points Toggle (Lassi Lounge Parity) */}
+                    {/* Loyalty Points Info (Coupon Flow Parity) */}
                     {c.user?.loyaltyPoints > 0 && (
-                      <label className="mt-3 p-2.5 rounded-lg bg-[#FFFDF9] border border-[#E8D8C3] flex items-center justify-between cursor-pointer text-xs">
+                      <div className="mt-3 p-2.5 rounded-xl bg-[#FFFDF9] border border-[#E8D8C3] flex items-center justify-between gap-2 text-xs">
                         <span className="flex items-center gap-1.5 font-bold text-[#8B1E1E]">
-                          <Sparkles size={14} className="text-[#D48228]" />
-                          <span>Redeem {c.user.loyaltyPoints} Loyalty Points</span>
+                          <Sparkles size={14} className="text-[#D48228] shrink-0" />
+                          <span>{c.user.loyaltyPoints} Loyalty Points</span>
                         </span>
-                        <input
-                          type="checkbox"
-                          checked={c.useLoyaltyPoints}
-                          onChange={(e) => c.setUseLoyaltyPoints(e.target.checked)}
-                          className="accent-[#A61922] w-4 h-4"
-                        />
-                      </label>
+                        <Link
+                          href="/profile?tab=loyalty"
+                          className="font-bold text-[11px] text-[#A61922] hover:underline shrink-0"
+                        >
+                          Redeem for Coupons →
+                        </Link>
+                      </div>
                     )}
                   </div>
 
                   {/* Order Summary Breakdown */}
                   <div className="pt-4 border-t border-[#E5D5C0] space-y-2.5">
-                    <h3 className="font-['Playfair_Display'] text-lg font-bold text-[#1C1917] mb-2">
+                    <h3 className="text-base sm:text-lg font-bold text-[#1C1917] mb-2">
                       Order Summary
                     </h3>
 
@@ -1850,16 +1894,11 @@ export default function BhaturaCheckoutPage() {
                       </div>
                     )}
 
-                    {c.loyaltyDiscount > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm text-emerald-700 font-bold">
-                        <span>Loyalty Points Discount</span>
-                        <span>-${c.loyaltyDiscount.toFixed(2)}</span>
-                      </div>
-                    )}
+                    
 
                     {/* Highlighted Total Amount Bar */}
                     <div className="mt-3 bg-[#EFE0CC] rounded-xl px-4 py-3.5 flex items-center justify-between">
-                      <span className="font-['Playfair_Display'] text-base sm:text-lg font-extrabold text-[#1C1917]">
+                      <span className="text-base sm:text-lg font-extrabold text-[#1C1917]">
                         Total Amount
                       </span>
                       <span className="text-2xl sm:text-[26px] font-black text-[#B0151D]">
@@ -1883,13 +1922,25 @@ export default function BhaturaCheckoutPage() {
                     ) : (
                       <button
                         type="button"
-                        onClick={validateAndPlaceOrder}
-                        disabled={c.isPlacingOrder}
-                        className="mt-3 w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#8B1E1E] via-[#A61922] to-[#7A1218] hover:from-[#701515] hover:to-[#5C0612] disabled:opacity-60 text-white font-bold text-base shadow-[0_8px_22px_rgba(139,30,30,0.35)] flex items-center justify-center gap-2.5 transition-all hover:-translate-y-0.5 cursor-pointer"
+                        onClick={handleReviewOrderClick}
+                        disabled={c.isPlacingOrder || (c.orderType === 'delivery' && Boolean(c.quoteError))}
+                        className={`mt-3 w-full py-3.5 px-6 rounded-xl text-white font-bold text-base shadow-[0_8px_22px_rgba(139,30,30,0.35)] flex items-center justify-center gap-2.5 transition-all hover:-translate-y-0.5 cursor-pointer ${
+                          c.isPlacingOrder || (c.orderType === 'delivery' && Boolean(c.quoteError))
+                            ? 'bg-[#9CA3AF] cursor-not-allowed opacity-75'
+                            : 'bg-gradient-to-r from-[#8B1E1E] via-[#A61922] to-[#7A1218] hover:from-[#701515] hover:to-[#5C0612]'
+                        }`}
                       >
-                        <Lock size={17} strokeWidth={2.4} />
-                        <span>{c.isPlacingOrder ? 'Processing Order...' : 'Place Order'}</span>
-                        <ArrowRight size={18} strokeWidth={2.4} />
+                        {c.isPlacingOrder ? (
+                          <>
+                            <Loader2 size={17} className="animate-spin" />
+                            <span>Processing Order...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Review Order</span>
+                            <ArrowRight size={18} strokeWidth={2.4} />
+                          </>
+                        )}
                       </button>
                     )}
 
@@ -1966,13 +2017,25 @@ export default function BhaturaCheckoutPage() {
           </div>
           <button
             type="button"
-            onClick={validateAndPlaceOrder}
-            disabled={c.isPlacingOrder}
-            className="px-5 py-3 rounded-xl bg-gradient-to-r from-[#8B1E1E] via-[#A61922] to-[#7A1218] text-white font-bold text-xs shadow-[0_6px_18px_rgba(139,30,30,0.35)] flex items-center gap-2 active:scale-95 transition-transform disabled:opacity-60 cursor-pointer"
+            onClick={handleReviewOrderClick}
+            disabled={c.isPlacingOrder || (c.orderType === 'delivery' && Boolean(c.quoteError))}
+            className={`px-5 py-3 rounded-xl font-bold text-xs shadow-[0_6px_18px_rgba(139,30,30,0.35)] flex items-center gap-2 active:scale-95 transition-transform cursor-pointer ${
+              c.isPlacingOrder || (c.orderType === 'delivery' && Boolean(c.quoteError))
+                ? 'bg-[#9CA3AF] text-white cursor-not-allowed opacity-75'
+                : 'bg-gradient-to-r from-[#8B1E1E] via-[#A61922] to-[#7A1218] text-white hover:brightness-110'
+            }`}
           >
-            <Lock size={14} strokeWidth={2.4} />
-            <span>{c.isPlacingOrder ? 'Processing...' : 'Place Order'}</span>
-            <ArrowRight size={15} strokeWidth={2.4} />
+            {c.isPlacingOrder ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : (
+              <>
+                <span>Review Order</span>
+                <ArrowRight size={15} strokeWidth={2.4} />
+              </>
+            )}
           </button>
         </div>
       )}
@@ -2014,10 +2077,7 @@ export default function BhaturaCheckoutPage() {
         tip={c.tip}
         setTip={c.setTip}
         onBack={() => c.setStep(2)}
-        onPlaceOrder={() => {
-          c.setStep(2);
-          validateAndPlaceOrder();
-        }}
+        onPlaceOrder={validateAndPlaceOrder}
         total={c.total}
         compiledAddress={c.compiledAddress}
         fullName={c.fullName}
@@ -2031,7 +2091,7 @@ export default function BhaturaCheckoutPage() {
         serviceFee={c.serviceFee}
         packagingFee={c.packagingFee}
         couponDiscount={c.couponDiscount}
-        loyaltyDiscount={c.loyaltyDiscount}
+        loyaltyDiscount={0}
         orderType={c.orderType}
         courierNotes={c.deliveryInstructions}
         specialInstructions={c.specialInstructions}

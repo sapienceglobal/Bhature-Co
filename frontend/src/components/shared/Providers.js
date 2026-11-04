@@ -10,7 +10,6 @@ import { ModalProvider } from '@/context/ModalContext';
 import { CmsProvider } from '@/context/CmsContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import ModalRoot from './ModalRoot';
-import CartSidebar from '@/components/ui/CartSidebar';
 import { Toaster } from 'react-hot-toast';
 
 export function Providers({ children }) {
@@ -25,7 +24,6 @@ export function Providers({ children }) {
                   <CmsProvider>
                     <ModalProvider>
                       {children}
-                      <CartSidebar />
                       <ModalRoot />
                       <Toaster position="top-center" />
                     </ModalProvider>

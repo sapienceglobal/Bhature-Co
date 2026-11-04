@@ -159,10 +159,10 @@ export default function BhaturaAboutPage() {
           </div>
 
           {/* Smooth Curved Wave Transition at Bottom of Hero (arches up on left, dips under platter on right) */}
-          <div className="absolute -bottom-[1px] left-0 right-0 h-8 sm:h-10 lg:h-11 pointer-events-none z-10">
+          <div className="absolute -bottom-[2px] left-0 right-0 h-8 sm:h-10 lg:h-11 pointer-events-none z-10 overflow-hidden">
             <svg viewBox="0 0 1440 44" preserveAspectRatio="none" className="w-full h-full block">
               <path
-                d="M0,26 C180,0 380,4 680,22 C940,37 1180,38 1440,10 L1440,44 L0,44 Z"
+                d="M0,26 C180,0 380,4 680,22 C940,37 1180,38 1440,10 L1440,50 L0,50 Z"
                 fill="#FBF6EB"
               />
             </svg>
@@ -170,7 +170,7 @@ export default function BhaturaAboutPage() {
         </section>
 
         {/* ═══ 3. OUR STORY ("A Culinary Journey Inspired by Tradition") ═══ */}
-        <section className="relative bg-[#FBF6EB] pt-3 sm:pt-5 pb-6 sm:pb-8 overflow-hidden">
+        <section className="relative z-20 bg-[#FBF6EB] pt-3 sm:pt-5 pb-6 sm:pb-8 overflow-hidden -mt-1 sm:-mt-1.5">
           {/* Subtle Mandala Watermarks on Sides */}
           <div className="hidden xl:block absolute -left-24 top-12 w-56 h-56 opacity-20 pointer-events-none">
             <MandalaWatermark className="w-full h-full" />

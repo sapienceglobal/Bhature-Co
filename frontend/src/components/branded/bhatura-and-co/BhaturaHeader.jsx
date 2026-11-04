@@ -14,6 +14,7 @@ import {
   CalendarDays,
   PhoneCall,
   ArrowRight,
+  Search,
 } from 'lucide-react';
 
 export default function BhaturaHeader({ onOpenAddressModal }) {
@@ -90,6 +91,16 @@ export default function BhaturaHeader({ onOpenAddressModal }) {
               <span>Order Online</span>
               <span className="font-bold">→</span>
             </Link>
+
+            {/* Search Dishes */}
+            <button
+              onClick={() => router.push('/search')}
+              className="p-2 rounded-full hover:bg-[#8B1E1E]/5 text-[#1C1917] hover:text-[#C0262D] transition-colors cursor-pointer"
+              title="Search dishes, categories..."
+              aria-label="Search Dishes"
+            >
+              <Search size={24} strokeWidth={1.8} />
+            </button>
 
             {/* User Account */}
             <button

@@ -35,7 +35,7 @@ export default function BhaturaCategoriesSection() {
   }, []);
 
   return (
-    <section className="pt-4 pb-20 sm:pb-24 bg-gradient-to-b from-[#FDF7ED] via-[#FCF4E8] to-[#FAEEDF] relative">
+    <section className="pt-4 pb-20 sm:pb-24 bg-gradient-to-b from-[#FDF7ED] via-[#FCF4E8] to-[#FAEEDF] relative z-20 -mt-1 sm:-mt-1.5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}

@@ -768,10 +768,10 @@ function OrderOnlineInner() {
           </div>
 
           {/* Smooth Cream Bottom Wave into Category Carousel */}
-          <div className="absolute -bottom-[1px] left-0 right-0 h-8 sm:h-10 pointer-events-none z-10">
+          <div className="absolute -bottom-[2px] left-0 right-0 h-8 sm:h-10 pointer-events-none z-10 overflow-hidden">
             <svg viewBox="0 0 1440 44" preserveAspectRatio="none" className="w-full h-full block">
               <path
-                d="M0,26 C180,0 380,4 680,22 C940,37 1180,38 1440,10 L1440,44 L0,44 Z"
+                d="M0,26 C180,0 380,4 680,22 C940,37 1180,38 1440,10 L1440,50 L0,50 Z"
                 fill="#FDF6EA"
               />
             </svg>
@@ -783,7 +783,7 @@ function OrderOnlineInner() {
             Non-sticky on mobile (<md), sticky on desktop (md:)
         ═══════════════════════════════════════════════════════════════════ */}
         {/* ═══ MOBILE: App-style sticky category chip bar (Swiggy / Zomato pattern) ═══ */}
-        <div className="md:hidden sticky top-16 z-[85] bg-[#FDF6EA]/95 backdrop-blur-md border-b border-[#EADBC8] shadow-[0_6px_16px_rgba(92,6,18,0.08)]">
+        <div className="md:hidden sticky top-16 z-[85] bg-[#FDF6EA]/95 backdrop-blur-md border-b border-[#EADBC8] shadow-[0_6px_16px_rgba(92,6,18,0.08)] -mt-1 sm:-mt-1.5">
           <div className="px-4 pt-2.5 pb-1 flex items-center justify-between">
             <span className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-[#9E141D]">Browse Menu</span>
             <span className="text-[10.5px] font-semibold text-[#78716C]">
@@ -834,7 +834,7 @@ function OrderOnlineInner() {
         </div>
 
         <section
-          className={`hidden md:block relative md:sticky md:top-[70px] z-[85] transition-all duration-200 border-b border-[#EADBC8] ${
+          className={`hidden md:block relative md:sticky md:top-[70px] z-[85] transition-all duration-200 border-b border-[#EADBC8] md:-mt-1.5 ${
             isStripStuck
               ? 'bg-[#FDF6EA] py-2 md:shadow-[0_6px_20px_rgba(92,6,18,0.12)]'
               : 'bg-[#FDF6EA] pt-2 sm:pt-3 pb-3.5 sm:pb-5'
