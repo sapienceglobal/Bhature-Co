@@ -11,11 +11,8 @@ import {
   ArrowRight,
   Clock,
   Trash2,
-  Sparkles,
   UtensilsCrossed,
   MessageSquarePlus,
-  Copy,
-  Check,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -69,7 +66,6 @@ export default function CartSidebar() {
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -130,13 +126,6 @@ export default function CartSidebar() {
       setDragY(0);
     }
     setTouchStartY(null);
-  };
-
-  const handleCopyCoupon = () => {
-    navigator.clipboard?.writeText('BHATURA20');
-    setCopiedCode(true);
-    toast.success('Coupon BHATURA20 copied! Apply at checkout 🎉', { duration: 2000 });
-    setTimeout(() => setCopiedCode(false), 2200);
   };
 
   const handleCheckout = () => {
@@ -205,29 +194,30 @@ export default function CartSidebar() {
             <div className="w-11 h-1.5 bg-white/30 rounded-full" />
           </div>
 
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#F8C454] to-[#D48228] text-[#4A070C] flex items-center justify-center shadow-[0_4px_12px_rgba(245,181,61,0.3)] shrink-0">
-                <ShoppingBag size={20} strokeWidth={2.4} />
+          <div className="flex items-center justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#F8C454] to-[#D48228] text-[#4A070C] flex items-center justify-center shadow-[0_4px_12px_rgba(245,181,61,0.3)] shrink-0">
+                <ShoppingBag size={18} className="sm:hidden" strokeWidth={2.4} />
+                <ShoppingBag size={20} className="hidden sm:block" strokeWidth={2.4} />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-['Playfair_Display'] text-xl font-black tracking-wide text-white leading-none">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-white leading-none shrink-0 font-sans">
                     Your Order
                   </h2>
                   {itemCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-[#F5B53D] text-[#4A070C] text-[11px] font-extrabold tracking-wide">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#F5B53D] text-[#4A070C] text-[10px] sm:text-[11px] font-black tracking-wide whitespace-nowrap shrink-0">
                       {itemCount} {itemCount === 1 ? 'Item' : 'Items'}
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-[#FDE6C4]/85 mt-1 font-medium">
-                  Bhature &amp; Co • Freshly Prepared North Indian Kitchen
+                <p className="text-[11px] text-[#FDE6C4]/85 mt-0.5 sm:mt-1 font-medium">
+                  Bhature &amp; Co<span className="hidden sm:inline"> • Freshly Prepared North Indian Kitchen</span>
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {items.length > 0 && (
                 <button
                   type="button"
@@ -235,7 +225,7 @@ export default function CartSidebar() {
                     clearCart();
                     toast.success('Cart cleared', { duration: 1500 });
                   }}
-                  className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[#FDE6C4] hover:text-white text-xs font-semibold transition-colors flex items-center gap-1"
+                  className="px-2 sm:px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[#FDE6C4] hover:text-white text-[11px] sm:text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer shrink-0"
                   title="Clear all items"
                 >
                   <Trash2 size={13} />
@@ -246,33 +236,12 @@ export default function CartSidebar() {
                 type="button"
                 onClick={closeCart}
                 aria-label="Close cart drawer"
-                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
               >
-                <X size={19} strokeWidth={2.4} />
+                <X size={18} strokeWidth={2.4} />
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Promo Offer Strip */}
-        <div className="bg-gradient-to-r from-[#FFF3DA] via-[#FDE8BE] to-[#FFF3DA] px-4 py-2.5 border-b border-[#EED39B] flex items-center justify-between gap-2 shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="w-6 h-6 rounded-full bg-[#8B1E1E] text-[#F5B53D] flex items-center justify-center shrink-0">
-              <Sparkles size={13} />
-            </span>
-            <p className="text-xs font-medium text-[#4A070C] truncate">
-              Get <span className="font-extrabold text-[#8B1E1E]">20% OFF</span> first order with code{' '}
-              <span className="font-black tracking-wider underline decoration-dotted">BHATURA20</span>
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleCopyCoupon}
-            className="px-2.5 py-1 rounded-md bg-[#8B1E1E] hover:bg-[#6B0D14] text-white text-[11px] font-bold flex items-center gap-1 shrink-0 transition-colors shadow-xs"
-          >
-            {copiedCode ? <Check size={12} /> : <Copy size={12} />}
-            <span>{copiedCode ? 'Copied' : 'Copy'}</span>
-          </button>
         </div>
 
         {/* Cart Items Scrollable Body */}
@@ -286,7 +255,7 @@ export default function CartSidebar() {
                 </span>
               </div>
 
-              <h3 className="font-['Playfair_Display'] text-2xl font-black text-[#1C1917]">
+              <h3 className="text-xl sm:text-2xl font-extrabold text-[#1C1917] tracking-tight font-sans">
                 Your Cart is Empty
               </h3>
               <p className="text-sm text-[#6B5E53] mt-2 max-w-[270px] leading-relaxed">
@@ -348,7 +317,7 @@ export default function CartSidebar() {
                     <div className="flex-1 min-w-0 flex flex-col justify-between">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <h4 className="font-['Playfair_Display'] font-bold text-[15px] text-[#1C1917] leading-snug truncate">
+                          <h4 className="font-bold text-[15px] text-[#1C1917] leading-snug truncate font-sans">
                             {item.name}
                           </h4>
                           {item.selectedSize && (
