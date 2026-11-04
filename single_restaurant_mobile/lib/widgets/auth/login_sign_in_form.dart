@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:single_restaurant_mobile/widgets/auth/auth_error_box.dart';
 import 'package:single_restaurant_mobile/widgets/auth/auth_input_helper.dart';
 import 'package:single_restaurant_mobile/widgets/auth/login_social_row.dart';
@@ -201,18 +202,25 @@ class LoginSignInForm extends StatelessWidget {
                       strokeWidth: 2,
                     ),
                   )
-                : const Row(
+                : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         'Sign In',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(width: 8),
-                      Icon(Icons.arrow_forward, size: 16),
+                      const SizedBox(width: 8),
+                      const Text(
+                        '→',
+                        style: TextStyle(
+                          color: Color(0xFFF5B53D),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ],
                   ),
           ),

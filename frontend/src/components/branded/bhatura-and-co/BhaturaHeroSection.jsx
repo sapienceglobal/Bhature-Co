@@ -813,7 +813,7 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                     >
                       <button
                         type="button"
-                        onClick={onOpenAddressModal}
+                        onClick={() => onOpenAddressModal?.('map')}
                         title="Pin exact location on map"
                         className="pl-2 pr-1.5 text-[#DC2626] hover:scale-110 transition-transform cursor-pointer shrink-0"
                       >
@@ -993,7 +993,7 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                     <div className="flex items-center gap-3 shrink-0 pt-0.5 sm:pt-0 pl-3.5 sm:pl-0">
                       <button
                         type="button"
-                        onClick={onOpenAddressModal}
+                        onClick={() => onOpenAddressModal?.('map')}
                         className="text-xs text-[#8B1E1E] hover:text-[#5C0612] font-bold uppercase tracking-wider underline cursor-pointer"
                       >
                         Change Address
@@ -1022,7 +1022,7 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                     </span>
                     <button
                       type="button"
-                      onClick={onOpenAddressModal}
+                      onClick={() => onOpenAddressModal?.('map')}
                       className="text-[11px] text-[#8B1E1E] hover:underline ml-2 font-bold uppercase tracking-wider shrink-0 cursor-pointer"
                     >
                       Change
@@ -1040,7 +1040,7 @@ export default function BhaturaHeroSection({ onOpenAddressModal }) {
                     </button>
                     <button
                       type="button"
-                      onClick={onOpenAddressModal}
+                      onClick={() => onOpenAddressModal?.('map')}
                       className="hover:text-[#8B1E1E] transition-colors flex items-center gap-1 cursor-pointer"
                     >
                       <Map size={11} className="text-[#D48228]" />

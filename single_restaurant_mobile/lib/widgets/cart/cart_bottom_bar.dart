@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
 import 'package:single_restaurant_mobile/utils/formatters.dart';
 
@@ -22,12 +23,13 @@ class CartBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF4C0810),
+        color: Color(0xFF4A090B),
+        border: Border(top: BorderSide(color: Color(0x35D4AF37), width: 1.5)),
         boxShadow: [
           BoxShadow(
             color: Colors.black26,
-            blurRadius: 8,
-            offset: Offset(0, -2),
+            blurRadius: 10,
+            offset: Offset(0, -3),
           ),
         ],
       ),
@@ -43,7 +45,7 @@ class CartBottomBar extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Left Price (Without View Details per user requirement)
+                // Left Price
                 Expanded(
                   flex: 4,
                   child: Column(
@@ -55,7 +57,7 @@ class CartBottomBar extends StatelessWidget {
                         alignment: Alignment.centerLeft,
                         child: Text(
                           Formatters.formatCurrency(total, currency),
-                          style: const TextStyle(
+                          style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
                             fontSize: 22,
@@ -81,14 +83,22 @@ class CartBottomBar extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: canProceed ? const Color(0xFF8B1E1E) : const Color(0xFF8E8E93),
-                        borderRadius: BorderRadius.circular(10),
+                        gradient: canProceed
+                            ? const LinearGradient(
+                                colors: [Color(0xFF8B1E1E), Color(0xFFA61922), Color(0xFF5C0612)],
+                              )
+                            : null,
+                        color: canProceed ? null : const Color(0xFF8E8E93),
+                        borderRadius: BorderRadius.circular(12),
+                        border: canProceed
+                            ? Border.all(color: const Color(0x60D4AF37), width: 1)
+                            : null,
                         boxShadow: canProceed
                             ? [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
+                                  color: const Color(0xFF8B1E1E).withValues(alpha: 0.35),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
                                 )
                               ]
                             : null,
@@ -109,7 +119,7 @@ class CartBottomBar extends StatelessWidget {
                               canProceed
                                   ? 'Proceed to Checkout'
                                   : (errorReason.isNotEmpty ? errorReason : 'Delivery Unavailable'),
-                              style: const TextStyle(
+                              style: GoogleFonts.poppins(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
@@ -120,10 +130,13 @@ class CartBottomBar extends StatelessWidget {
                           ),
                           if (canProceed) ...[
                             const SizedBox(width: 6),
-                            const Icon(
-                              Icons.arrow_forward,
-                              color: Colors.white,
-                              size: 16,
+                            const Text(
+                              '→',
+                              style: TextStyle(
+                                color: Color(0xFFF5B53D),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                           ],
                         ],

@@ -46,6 +46,51 @@
       "client_info": {
         "mobilesdk_app_id": "1:960808501824:android:90a9fc8ba59929cae415a5",
         "android_client_info": {
+          "package_name": "com.bhaturaco.customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "960808501824-7it029kj6d6suj6bnu0dtmlu50skkcod.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bhaturaco.customer",
+            "certificate_hash": "18c2dc970b418d7cee8fbb607db8cacdde4f39ca"
+          }
+        },
+        {
+          "client_id": "960808501824-rho0fcpvkmpptitunhr2u3p85ng5qels.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bhaturaco.customer",
+            "certificate_hash": "ccda596253e960bd676257de43ac164e817846e7"
+          }
+        },
+        {
+          "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFAW_DKJaqoB_q9Xx9o5JY8-Zu0MwKBCo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:960808501824:android:90a9fc8ba59929cae415a5",
+        "android_client_info": {
           "package_name": "com.lassilounge.customer"
         }
       },

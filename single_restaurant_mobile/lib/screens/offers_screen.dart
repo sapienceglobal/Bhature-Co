@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/theme/app_typography.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
@@ -87,9 +89,9 @@ class _OffersScreenState extends State<OffersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFAF3E8),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFFAF3E8),
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
@@ -102,11 +104,11 @@ class _OffersScreenState extends State<OffersScreen> {
             }
           },
         ),
-        title: const Text(
-          'Offers & Discounts',
-          style: TextStyle(
-            color: Color(0xFF1E1E1E),
-            fontWeight: FontWeight.bold,
+        title: Text(
+          'Offers & Coupons',
+          style: AppTypography.serifHeading(
+            color: AppColors.textDark,
+            fontWeight: FontWeight.w800,
             fontSize: 20,
           ),
         ),

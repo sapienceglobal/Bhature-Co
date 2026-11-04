@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:single_restaurant_mobile/constants/colors.dart';
 
 /// Card item for "BEST OFFERS FOR YOU" matching the screenshot.
 class OfferCardItem extends StatefulWidget {
@@ -73,7 +75,7 @@ class _OfferCardItemState extends State<OfferCardItem> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
+        border: Border.all(color: const Color(0xFFE8DEC8), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -127,10 +129,10 @@ class _OfferCardItemState extends State<OfferCardItem> {
                 // Title
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 14.5,
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF1E1E1E),
+                    color: AppColors.textDark,
                     height: 1.1,
                   ),
                   textAlign: TextAlign.center,
@@ -142,9 +144,9 @@ class _OfferCardItemState extends State<OfferCardItem> {
                 // Subtitle
                 Text(
                   subtitle,
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: 11,
-                    color: Colors.grey.shade600,
+                    color: AppColors.textLight,
                     height: 1.15,
                   ),
                   textAlign: TextAlign.center,
@@ -160,13 +162,13 @@ class _OfferCardItemState extends State<OfferCardItem> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4.5),
                     decoration: BoxDecoration(
-                      color: _isCopied ? const Color(0xFFE8F5E9) : Colors.white,
+                      color: _isCopied ? const Color(0xFFE8F5E9) : const Color(0xFFFFF9ED),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
                         color: _isCopied
                             ? Colors.green.shade600
-                            : const Color(0xFF8B1E1E).withValues(alpha: 0.6),
-                        width: 1,
+                            : const Color(0xFFD4AF37),
+                        width: 1.2,
                       ),
                     ),
                     child: Row(

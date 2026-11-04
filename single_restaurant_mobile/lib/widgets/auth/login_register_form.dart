@@ -1,6 +1,7 @@
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
 import 'package:single_restaurant_mobile/widgets/auth/auth_error_box.dart';
 import 'package:single_restaurant_mobile/widgets/auth/login_register_fields.dart';
@@ -185,18 +186,25 @@ class _LoginRegisterFormState extends State<LoginRegisterForm> {
                       strokeWidth: 2,
                     ),
                   )
-                : const Row(
+                : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         'Register',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(width: 8),
-                      Icon(Icons.arrow_forward, size: 16),
+                      const SizedBox(width: 8),
+                      const Text(
+                        '→',
+                        style: TextStyle(
+                          color: Color(0xFFF5B53D),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ],
                   ),
           ),

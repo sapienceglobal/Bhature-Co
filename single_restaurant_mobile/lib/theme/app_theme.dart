@@ -10,7 +10,7 @@ import 'package:single_restaurant_mobile/theme/app_typography.dart';
 /// matching the Bhatura & Co authentic warm culinary aesthetic.
 class AppTheme {
   static ThemeData get lightTheme {
-    final baseFont = GoogleFonts.inter().fontFamily;
+    final baseFont = GoogleFonts.poppins().fontFamily;
 
     return ThemeData(
       useMaterial3: true,
@@ -40,6 +40,44 @@ class AppTheme {
         labelLarge: AppTypography.labelLarge,
         labelMedium: AppTypography.labelMedium,
       ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 2,
+          shadowColor: AppColors.primary.withValues(alpha: 0.35),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          side: const BorderSide(color: AppColors.border, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          textStyle: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.background,
         elevation: 0,
@@ -66,17 +104,25 @@ class AppTheme {
         thickness: 1,
         space: 1,
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: AppColors.primaryDark,
-        selectedItemColor: AppColors.goldLight,
-        unselectedItemColor: Colors.white70,
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: const Color(0xFFFCF3E8),
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: const Color(0xFF78716C),
         elevation: 8,
+        selectedLabelStyle: GoogleFonts.poppins(
+          fontWeight: FontWeight.w700,
+          fontSize: 11.5,
+        ),
+        unselectedLabelStyle: GoogleFonts.poppins(
+          fontWeight: FontWeight.w500,
+          fontSize: 11.5,
+        ),
       ),
     );
   }
 
   static ThemeData get darkTheme {
-    final baseFont = GoogleFonts.inter().fontFamily;
+    final baseFont = GoogleFonts.poppins().fontFamily;
 
     return ThemeData(
       useMaterial3: true,
@@ -93,6 +139,44 @@ class AppTheme {
         onSecondary: Colors.white,
         onSurface: AppColors.darkTextPrimary,
         onError: Colors.white,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 2,
+          shadowColor: AppColors.primary.withValues(alpha: 0.35),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.goldLight,
+          side: const BorderSide(color: AppColors.darkBorder, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.goldLight,
+          textStyle: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.darkBackground,
@@ -121,7 +205,7 @@ class AppTheme {
         space: 1,
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: Color(0xFF1A0D07),
+        backgroundColor: AppColors.darkSurface,
         selectedItemColor: AppColors.goldLight,
         unselectedItemColor: Colors.white60,
         elevation: 8,

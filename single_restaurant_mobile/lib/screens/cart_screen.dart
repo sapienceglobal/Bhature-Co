@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/theme/app_typography.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
@@ -78,8 +80,7 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isCartEmpty = context.select<CartProvider, bool>((cart) => cart.items.isEmpty);
-    final bgColor = isCartEmpty ? const Color(0xFFFEFAF0) : Colors.white;
+    final bgColor = const Color(0xFFFAF3E8);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -89,7 +90,7 @@ class _CartScreenState extends State<CartScreen> {
         elevation: 0,
         leading: Navigator.canPop(context)
             ? IconButton(
-                icon: const Icon(Icons.arrow_back, color: Color(0xFF6B111C)),
+                icon: const Icon(Icons.arrow_back, color: AppColors.primary),
                 onPressed: () => Navigator.pop(context),
               )
             : null,
@@ -104,20 +105,20 @@ class _CartScreenState extends State<CartScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     'Your Cart',
-                    style: TextStyle(
-                      color: Color(0xFF1E1E1E),
-                      fontWeight: FontWeight.w900,
+                    style: AppTypography.serifHeading(
                       fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.textDark,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '($itemLabel)',
-                    style: const TextStyle(
-                      color: Color(0xFF777777),
-                      fontSize: 16,
+                    style: GoogleFonts.poppins(
+                      color: AppColors.textLight,
+                      fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

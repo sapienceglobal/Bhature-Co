@@ -20,9 +20,12 @@ function MapCenterWatcher({ onMapSettle }) {
   onMapSettleRef.current = onMapSettle;
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const t1 = setTimeout(() => {
       map.invalidateSize({ pan: false });
-    }, 400);
+    }, 150);
+    const t2 = setTimeout(() => {
+      map.invalidateSize({ pan: false });
+    }, 450);
 
     const handleMoveEnd = () => {
       const center = map.getCenter();
@@ -33,7 +36,8 @@ function MapCenterWatcher({ onMapSettle }) {
     handleMoveEnd();
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(t1);
+      clearTimeout(t2);
       map.off('moveend', handleMoveEnd);
     };
   }, [map]);

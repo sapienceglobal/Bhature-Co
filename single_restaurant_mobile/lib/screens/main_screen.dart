@@ -11,6 +11,7 @@ import 'package:single_restaurant_mobile/screens/orders_screen.dart';
 import 'package:single_restaurant_mobile/screens/profile_screen.dart';
 import 'package:single_restaurant_mobile/services/ota_update_service.dart';
 import 'package:single_restaurant_mobile/services/push_notification_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/theme/app_radius.dart';
 
@@ -156,14 +157,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               ],
         ),
         bottomNavigationBar: Container(
-          color: isOrdersGuest ? AppColors.primaryDark : Colors.transparent,
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.primaryDark,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFCF3E8),
             borderRadius: AppRadius.topXxl,
+            border: const Border(
+              top: BorderSide(color: Color(0xFFE5D4C0), width: 1.2),
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
+                color: const Color(0xFF5C0612).withValues(alpha: 0.10),
                 blurRadius: 16,
                 offset: const Offset(0, -4),
               ),
@@ -174,26 +176,28 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             child: BottomNavigationBar(
               type: BottomNavigationBarType.fixed,
               elevation: 0,
-              backgroundColor: AppColors.primaryDark,
-              selectedItemColor: AppColors.goldLight,
-              unselectedItemColor: Colors.white70,
-              selectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
+              backgroundColor: const Color(0xFFFCF3E8),
+              selectedItemColor: AppColors.primary,
+              unselectedItemColor: const Color(0xFF78716C),
+              selectedLabelStyle: GoogleFonts.poppins(
+                fontWeight: FontWeight.w700,
+                fontSize: 11.5,
               ),
-              unselectedLabelStyle: const TextStyle(
+              unselectedLabelStyle: GoogleFonts.poppins(
                 fontWeight: FontWeight.w500,
-                fontSize: 12,
+                fontSize: 11.5,
               ),
               currentIndex: _currentIndex,
               onTap: _onItemTapped,
               items: const [
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.home),
+                  icon: Icon(Icons.home_outlined),
+                  activeIcon: Icon(Icons.home),
                   label: 'Home',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.menu_book),
+                  icon: Icon(Icons.menu_book_outlined),
+                  activeIcon: Icon(Icons.menu_book),
                   label: 'Menu',
                 ),
                 BottomNavigationBarItem(
@@ -202,18 +206,19 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   label: 'Offers',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.receipt_long),
+                  icon: Icon(Icons.receipt_long_outlined),
+                  activeIcon: Icon(Icons.receipt_long),
                   label: 'Orders',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.person_outline),
+                  activeIcon: Icon(Icons.person),
                   label: 'Account',
                 ),
               ],
             ),
           ),
         ),
-      ),
     ),
   );
 }

@@ -32,7 +32,7 @@ const MapLocationPicker = dynamic(() => import('@/components/shared/MapLocationP
   ),
 });
 
-export default function AddressModal({ isOpen, onClose, onSelect, onSelectAddress, initialView = 'search' }) {
+export default function AddressModal({ isOpen, onClose, onSelect, onSelectAddress, initialView = 'map' }) {
   const emitSelect = (payload) => {
     onSelect?.(payload);
     onSelectAddress?.(payload);
@@ -200,7 +200,7 @@ export default function AddressModal({ isOpen, onClose, onSelect, onSelectAddres
     emitSelect(locationData);
     setSearch('');
     setSuggestions([]);
-    setView('search');
+    setView(initialView);
     setSelectedCenter(null);
   };
 
@@ -241,14 +241,21 @@ export default function AddressModal({ isOpen, onClose, onSelect, onSelectAddres
                   type="button"
                   onClick={() => setView('search')}
                   className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-[#D4AF37]/40 text-[#F5E6D3] flex items-center justify-center transition-all cursor-pointer shrink-0"
-                  aria-label="Back to search"
+                  aria-label="Back to search or saved addresses"
+                  title="Search or saved addresses"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
               ) : (
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#B58322] text-[#3B060A] flex items-center justify-center shadow-md shrink-0">
-                  <MapPin className="w-5 h-5 stroke-[2.4]" />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setView('map')}
+                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-[#D4AF37]/40 text-[#F5E6D3] flex items-center justify-center transition-all cursor-pointer shrink-0"
+                  aria-label="Back to map"
+                  title="Back to map"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
               )}
 
               <div className="min-w-0">

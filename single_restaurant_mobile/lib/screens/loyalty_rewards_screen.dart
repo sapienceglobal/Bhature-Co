@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/theme/app_typography.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
@@ -67,9 +68,9 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFEFAF0),
+      backgroundColor: const Color(0xFFFAF3E8),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFEFAF0),
+        backgroundColor: const Color(0xFFFAF3E8),
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
@@ -85,13 +86,12 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
             }
           },
         ),
-        title: const Text(
+        title: Text(
           'Loyalty Rewards',
-          style: TextStyle(
-            color: Color(0xFF1E1E1E),
+          style: AppTypography.serifHeading(
+            color: AppColors.textDark,
             fontWeight: FontWeight.w800,
-            fontSize: 19,
-            letterSpacing: -0.2,
+            fontSize: 20,
           ),
         ),
         actions: [
@@ -102,7 +102,7 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
               height: 24,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFD97706), width: 1.8),
+                border: Border.all(color: AppColors.gold, width: 1.8),
               ),
               child: const Center(
                 child: Text(
@@ -256,13 +256,13 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF5C0612), Color(0xFF5C0612)],
+          colors: [Color(0xFF5C0612), Color(0xFF8B1E1E), Color(0xFF4A090B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: const Color(0xFFC88A2E).withValues(alpha: 0.35),
+          color: AppColors.gold.withValues(alpha: 0.65),
           width: 1.2,
         ),
         boxShadow: const [
@@ -419,7 +419,7 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
                     Container(
                       width: 1,
                       height: 54,
-                      color: const Color(0xFFC88A2E).withValues(alpha: 0.35),
+                      color: AppColors.gold.withValues(alpha: 0.65),
                       margin: const EdgeInsets.symmetric(horizontal: 14),
                     ),
                     Expanded(

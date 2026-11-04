@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:single_restaurant_mobile/constants/colors.dart';
 
-/// Branding header specifically matching the authentic Lassi Lounge reference image.
+/// Branding header specifically matching the authentic Bhatura & Co identity.
 class LoginBrandingHeader extends StatelessWidget {
   final bool isSignIn;
 
@@ -27,7 +29,7 @@ class LoginBrandingHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         _buildLogo(isCompact),
-        const SizedBox(height: 1),
+        const SizedBox(height: 4),
         AnimatedSize(
           duration: const Duration(milliseconds: 260),
           curve: Curves.easeInOutCubic,
@@ -44,17 +46,17 @@ class LoginBrandingHeader extends StatelessWidget {
                     child: Text.rich(
                       TextSpan(
                         text: isSignIn ? 'Welcome ' : 'Create ',
-                        style: TextStyle(
-                          fontSize: isCompact ? (isSignIn ? 24 : 22) : 26,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F1A24),
-                          letterSpacing: -0.5,
+                        style: GoogleFonts.playfairDisplay(
+                          fontSize: isCompact ? (isSignIn ? 26 : 24) : 28,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textDark,
+                          letterSpacing: -0.3,
                         ),
                         children: [
                           TextSpan(
                             text: isSignIn ? 'Back!' : 'Account',
                             style: const TextStyle(
-                              color: Color(0xFF8B151F),
+                              color: AppColors.primary,
                             ),
                           ),
                         ],
@@ -62,16 +64,17 @@ class LoginBrandingHeader extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  SizedBox(height: isCompact ? 2 : 3),
+                  SizedBox(height: isCompact ? 3 : 5),
                   Text(
                     isSignIn
-                        ? 'Sign in to your Bhatura & Co account\nand enjoy your favorite food.'
-                        : 'Join Bhatura & Co and enjoy\ndelicious food & exclusive offers.',
+                        ? 'Sign in to your Bhatura & Co account\nand enjoy hot, fluffy bhature & delicacies.'
+                        : 'Join Bhatura & Co and enjoy\nauthentic delicacies & royal rewards.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: const Color(0xFF6B7280),
-                      fontSize: isCompact ? 11.0 : 12.0,
-                      height: 1.25,
+                    style: GoogleFonts.poppins(
+                      color: AppColors.textLight,
+                      fontSize: isCompact ? 11.5 : 12.5,
+                      height: 1.35,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ],

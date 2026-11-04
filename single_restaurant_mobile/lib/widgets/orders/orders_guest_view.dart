@@ -40,8 +40,8 @@ class OrdersGuestView extends StatelessWidget {
         value: const SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.dark,
-          systemNavigationBarColor: Color(0xFF660C0B),
-          systemNavigationBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: Color(0xFFFCF3E8),
+          systemNavigationBarIconBrightness: Brightness.dark,
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {

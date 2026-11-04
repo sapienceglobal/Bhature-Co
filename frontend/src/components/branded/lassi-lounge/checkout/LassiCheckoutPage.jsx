@@ -7,14 +7,12 @@ import {
   ShoppingCart,
   MapPin,
   Check,
-  Truck,
+  Bike,
   Store,
   Home,
   Briefcase,
   Pencil,
   Plus,
-  Clock,
-  Calendar,
   CreditCard,
   Lock,
   ArrowRight,
@@ -22,28 +20,25 @@ import {
   X,
   Minus,
   ShieldCheck,
-  Bike,
   Star,
   Navigation,
   Loader2,
-  Info,
   Sparkles,
   ChevronRight,
-  Banknote,
   AlertCircle,
-  Gift,
   Award,
 } from 'lucide-react';
-import PhoneInput from 'react-phone-number-input';
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 
 import { useCheckoutState } from '@/components/checkout/useCheckoutState';
+import { useCheckoutTheme } from '@/components/checkout/useCheckoutTheme';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import LassiAddressModal from '../LassiAddressModal';
 import ReviewOrderSection from '@/components/checkout/ReviewOrderSection';
 import PaymentSimulatorModal from '@/components/checkout/PaymentSimulatorModal';
-import { formatCurrency, isRestaurantOpenNow, isWithin15MinsOfClosing } from '@/lib/formatters';
+import { formatCurrency } from '@/lib/formatters';
 import { getDishImage } from '@/components/profile/profileUtils';
 import { showToast } from '@/components/ui';
 
@@ -57,77 +52,70 @@ const US_STATES = [
   'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
 ];
 
-const TIME_SLOTS = [
-  { value: '11:30', label: '11:30 AM - 12:00 PM' },
-  { value: '12:30', label: '12:30 PM - 01:00 PM' },
-  { value: '13:30', label: '01:30 PM - 02:00 PM' },
-  { value: '14:30', label: '02:30 PM - 03:00 PM' },
-  { value: '17:30', label: '05:30 PM - 06:00 PM' },
-  { value: '18:30', label: '06:30 PM - 07:00 PM' },
-  { value: '19:30', label: '07:30 PM - 08:00 PM' },
-  { value: '20:30', label: '08:30 PM - 09:00 PM' },
-  { value: '21:30', label: '09:30 PM - 10:00 PM' },
-];
-
-const formatCardNumber = (val = '') => {
-  const digits = val.replace(/\D/g, '').slice(0, 16);
-  return digits.replace(/(\d{4})(?=\d)/g, '$1 ');
-};
-
-const formatExpiry = (val = '') => {
-  const digits = val.replace(/\D/g, '').slice(0, 4);
-  if (digits.length >= 3) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return digits;
-};
+const hasEmoji = (str) => Boolean(str && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(str));
+const NAME_REGEX = /^[a-zA-Z0-9\s\-'.@_+]+$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export default function LassiCheckoutPage() {
   const c = useCheckoutState();
+  const t = useCheckoutTheme(c.isSingleRestaurantMode);
   const { user } = useAuth();
   const { specialInstructions, setSpecialInstructions } = useCart();
 
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [selectedAddressIdx, setSelectedAddressIdx] = useState(0);
   const [showAddressForm, setShowAddressForm] = useState(false);
-  const [newAddressLabel, setNewAddressLabel] = useState('Home');
 
-  // Local saved addresses list
-  const [sessionAddresses, setSessionAddresses] = useState([
-    {
-      label: 'Home',
-      address: '9408 118th St, South Richmond Hill, NY 11419',
-      displayLine1: '9408 118th St',
-      displayLine2: 'South Richmond Hill, NY 11419, USA',
-      lat: 40.6908,
-      lng: -73.8271,
-    },
-    {
-      label: 'Work',
-      address: '120-10 Liberty Ave, South Richmond Hill, NY 11419',
-      displayLine1: '120-10 Liberty Ave',
-      displayLine2: 'South Richmond Hill, NY 11419, USA',
-      lat: 40.6912,
-      lng: -73.8245,
-    },
-  ]);
+  // Real DB saved addresses from user profile (empty if not logged in or no saved addresses in DB)
+  const savedAddresses = useMemo(() => {
+    const rawList = c.user?.savedAddresses || user?.savedAddresses || [];
+    if (!Array.isArray(rawList) || rawList.length === 0) return [];
+    return rawList.map((a) => {
+      const parts = (a.address || '').split(',').map((p) => p.trim());
+      return {
+        _id: a._id,
+        label: a.label || 'Saved Address',
+        address: a.address,
+        displayLine1: parts.slice(0, Math.max(1, parts.length - 2)).join(', ') || a.address,
+        displayLine2: parts.length > 1 ? `${parts.slice(-2).join(', ')}, USA` : 'USA',
+        lat: a.lat ?? null,
+        lng: a.lng ?? null,
+        isDefault: Boolean(a.isDefault),
+      };
+    });
+  }, [c.user?.savedAddresses, user?.savedAddresses]);
 
   // Card payment fields
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
-  const [cardHolderName, setCardHolderName] = useState('');
-  const [saveCardForFuture, setSaveCardForFuture] = useState(true);
-
-  // Utensils state
-  const [needUtensils, setNeedUtensils] = useState(false);
   const [kitchenNotes, setKitchenNotes] = useState('');
 
   // Field validation errors
   const [formErrors, setFormErrors] = useState({});
   const [checkoutCouponError, setCheckoutCouponError] = useState('');
 
-  // Custom tip input mode
-  const [customTipInput, setCustomTipInput] = useState('');
-  const [isCustomTipActive, setIsCustomTipActive] = useState(false);
+  // Mobile sticky place order bar visibility (auto-hides when scrolled to in-page place order)
+  const inPagePlaceOrderRef = useRef(null);
+  const [isStickyBarVisible, setIsStickyBarVisible] = useState(true);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const el = inPagePlaceOrderRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+      // When the top of in-page place order section is within viewport or scrolled past
+      const hasReached = rect.top < windowHeight - 40;
+      setIsStickyBarVisible(!hasReached);
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [c.itemCount, c.total]);
 
   const clearFieldError = (fieldName) => {
     setFormErrors((prev) => {
@@ -153,31 +141,45 @@ export default function LassiCheckoutPage() {
 
   const validateFields = () => {
     const newErrors = {};
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    // Contact info
+    // 1. Full Name validation
     if (!c.fullName?.trim()) {
       newErrors.fullName = 'Please enter your full name';
+    } else if (hasEmoji(c.fullName)) {
+      newErrors.fullName = 'Emojis are not allowed in name.';
+    } else if (!NAME_REGEX.test(c.fullName.trim())) {
+      newErrors.fullName = 'Please use standard letters and numbers only. Special characters are not allowed.';
     } else if (c.fullName.trim().length < 2) {
       newErrors.fullName = 'Full name must be at least 2 characters';
+    } else if (c.fullName.trim().length > 50) {
+      newErrors.fullName = 'Name must be between 2 and 50 characters';
     }
 
-    const cleanPhone = (c.phone || '').replace(/\D/g, '');
-    if (!c.phone?.trim()) {
+    // 2. Mobile Phone Number validation
+    const rawPhone = c.phone || '';
+    const cleanPhone = rawPhone.replace(/\D/g, '');
+    if (!rawPhone.trim()) {
       newErrors.phone = 'Please enter your mobile number';
-    } else if (cleanPhone.length < 10) {
-      newErrors.phone = 'Please enter a valid 10-digit mobile number';
+    } else if (hasEmoji(rawPhone)) {
+      newErrors.phone = 'Emojis are not allowed in mobile number.';
+    } else if (typeof isValidPhoneNumber === 'function' ? !isValidPhoneNumber(rawPhone) : cleanPhone.length < 10) {
+      newErrors.phone = 'Please enter a valid, complete phone number.';
     }
 
+    // 3. Email Address validation
     if (!c.email?.trim()) {
       newErrors.email = 'Please enter your email address';
-    } else if (!emailRegex.test(c.email.trim())) {
-      newErrors.email = 'Please enter a valid email address';
+    } else if (hasEmoji(c.email)) {
+      newErrors.email = 'Emojis are not allowed in email addresses.';
+    } else if (!EMAIL_REGEX.test(c.email.trim())) {
+      newErrors.email = 'Please enter a valid email address.';
     }
 
-    // Address validation if delivery & manual form is active
+    // 4. Delivery Address validation (if orderType === 'delivery')
     if (c.orderType === 'delivery') {
-      if (showAddressForm) {
+      const isManualOrNoSaved = savedAddresses.length === 0 || showAddressForm || !c.addressLine1?.trim();
+
+      if (isManualOrNoSaved) {
         if (!c.addressLine1?.trim()) {
           newErrors.addressLine1 = 'Please enter street address';
         }
@@ -193,36 +195,12 @@ export default function LassiCheckoutPage() {
         } else if (cleanZip.length < 5) {
           newErrors.zipCode = 'Zip code must be 5 digits';
         }
-      }
-    }
-
-    // Card payment validation
-    if (c.paymentMethod === 'stripe_online' || c.paymentMethod === 'credit_card') {
-      const cleanCard = cardNumber.replace(/\D/g, '');
-      if (!cardNumber.trim()) {
-        newErrors.cardNumber = 'Please enter card number';
-      } else if (cleanCard.length < 15) {
-        newErrors.cardNumber = 'Card number must be 15 or 16 digits';
+      } else if (!c.addressLine1?.trim()) {
+        newErrors.addressLine1 = 'Please select or enter a delivery address';
       }
 
-      if (!cardExpiry.trim()) {
-        newErrors.cardExpiry = 'Please enter expiry date (MM/YY)';
-      } else {
-        const parts = cardExpiry.split('/');
-        const m = parseInt(parts[0], 10);
-        if (parts.length !== 2 || isNaN(m) || m < 1 || m > 12) {
-          newErrors.cardExpiry = 'Enter a valid MM/YY';
-        }
-      }
-
-      if (!cardCvv.trim()) {
-        newErrors.cardCvv = 'Please enter CVV';
-      } else if (cardCvv.length < 3) {
-        newErrors.cardCvv = 'CVV must be 3 or 4 digits';
-      }
-
-      if (!cardHolderName.trim()) {
-        newErrors.cardHolderName = 'Please enter name on card';
+      if (c.quoteError) {
+        newErrors.quoteError = c.quoteError;
       }
     }
 
@@ -233,6 +211,10 @@ export default function LassiCheckoutPage() {
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
+      const firstMsg = newErrors[firstField];
+      if (firstMsg) {
+        showToast(firstMsg, 'error');
+      }
       return false;
     }
 
@@ -240,53 +222,74 @@ export default function LassiCheckoutPage() {
     return true;
   };
 
-  const validateAndPlaceOrder = async () => {
+  /**
+   * Big screen checkout behavior:
+   * Clicking "Review Order" validates all fields.
+   * On success, opens Step 3 Review Order popup modal where driver tip can be selected,
+   * order details can be reviewed, and "Confirm & Place Order" can be tapped.
+   */
+  const handleReviewOrderClick = async () => {
     if (!validateFields()) return;
-    await c.handlePlaceOrder();
-  };
 
-  const handleStep3Click = async () => {
-    if (!validateFields()) return;
-    c.handleContinueToReview();
-  };
+    if (c.orderType === 'delivery') {
+      let currentLat = c.addressLat;
+      let currentLng = c.addressLng;
 
-  // Sync saved addresses and delivery selection
-  useEffect(() => {
-    if (c.user?.savedAddresses?.length > 0) {
-      const mapped = c.user.savedAddresses.map((a) => {
-        const parts = (a.address || '').split(',').map((p) => p.trim());
-        return {
-          _id: a._id,
-          label: a.label || 'Home',
-          address: a.address,
-          displayLine1: parts.slice(0, Math.max(1, parts.length - 2)).join(', ') || a.address,
-          displayLine2: parts.length > 1 ? `${parts.slice(-2).join(', ')}, USA` : 'USA',
-          lat: a.lat ?? null,
-          lng: a.lng ?? null,
-          isDefault: a.isDefault,
-        };
-      });
-      setSessionAddresses(mapped);
-      const defIdx = Math.max(0, mapped.findIndex((a) => a.isDefault));
-      setSelectedAddressIdx(defIdx);
-      if (mapped[defIdx]) {
-        c.handleSelectSavedAddress(mapped[defIdx]);
+      if (!c.addressVerified || currentLat === null || currentLng === null) {
+        showToast('Please select a valid address from suggestions or pin on map.', 'error');
+        return;
       }
-    } else if (!c.addressLine1 && sessionAddresses.length > 0) {
-      c.handleSelectSavedAddress(sessionAddresses[0]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [c.user?.savedAddresses]);
 
-  // Combine instructions
-  useEffect(() => {
-    const parts = [];
-    if (needUtensils) parts.push('Include plastic utensils & napkins.');
-    if (kitchenNotes.trim()) parts.push(kitchenNotes.trim());
-    if (typeof setSpecialInstructions === 'function') {
-      setSpecialInstructions(parts.join(' '));
+      if (c.quoteError) {
+        showToast(c.quoteError, 'error');
+        return;
+      }
     }
-  }, [needUtensils, kitchenNotes, setSpecialInstructions]);
+
+    c.setStep(3);
+  };
+
+  const handleStep1Click = () => {
+    if (typeof c.openCart === 'function') {
+      c.openCart();
+    } else {
+      c.router?.push('/menu');
+    }
+  };
+
+  const handleStep2Click = () => {
+    if (c.step === 3) {
+      c.setStep(2);
+    }
+    const el = document.getElementById('delivery-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: 280, behavior: 'smooth' });
+    }
+  };
+
+  const handleStep3Click = () => {
+    handleReviewOrderClick();
+  };
+
+  // Auto-select user's default saved address from DB on mount (only if user has saved addresses)
+  useEffect(() => {
+    if (savedAddresses.length > 0 && !c.addressLine1) {
+      const defIdx = Math.max(0, savedAddresses.findIndex((a) => a.isDefault));
+      setSelectedAddressIdx(defIdx);
+      if (savedAddresses[defIdx]) {
+        c.handleSelectSavedAddress(savedAddresses[defIdx]);
+      }
+    }
+  }, [savedAddresses]);
+
+  // Sync kitchen notes
+  useEffect(() => {
+    if (typeof setSpecialInstructions === 'function') {
+      setSpecialInstructions(kitchenNotes.trim());
+    }
+  }, [kitchenNotes, setSpecialInstructions]);
 
   const handleSelectAddressCard = (addr, idx) => {
     setSelectedAddressIdx(idx);
@@ -294,57 +297,6 @@ export default function LassiCheckoutPage() {
     c.handleSelectSavedAddress(addr);
     clearFieldError('addressLine1');
   };
-
-  const handleAddNewAddressSubmit = (e) => {
-    e.preventDefault();
-    if (!c.addressLine1?.trim()) {
-      setFormErrors((prev) => ({ ...prev, addressLine1: 'Please enter street address' }));
-      return;
-    }
-    const fullAddr = [c.addressLine1, c.addressLine2, c.city, c.state, c.zipCode]
-      .filter(Boolean)
-      .join(', ');
-
-    const newEntry = {
-      label: newAddressLabel || 'Other',
-      address: fullAddr,
-      displayLine1: [c.addressLine1, c.addressLine2].filter(Boolean).join(', '),
-      displayLine2: `${c.city || ''}, ${c.state || ''} ${c.zipCode || ''}, USA`,
-      lat: null,
-      lng: null,
-    };
-
-    setSessionAddresses((prev) => [newEntry, ...prev]);
-    setSelectedAddressIdx(0);
-    setShowAddressForm(false);
-    c.handleSelectSavedAddress(newEntry);
-  };
-
-  const handleSelectTipAmount = (amount) => {
-    setIsCustomTipActive(false);
-    setCustomTipInput('');
-    c.setTip(amount);
-  };
-
-  const handleCustomTipChange = (val) => {
-    setCustomTipInput(val);
-    const parsed = parseFloat(val);
-    if (!isNaN(parsed) && parsed >= 0) {
-      c.setTip(parsed);
-    } else {
-      c.setTip(0);
-    }
-  };
-
-  const restaurantOpenStatus = useMemo(() => {
-    if (!c.restaurant) return { isOpen: true, isClosingSoon: false };
-    return {
-      isOpen: isRestaurantOpenNow(c.restaurant),
-      isClosingSoon: isWithin15MinsOfClosing(c.restaurant),
-    };
-  }, [c.restaurant]);
-
-  const isClosed = !restaurantOpenStatus.isOpen;
 
   // Loyalty calculations
   const loyaltyPoints = Number(user?.loyaltyPoints || c.user?.loyaltyPoints || 0);
@@ -409,88 +361,81 @@ export default function LassiCheckoutPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          2. 3-STEP HORIZONTAL PROGRESS STEPPER
+          2. 3-STEP HORIZONTAL PROGRESS STEPPER (Pixel-Perfect & Responsive)
          ═══════════════════════════════════════════════════════════════════ */}
-      <section className="bg-[#FAF3E8] pt-3 pb-5 border-b border-[#EFE3D2]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="relative flex items-start justify-between">
-            {/* Background Connecting Line */}
-            <div className="absolute top-[22px] left-[12%] right-[12%] h-[2px] bg-[#E2D6C5] z-0" />
+      <section className="bg-[#FAF3E8] pt-4 pb-4 border-b border-[#EFE3D2]">
+        <div className="max-w-xl mx-auto px-3 sm:px-6">
+          <div className="relative flex items-center justify-between">
+            {/* Background Connecting Track Line */}
+            <div className="absolute top-[20px] left-[15%] right-[15%] h-[2px] bg-[#E2D6C5] z-0" />
             {/* Active Maroon Progress Line */}
             <div
-              className="absolute top-[22px] left-[12%] h-[2.5px] bg-[#7A0B10] z-0 transition-all duration-500"
+              className="absolute top-[20px] left-[15%] h-[2.5px] bg-[#7A0B10] z-0 transition-all duration-500 ease-out"
               style={{
-                width: c.step === 1 ? '18%' : c.step === 2 ? '38%' : '76%',
+                width: c.step === 3 ? '70%' : '35%',
               }}
             />
 
-            {/* Step 1: Cart */}
+            {/* Step 1: Cart (Completed) */}
             <button
               type="button"
-              onClick={() => c.openCart?.()}
-              className="relative z-10 flex flex-col items-center group focus:outline-none w-1/3 cursor-pointer"
+              onClick={handleStep1Click}
+              className="relative z-10 flex flex-col items-center group focus:outline-none flex-1 cursor-pointer"
             >
-              <div className="w-11 h-11 rounded-full bg-[#7A0B10] text-white flex items-center justify-center shadow-[0_4px_12px_rgba(122,11,16,0.35)] border-2 border-white">
-                <ShoppingCart size={18} strokeWidth={2.2} />
+              <div className="w-10 h-10 rounded-full bg-[#7A0B10] text-white flex items-center justify-center shadow-[0_2px_8px_rgba(122,11,16,0.3)] border-2 border-white transition-all group-hover:scale-105">
+                <Check size={18} strokeWidth={2.8} />
               </div>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="w-4 h-4 rounded-full bg-[#7A0B10] text-white text-[10px] font-bold flex items-center justify-center">
-                  1
-                </span>
-                <span className="text-xs sm:text-[13px] font-bold text-[#1A1A1A] group-hover:text-[#7A0B10] transition-colors">
-                  Cart
-                </span>
-              </div>
+              <span className="text-xs sm:text-sm font-bold text-[#1A1A1A] group-hover:text-[#7A0B10] transition-colors whitespace-nowrap mt-2 text-center">
+                1. Cart
+              </span>
             </button>
 
-            {/* Step 2: Delivery & Payment */}
+            {/* Step 2: Delivery & Pay (Active on Checkout) */}
             <button
               type="button"
-              onClick={() => c.setStep(2)}
-              className="relative z-10 flex flex-col items-center group focus:outline-none w-1/3 cursor-pointer"
+              onClick={handleStep2Click}
+              className="relative z-10 flex flex-col items-center group focus:outline-none flex-1 cursor-pointer"
             >
               <div
-                className={`w-11 h-11 rounded-full flex items-center justify-center shadow-sm border-2 transition-all ${
-                  c.step >= 2
-                    ? 'bg-[#7A0B10] border-white text-white shadow-[0_4px_12px_rgba(122,11,16,0.35)]'
-                    : 'bg-white border-[#E5D9C8] text-[#78716C]'
+                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 border-white transition-all group-hover:scale-105 ${
+                  c.step < 3
+                    ? 'bg-[#7A0B10] text-white shadow-[0_4px_14px_rgba(122,11,16,0.35)] ring-4 ring-[#7A0B10]/15'
+                    : 'bg-[#7A0B10] text-white shadow-sm'
                 }`}
               >
-                <MapPin size={18} strokeWidth={2.2} />
+                {c.step === 3 ? (
+                  <Check size={18} strokeWidth={2.8} />
+                ) : (
+                  <MapPin size={17} strokeWidth={2.2} />
+                )}
               </div>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="w-4 h-4 rounded-full bg-[#7A0B10] text-white text-[10px] font-bold flex items-center justify-center">
-                  2
-                </span>
-                <span className="text-xs sm:text-[13px] font-bold text-[#1A1A1A]">
-                  Delivery &amp; Payment
-                </span>
-              </div>
+              <span className={`text-xs sm:text-sm font-extrabold whitespace-nowrap transition-colors mt-2 text-center ${
+                c.step < 3 ? 'text-[#7A0B10]' : 'text-[#1A1A1A]'
+              }`}>
+                2. Delivery &amp; Pay
+              </span>
             </button>
 
-            {/* Step 3: Review & Place Order */}
+            {/* Step 3: Review Order (Popup / Final Step) */}
             <button
               type="button"
               onClick={handleStep3Click}
-              className="relative z-10 flex flex-col items-center group focus:outline-none w-1/3 cursor-pointer"
+              className="relative z-10 flex flex-col items-center group focus:outline-none flex-1 cursor-pointer"
             >
               <div
-                className={`w-11 h-11 rounded-full flex items-center justify-center shadow-sm border-2 transition-all ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all group-hover:scale-105 ${
                   c.step === 3
-                    ? 'bg-[#7A0B10] border-white text-white shadow-[0_4px_12px_rgba(122,11,16,0.35)]'
-                    : 'bg-white border-[#E5D9C8] text-[#1A1A1A]'
+                    ? 'bg-[#7A0B10] border-white text-white shadow-[0_4px_14px_rgba(122,11,16,0.35)] ring-4 ring-[#7A0B10]/15'
+                    : 'bg-white border-[#D5C6B4] text-[#8C7E72] shadow-xs'
                 }`}
               >
                 <Check size={18} strokeWidth={2.5} />
               </div>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="w-4 h-4 rounded-full bg-[#EFE6D8] border border-[#D5C7B4] text-[#57534E] text-[10px] font-bold flex items-center justify-center">
-                  3
-                </span>
-                <span className="text-xs sm:text-[13px] font-bold text-[#1A1A1A] group-hover:text-[#7A0B10] transition-colors">
-                  Review &amp; Place Order
-                </span>
-              </div>
+              <span className={`text-xs sm:text-sm font-bold whitespace-nowrap transition-colors mt-2 text-center ${
+                c.step === 3 ? 'text-[#7A0B10]' : 'text-[#8C7E72] group-hover:text-[#1A1A1A]'
+              }`}>
+                3. Review Order
+              </span>
             </button>
           </div>
         </div>
@@ -499,7 +444,7 @@ export default function LassiCheckoutPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           3. MAIN CHECKOUT CONTENT (2-Column Grid)
          ═══════════════════════════════════════════════════════════════════ */}
-      <main className="flex-1 py-7 sm:py-9">
+      <main className="flex-1 pt-7 pb-24 sm:py-9">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {c.itemCount === 0 ? (
             <div className="bg-white rounded-3xl border border-[#EADBC8] shadow-[0_8px_30px_rgba(122,11,16,0.06)] p-10 sm:p-16 text-center max-w-xl mx-auto my-8">
@@ -525,7 +470,7 @@ export default function LassiCheckoutPage() {
               {/* ─────────────────────────────────────────────────────────────
                   LEFT COLUMN (8 cols): Checkout Details Cards
                  ───────────────────────────────────────────────────────────── */}
-              <div className="lg:col-span-8 space-y-6">
+              <div id="delivery-section" className="lg:col-span-8 space-y-6">
                 {/* ═══ CARD 1: DELIVERY OPTION ═══ */}
                 <div className="bg-white rounded-2xl border border-[#EAE0D3] shadow-[0_4px_20px_rgba(40,10,10,0.04)] p-5 sm:p-7">
                   <div className="flex items-center gap-3 pb-4 border-b border-[#F0E6D8]">
@@ -542,7 +487,7 @@ export default function LassiCheckoutPage() {
                     <button
                       type="button"
                       onClick={() => c.setOrderType('delivery')}
-                      className={`p-4 sm:p-5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between ${
+                      className={`p-4 sm:p-5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between cursor-pointer ${
                         c.orderType === 'delivery'
                           ? 'border-[#7A0B10] bg-[#FDF8EE] shadow-[0_4px_16px_rgba(122,11,16,0.12)]'
                           : 'border-[#EAE0D3] bg-white hover:border-[#D5C4AE]'
@@ -581,7 +526,7 @@ export default function LassiCheckoutPage() {
                     <button
                       type="button"
                       onClick={() => c.setOrderType('pickup')}
-                      className={`p-4 sm:p-5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between ${
+                      className={`p-4 sm:p-5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between cursor-pointer ${
                         c.orderType === 'pickup'
                           ? 'border-[#7A0B10] bg-[#FDF8EE] shadow-[0_4px_16px_rgba(122,11,16,0.12)]'
                           : 'border-[#EAE0D3] bg-white hover:border-[#D5C4AE]'
@@ -641,19 +586,22 @@ export default function LassiCheckoutPage() {
                         </label>
                         <input
                           type="text"
+                          name="fullName"
+                          autoComplete="name"
                           value={c.fullName}
                           onChange={(e) => {
                             c.setFullName(e.target.value);
                             clearFieldError('fullName');
                           }}
-                          placeholder="e.g. Adarsh Sharma"
+                          placeholder="Enter your full name"
                           className={`w-full h-11 rounded-xl border bg-[#FDFBF8] px-3.5 text-sm text-[#1A1A1A] placeholder-[#A89F91] focus:outline-none focus:ring-2 focus:ring-[#7A0B10]/20 focus:border-[#7A0B10] transition-all ${
-                            formErrors.fullName ? 'border-[#DC2626] bg-[#FFF5F5]' : 'border-[#E4D9C8]'
+                            formErrors.fullName ? 'border-[#DC2626] bg-[#FFF5F5] ring-1 ring-[#DC2626]' : 'border-[#E4D9C8]'
                           }`}
                         />
                         {formErrors.fullName && (
-                          <p className="text-xs text-[#DC2626] mt-1 font-medium flex items-center gap-1">
-                            <AlertCircle size={12} /> {formErrors.fullName}
+                          <p className="text-xs text-[#DC2626] mt-1.5 font-medium flex items-center gap-1">
+                            <AlertCircle size={12} className="shrink-0" />
+                            <span>{formErrors.fullName}</span>
                           </p>
                         )}
                       </div>
@@ -665,12 +613,13 @@ export default function LassiCheckoutPage() {
                         </label>
                         <div
                           className={`h-11 rounded-xl border bg-[#FDFBF8] px-3 flex items-center focus-within:ring-2 focus-within:ring-[#7A0B10]/20 focus-within:border-[#7A0B10] transition-all lassi-phone-wrap ${
-                            formErrors.phone ? 'border-[#DC2626] bg-[#FFF5F5]' : 'border-[#E4D9C8]'
+                            formErrors.phone ? 'border-[#DC2626] bg-[#FFF5F5] ring-1 ring-[#DC2626]' : 'border-[#E4D9C8]'
                           }`}
                         >
                           <PhoneInput
                             international
                             defaultCountry="US"
+                            placeholder="Enter phone number"
                             value={c.phone}
                             onChange={(val) => {
                               c.setPhone(val || '');
@@ -680,8 +629,9 @@ export default function LassiCheckoutPage() {
                           />
                         </div>
                         {formErrors.phone && (
-                          <p className="text-xs text-[#DC2626] mt-1 font-medium flex items-center gap-1">
-                            <AlertCircle size={12} /> {formErrors.phone}
+                          <p className="text-xs text-[#DC2626] mt-1.5 font-medium flex items-center gap-1">
+                            <AlertCircle size={12} className="shrink-0" />
+                            <span>{formErrors.phone}</span>
                           </p>
                         )}
                       </div>
@@ -694,19 +644,22 @@ export default function LassiCheckoutPage() {
                       </label>
                       <input
                         type="email"
+                        name="email"
+                        autoComplete="email"
                         value={c.email}
                         onChange={(e) => {
                           c.setEmail(e.target.value);
                           clearFieldError('email');
                         }}
-                        placeholder="e.g. adarsh@example.com"
+                        placeholder="Enter your email address"
                         className={`w-full h-11 rounded-xl border bg-[#FDFBF8] px-3.5 text-sm text-[#1A1A1A] placeholder-[#A89F91] focus:outline-none focus:ring-2 focus:ring-[#7A0B10]/20 focus:border-[#7A0B10] transition-all ${
-                          formErrors.email ? 'border-[#DC2626] bg-[#FFF5F5]' : 'border-[#E4D9C8]'
+                          formErrors.email ? 'border-[#DC2626] bg-[#FFF5F5] ring-1 ring-[#DC2626]' : 'border-[#E4D9C8]'
                         }`}
                       />
                       {formErrors.email && (
-                        <p className="text-xs text-[#DC2626] mt-1 font-medium flex items-center gap-1">
-                          <AlertCircle size={12} /> {formErrors.email}
+                        <p className="text-xs text-[#DC2626] mt-1.5 font-medium flex items-center gap-1">
+                          <AlertCircle size={12} className="shrink-0" />
+                          <span>{formErrors.email}</span>
                         </p>
                       )}
                     </div>
@@ -719,20 +672,22 @@ export default function LassiCheckoutPage() {
                         <label className="text-xs font-bold uppercase tracking-wider text-[#6B5E53]">
                           Delivery Address <span className="text-[#7A0B10]">*</span>
                         </label>
-                        <button
-                          type="button"
-                          onClick={() => setShowAddressForm(!showAddressForm)}
-                          className="text-xs font-bold text-[#7A0B10] hover:text-[#5C0612] flex items-center gap-1 cursor-pointer transition-colors"
-                        >
-                          <Pencil size={12} />
-                          <span>{showAddressForm ? 'Select Saved Address' : '+ Enter New Address'}</span>
-                        </button>
+                        {savedAddresses.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowAddressForm(!showAddressForm)}
+                            className="text-xs font-bold text-[#7A0B10] hover:text-[#5C0612] flex items-center gap-1 cursor-pointer transition-colors"
+                          >
+                            <Pencil size={12} />
+                            <span>{showAddressForm ? 'Select Saved Address' : '+ Enter New Address'}</span>
+                          </button>
+                        )}
                       </div>
 
-                      {/* Saved Addresses List (Cards) */}
-                      {!showAddressForm && sessionAddresses.length > 0 && (
+                      {/* Saved Addresses List (Cards) - ONLY when user has saved addresses in DB */}
+                      {savedAddresses.length > 0 && !showAddressForm && (
                         <div className="space-y-2.5">
-                          {sessionAddresses.map((addr, idx) => {
+                          {savedAddresses.map((addr, idx) => {
                             const isSelected = selectedAddressIdx === idx;
                             const IconComponent =
                               addr.label?.toLowerCase() === 'work'
@@ -791,32 +746,9 @@ export default function LassiCheckoutPage() {
                         </div>
                       )}
 
-                      {/* Manual Address Input Form (or shown when "+ Enter New Address" is clicked) */}
-                      {(showAddressForm || sessionAddresses.length === 0) && (
-                        <div className="bg-[#FAF5EC] rounded-2xl p-4 sm:p-5 border border-[#E8DCcb] space-y-3.5">
-                          {/* Label Pills */}
-                          <div>
-                            <span className="block text-[11px] font-bold uppercase tracking-wider text-[#6B5E53] mb-1.5">
-                              Address Label
-                            </span>
-                            <div className="flex gap-2">
-                              {['Home', 'Work', 'Other'].map((lbl) => (
-                                <button
-                                  key={lbl}
-                                  type="button"
-                                  onClick={() => setNewAddressLabel(lbl)}
-                                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                                    newAddressLabel === lbl
-                                      ? 'bg-[#7A0B10] text-white shadow-xs'
-                                      : 'bg-white text-[#6B5E53] border border-[#E0D4C2]'
-                                  }`}
-                                >
-                                  {lbl}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
+                      {/* Address Input Form - Directly shown if no saved addresses, or when "+ Enter New Address" is clicked */}
+                      {(savedAddresses.length === 0 || showAddressForm) && (
+                        <div className="bg-[#FAF5EC] rounded-2xl p-4 sm:p-5 border border-[#E8DCCB] space-y-3.5">
                           {/* Street Address & Autocomplete */}
                           <div data-field="addressLine1" className="relative">
                             <label className="block text-xs font-bold uppercase tracking-wider text-[#6B5E53] mb-1">
@@ -825,14 +757,16 @@ export default function LassiCheckoutPage() {
                             <div className="relative">
                               <input
                                 type="text"
+                                name="addressLine1"
+                                autoComplete="address-line1"
                                 value={c.addressLine1}
                                 onChange={(e) => {
                                   c.handleAddressLine1Change(e.target.value);
                                   clearFieldError('addressLine1');
                                 }}
-                                placeholder="Enter street address, building, or landmark"
+                                placeholder="House No., Street Name, or Landmark"
                                 className={`w-full h-11 rounded-xl border bg-white pl-10 pr-9 text-sm text-[#1A1A1A] placeholder-[#A89F91] focus:outline-none focus:ring-2 focus:ring-[#7A0B10]/20 focus:border-[#7A0B10] transition-all ${
-                                  formErrors.addressLine1 ? 'border-[#DC2626] bg-[#FFF5F5]' : 'border-[#E4D9C8]'
+                                  formErrors.addressLine1 ? 'border-[#DC2626] bg-[#FFF5F5] ring-1 ring-[#DC2626]' : 'border-[#E4D9C8]'
                                 }`}
                               />
                               <MapPin size={17} className="absolute left-3.5 top-3.5 text-[#7A0B10]" />
@@ -867,13 +801,14 @@ export default function LassiCheckoutPage() {
                             )}
 
                             {formErrors.addressLine1 && (
-                              <p className="text-xs text-[#DC2626] mt-1 font-medium flex items-center gap-1">
-                                <AlertCircle size={12} /> {formErrors.addressLine1}
+                              <p className="text-xs text-[#DC2626] mt-1.5 font-medium flex items-center gap-1">
+                                <AlertCircle size={12} className="shrink-0" />
+                                <span>{formErrors.addressLine1}</span>
                               </p>
                             )}
                           </div>
 
-                          {/* Quick Location Buttons: Current GPS & Pin on Map */}
+                          {/* Quick Location Buttons: Current GPS & Direct Map Bottom Sheet */}
                           <div className="flex flex-wrap gap-2 pt-1">
                             <button
                               type="button"
@@ -906,6 +841,8 @@ export default function LassiCheckoutPage() {
                             </label>
                             <input
                               type="text"
+                              name="addressLine2"
+                              autoComplete="address-line2"
                               value={c.addressLine2}
                               onChange={(e) => c.setAddressLine2(e.target.value)}
                               placeholder="e.g. Apt 4B, Floor 2"
@@ -921,16 +858,24 @@ export default function LassiCheckoutPage() {
                               </label>
                               <input
                                 type="text"
+                                name="city"
+                                autoComplete="address-level2"
                                 value={c.city}
                                 onChange={(e) => {
                                   c.setCity(e.target.value);
                                   clearFieldError('city');
                                 }}
-                                placeholder="e.g. Richmond Hill"
+                                placeholder="Enter city"
                                 className={`w-full h-10 rounded-xl border bg-white px-3 text-sm text-[#1A1A1A] placeholder-[#A89F91] focus:outline-none focus:border-[#7A0B10] ${
-                                  formErrors.city ? 'border-[#DC2626]' : 'border-[#E4D9C8]'
+                                  formErrors.city ? 'border-[#DC2626] ring-1 ring-[#DC2626]' : 'border-[#E4D9C8]'
                                 }`}
                               />
+                              {formErrors.city && (
+                                <p className="text-xs text-[#DC2626] mt-1 font-medium flex items-center gap-1">
+                                  <AlertCircle size={12} className="shrink-0" />
+                                  <span>{formErrors.city}</span>
+                                </p>
+                              )}
                             </div>
 
                             <div data-field="state">
@@ -939,6 +884,8 @@ export default function LassiCheckoutPage() {
                               </label>
                               <select
                                 value={c.state || 'NY'}
+                                name="state"
+                                autoComplete="address-level1"
                                 onChange={(e) => {
                                   c.setState(e.target.value);
                                   clearFieldError('state');
@@ -959,145 +906,45 @@ export default function LassiCheckoutPage() {
                               </label>
                               <input
                                 type="text"
+                                name="zipCode"
+                                autoComplete="postal-code"
                                 maxLength={5}
                                 value={c.zipCode}
                                 onChange={(e) => {
                                   c.setZipCode(e.target.value.replace(/\D/g, ''));
                                   clearFieldError('zipCode');
                                 }}
-                                placeholder="11419"
+                                placeholder="Enter zip code"
                                 className={`w-full h-10 rounded-xl border bg-white px-3 text-sm text-[#1A1A1A] placeholder-[#A89F91] focus:outline-none focus:border-[#7A0B10] ${
-                                  formErrors.zipCode ? 'border-[#DC2626]' : 'border-[#E4D9C8]'
+                                  formErrors.zipCode ? 'border-[#DC2626] ring-1 ring-[#DC2626]' : 'border-[#E4D9C8]'
                                 }`}
                               />
+                              {formErrors.zipCode && (
+                                <p className="text-xs text-[#DC2626] mt-1 font-medium flex items-center gap-1">
+                                  <AlertCircle size={12} className="shrink-0" />
+                                  <span>{formErrors.zipCode}</span>
+                                </p>
+                              )}
                             </div>
                           </div>
 
-                          <div className="pt-2 flex justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setShowAddressForm(false)}
-                              className="px-4 py-2 rounded-xl text-xs font-bold text-[#6B5E53] hover:bg-white transition-colors"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleAddNewAddressSubmit}
-                              className="px-5 py-2 rounded-xl text-xs font-bold bg-[#7A0B10] text-white hover:bg-[#5C0612] transition-colors shadow-xs"
-                            >
-                              Use This Address
-                            </button>
-                          </div>
+                          {/* If user toggled to new address form from saved addresses, provide back button */}
+                          {savedAddresses.length > 0 && showAddressForm && (
+                            <div className="pt-2 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => setShowAddressForm(false)}
+                                className="px-4 py-2 rounded-xl text-xs font-bold text-[#6B5E53] hover:text-[#1A1A1A] hover:bg-white transition-colors cursor-pointer"
+                              >
+                                Back to Saved Addresses
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
 
-                      {/* Delivery Time Option: ASAP vs Scheduled */}
-                      <div className="pt-4 border-t border-[#F0E6D8]">
-                        <label className="block text-xs font-bold uppercase tracking-wider text-[#6B5E53] mb-2.5">
-                          Delivery Time Preference
-                        </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {/* ASAP Option */}
-                          <div
-                            onClick={() => c.setDeliveryTimeOption?.('asap')}
-                            className={`flex items-center gap-3 p-3.5 sm:p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                              c.deliveryTimeOption === 'asap' || !c.deliveryTimeOption
-                                ? 'bg-[#FDF8EE] border-[#7A0B10] shadow-[0_2px_10px_rgba(122,11,16,0.1)]'
-                                : 'bg-white border-[#E6DDD0] hover:border-[#D0C2B0]'
-                            }`}
-                          >
-                            <div
-                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                                c.deliveryTimeOption === 'asap' || !c.deliveryTimeOption
-                                  ? 'bg-[#7A0B10] text-white border-[#7A0B10]'
-                                  : 'border-[#D4C7B8]'
-                              }`}
-                            >
-                              {(c.deliveryTimeOption === 'asap' || !c.deliveryTimeOption) && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-xs sm:text-sm font-bold text-[#1A1A1A] flex items-center gap-1.5">
-                                <Clock size={14} className="text-[#7A0B10]" />
-                                <span>ASAP (35-45 mins)</span>
-                              </p>
-                              <p className="text-[11px] text-[#6B5E53] mt-0.5">
-                                Prepared fresh and dispatched immediately
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Scheduled Option */}
-                          <div
-                            onClick={() => c.setDeliveryTimeOption?.('scheduled')}
-                            className={`flex items-center gap-3 p-3.5 sm:p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                              c.deliveryTimeOption === 'scheduled'
-                                ? 'bg-[#FDF8EE] border-[#7A0B10] shadow-[0_2px_10px_rgba(122,11,16,0.1)]'
-                                : 'bg-white border-[#E6DDD0] hover:border-[#D0C2B0]'
-                            }`}
-                          >
-                            <div
-                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                                c.deliveryTimeOption === 'scheduled'
-                                  ? 'bg-[#7A0B10] text-white border-[#7A0B10]'
-                                  : 'border-[#D4C7B8]'
-                              }`}
-                            >
-                              {c.deliveryTimeOption === 'scheduled' && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-xs sm:text-sm font-bold text-[#1A1A1A] flex items-center gap-1.5">
-                                <Calendar size={14} className="text-[#7A0B10]" />
-                                <span>Schedule for Later</span>
-                              </p>
-                              <p className="text-[11px] text-[#6B5E53] mt-0.5">
-                                Choose exact date and arrival window
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Scheduled Date & Time Slot Dropdowns */}
-                        {c.deliveryTimeOption === 'scheduled' && (
-                          <div className="mt-4 pt-3.5 border-t border-[#F2EAE0] grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in duration-200">
-                            <div>
-                              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#6B5E53] mb-1">
-                                Delivery Date
-                              </label>
-                              <input
-                                type="date"
-                                min={new Date().toISOString().split('T')[0]}
-                                value={c.scheduledDate}
-                                onChange={(e) => c.setScheduledDate?.(e.target.value)}
-                                className="w-full h-10 rounded-lg border border-[#E4D9C8] bg-[#FDFBF8] px-3 text-xs sm:text-sm text-[#1A1A1A] focus:outline-none focus:border-[#7A0B10]"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#6B5E53] mb-1">
-                                Time Slot
-                              </label>
-                              <select
-                                value={c.scheduledSlot}
-                                onChange={(e) => c.setScheduledSlot?.(e.target.value)}
-                                className="w-full h-10 rounded-lg border border-[#E4D9C8] bg-[#FDFBF8] px-3 text-xs sm:text-sm text-[#1A1A1A] focus:outline-none focus:border-[#7A0B10]"
-                              >
-                                {TIME_SLOTS.map((slot) => (
-                                  <option key={slot.value} value={slot.value}>
-                                    {slot.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
                       {/* Delivery Instructions */}
-                      <div className="pt-3">
+                      <div className="pt-4 border-t border-[#F0E6D8]">
                         <label className="block text-xs font-bold uppercase tracking-wider text-[#6B5E53] mb-1.5">
                           Delivery Instructions for Driver (Optional)
                         </label>
@@ -1109,6 +956,20 @@ export default function LassiCheckoutPage() {
                           className="w-full h-11 rounded-xl border border-[#E4D9C8] bg-[#FDFBF8] px-3.5 text-sm text-[#1A1A1A] placeholder-[#A89F91] focus:outline-none focus:border-[#7A0B10]"
                         />
                       </div>
+
+                      {/* Delivery Quote / Minimum Order Error Alert (Matching Big Screen Checkout) */}
+                      {c.quoteError && (
+                        <div className="p-3.5 bg-[#fef2f2] border border-[#fca5a5] rounded-xl text-[#ef4444] text-xs font-bold flex items-start gap-2.5 animate-in fade-in">
+                          <AlertCircle size={15} className="shrink-0 mt-0.5 text-[#ef4444]" />
+                          <span className="leading-relaxed">
+                            {c.quoteError.toLowerCase().includes('minimum')
+                              ? c.quoteError
+                              : (typeof c.quoteError === 'string' && c.quoteError !== 'Delivery quote failed'
+                                  ? c.quoteError
+                                  : 'Delivery is unavailable for this location')}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     /* ─── PICKUP INSTRUCTIONS ─── */
@@ -1127,10 +988,10 @@ export default function LassiCheckoutPage() {
                             </span>
                           </div>
                           <p className="text-xs text-[#6B5E53] mt-1">
-                            9408 118th St, South Richmond Hill, NY 11419
+                            {c.restaurant?.address || '9408 118th St, South Richmond Hill, NY 11419'}
                           </p>
                           <p className="text-xs text-[#7A0B10] font-semibold mt-1">
-                            Phone: +1 347-233-3733 • Ready in approx. 20-30 mins
+                            Phone: {c.restaurant?.phone || '+1 347-233-3733'} • Ready in approx. 20-30 mins
                           </p>
                         </div>
                       </div>
@@ -1138,7 +999,7 @@ export default function LassiCheckoutPage() {
                   )}
                 </div>
 
-                {/* ═══ CARD 3: PAYMENT METHOD ═══ */}
+                {/* ═══ CARD 3: PAYMENT METHOD (Matches Lassi Lounge Desktop Direct Stripe Exactly) ═══ */}
                 <div className="bg-white rounded-2xl border border-[#EAE0D3] shadow-[0_4px_20px_rgba(40,10,10,0.04)] p-5 sm:p-7">
                   <div className="flex items-center gap-3 pb-4 border-b border-[#F0E6D8]">
                     <div className="w-7 h-7 rounded-full bg-[#7A0B10] text-white text-xs font-black flex items-center justify-center shadow-xs">
@@ -1148,219 +1009,95 @@ export default function LassiCheckoutPage() {
                       <h2 className="font-['Playfair_Display'] text-lg sm:text-xl font-bold text-[#1A1A1A]">
                         Payment Method
                       </h2>
-                      <div className="hidden sm:flex items-center gap-1.5 text-xs text-[#16A34A] font-bold bg-[#DCFCE7] px-2.5 py-1 rounded-full">
-                        <ShieldCheck size={14} />
-                        <span>100% Encrypted</span>
+                      <div className="flex items-center gap-1.5 text-xs text-[#16A34A] font-bold bg-[#DCFCE7] px-2.5 py-1 rounded-full">
+                        <Lock size={13} />
+                        <span>100% Secure via Stripe</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-5 space-y-3.5">
-                    {/* Option 1: Credit / Debit Card */}
+                    {/* Saved Cards (if logged-in user has any saved cards) */}
+                    {c.user?.savedCards?.map((card) => {
+                      const isSelected = c.paymentMethod === `saved_card_${card._id}`;
+                      return (
+                        <div
+                          key={card._id}
+                          onClick={() => c.setPaymentMethod(`saved_card_${card._id}`)}
+                          className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-[#7A0B10] bg-[#FFF8F8] shadow-sm'
+                              : 'border-[#EAE0D3] bg-white hover:border-[#D5C4AE]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                                  isSelected ? 'bg-[#7A0B10] text-white' : 'bg-[#F5EDE1] text-[#6B5E53]'
+                                }`}
+                              >
+                                <CreditCard size={18} />
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="font-bold text-sm text-[#1A1A1A] truncate">
+                                  {card.title || 'Saved Card'}
+                                </h4>
+                                <p className="text-xs text-[#6B5E53] mt-0.5 capitalize">
+                                  {card.brand} •••• {card.last4} (Exp {card.expMonth.toString().padStart(2, '0')}/{card.expYear})
+                                </p>
+                              </div>
+                            </div>
+                            <div
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                isSelected ? 'border-[#7A0B10] bg-[#7A0B10] text-white' : 'border-[#D4C7B8]'
+                              }`}
+                            >
+                              {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Direct Secure Stripe Option (Exact same as Desktop Lassi Lounge!) */}
                     <div
                       onClick={() => c.setPaymentMethod('stripe_online')}
-                      className={`p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer ${
-                        c.paymentMethod === 'stripe_online' || c.paymentMethod === 'credit_card'
-                          ? 'border-[#7A0B10] bg-[#FDF8EE] shadow-[0_2px_12px_rgba(122,11,16,0.1)]'
+                      className={`p-4 sm:p-5 rounded-xl border-2 transition-all cursor-pointer ${
+                        c.paymentMethod === 'stripe_online' || !c.paymentMethod?.startsWith('saved_card_')
+                          ? 'border-[#7A0B10] bg-[#FFF8F8] shadow-sm'
                           : 'border-[#EAE0D3] bg-white hover:border-[#D5C4AE]'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3.5 min-w-0">
                           <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                              c.paymentMethod === 'stripe_online' || c.paymentMethod === 'credit_card'
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                              c.paymentMethod === 'stripe_online' || !c.paymentMethod?.startsWith('saved_card_')
                                 ? 'bg-[#7A0B10] text-white'
                                 : 'bg-[#F5EDE1] text-[#6B5E53]'
                             }`}
                           >
                             <CreditCard size={20} />
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <h4 className="font-bold text-sm sm:text-base text-[#1A1A1A]">
-                              Credit or Debit Card
+                              Pay with Card / Mobile Wallets
                             </h4>
-                            <p className="text-xs text-[#6B5E53] mt-0.5">
-                              Visa, MasterCard, American Express, Discover
-                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <Lock size={12} className="text-[#15803D]" />
+                              <span className="text-xs text-[#15803D] font-bold">100% Secure via Stripe (Apple Pay, Google Pay, Cards)</span>
+                            </div>
                           </div>
                         </div>
                         <div
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                            c.paymentMethod === 'stripe_online' || c.paymentMethod === 'credit_card'
+                            c.paymentMethod === 'stripe_online' || !c.paymentMethod?.startsWith('saved_card_')
                               ? 'border-[#7A0B10] bg-[#7A0B10] text-white'
                               : 'border-[#D4C7B8]'
                           }`}
                         >
-                          {(c.paymentMethod === 'stripe_online' || c.paymentMethod === 'credit_card') && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Card Details Form (Visible when Card is selected) */}
-                      {(c.paymentMethod === 'stripe_online' || c.paymentMethod === 'credit_card') && (
-                        <div className="mt-5 pt-4 border-t border-[#F0E6D8] space-y-3.5 animate-in fade-in duration-200">
-                          {/* Card Number */}
-                          <div data-field="cardNumber">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-[#6B5E53] mb-1.5">
-                              Card Number <span className="text-[#7A0B10]">*</span>
-                            </label>
-                            <div className="relative">
-                              <input
-                                type="text"
-                                maxLength={19}
-                                value={cardNumber}
-                                onChange={(e) => {
-                                  setCardNumber(formatCardNumber(e.target.value));
-                                  clearFieldError('cardNumber');
-                                }}
-                                placeholder="4532 •••• •••• 8901"
-                                className={`w-full h-11 rounded-xl border bg-white pl-10 pr-4 text-sm font-mono text-[#1A1A1A] placeholder-[#A89F91] focus:outline-none focus:ring-2 focus:ring-[#7A0B10]/20 focus:border-[#7A0B10] ${
-                                  formErrors.cardNumber ? 'border-[#DC2626] bg-[#FFF5F5]' : 'border-[#E4D9C8]'
-                                }`}
-                              />
-                              <CreditCard size={17} className="absolute left-3.5 top-3.5 text-[#7A0B10]" />
-                            </div>
-                            {formErrors.cardNumber && (
-                              <p className="text-xs text-[#DC2626] mt-1 font-medium flex items-center gap-1">
-                                <AlertCircle size={12} /> {formErrors.cardNumber}
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3.5">
-                            {/* Expiry */}
-                            <div data-field="cardExpiry">
-                              <label className="block text-xs font-bold uppercase tracking-wider text-[#6B5E53] mb-1.5">
-                                Expiry (MM/YY) <span className="text-[#7A0B10]">*</span>
-                              </label>
-                              <input
-                                type="text"
-                                maxLength={5}
-                                value={cardExpiry}
-                                onChange={(e) => {
-                                  setCardExpiry(formatExpiry(e.target.value));
-                                  clearFieldError('cardExpiry');
-                                }}
-                                placeholder="MM/YY"
-                                className={`w-full h-11 rounded-xl border bg-white px-3.5 text-sm font-mono text-[#1A1A1A] placeholder-[#A89F91] focus:outline-none focus:border-[#7A0B10] ${
-                                  formErrors.cardExpiry ? 'border-[#DC2626] bg-[#FFF5F5]' : 'border-[#E4D9C8]'
-                                }`}
-                              />
-                              {formErrors.cardExpiry && (
-                                <p className="text-xs text-[#DC2626] mt-1 font-medium">
-                                  {formErrors.cardExpiry}
-                                </p>
-                              )}
-                            </div>
-
-                            {/* CVV */}
-                            <div data-field="cardCvv">
-                              <label className="block text-xs font-bold uppercase tracking-wider text-[#6B5E53] mb-1.5">
-                                CVV / CVC <span className="text-[#7A0B10]">*</span>
-                              </label>
-                              <div className="relative">
-                                <input
-                                  type="password"
-                                  maxLength={4}
-                                  value={cardCvv}
-                                  onChange={(e) => {
-                                    setCardCvv(e.target.value.replace(/\D/g, ''));
-                                    clearFieldError('cardCvv');
-                                  }}
-                                  placeholder="•••"
-                                  className={`w-full h-11 rounded-xl border bg-white pl-9 pr-3 text-sm font-mono text-[#1A1A1A] placeholder-[#A89F91] focus:outline-none focus:border-[#7A0B10] ${
-                                    formErrors.cardCvv ? 'border-[#DC2626] bg-[#FFF5F5]' : 'border-[#E4D9C8]'
-                                  }`}
-                                />
-                                <Lock size={15} className="absolute left-3 top-3.5 text-[#A89F91]" />
-                              </div>
-                              {formErrors.cardCvv && (
-                                <p className="text-xs text-[#DC2626] mt-1 font-medium">
-                                  {formErrors.cardCvv}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Cardholder Name */}
-                          <div data-field="cardHolderName">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-[#6B5E53] mb-1.5">
-                              Name on Card <span className="text-[#7A0B10]">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              value={cardHolderName}
-                              onChange={(e) => {
-                                setCardHolderName(e.target.value);
-                                clearFieldError('cardHolderName');
-                              }}
-                              placeholder="e.g. Adarsh Sharma"
-                              className={`w-full h-11 rounded-xl border bg-white px-3.5 text-sm text-[#1A1A1A] placeholder-[#A89F91] focus:outline-none focus:border-[#7A0B10] ${
-                                formErrors.cardHolderName ? 'border-[#DC2626] bg-[#FFF5F5]' : 'border-[#E4D9C8]'
-                              }`}
-                            />
-                            {formErrors.cardHolderName && (
-                              <p className="text-xs text-[#DC2626] mt-1 font-medium">
-                                {formErrors.cardHolderName}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Save Card Checkbox */}
-                          <label className="flex items-center gap-2.5 pt-1 cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={saveCardForFuture}
-                              onChange={(e) => setSaveCardForFuture(e.target.checked)}
-                              className="w-4 h-4 rounded text-[#7A0B10] focus:ring-[#7A0B10] border-[#D4C7B8]"
-                            />
-                            <span className="text-xs text-[#6B5E53] font-medium">
-                              Save card securely for faster checkout next time
-                            </span>
-                          </label>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Option 2: Cash on Delivery (COD) */}
-                    <div
-                      onClick={() => c.setPaymentMethod('cash_on_delivery')}
-                      className={`p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer ${
-                        c.paymentMethod === 'cash_on_delivery'
-                          ? 'border-[#7A0B10] bg-[#FDF8EE] shadow-[0_2px_12px_rgba(122,11,16,0.1)]'
-                          : 'border-[#EAE0D3] bg-white hover:border-[#D5C4AE]'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                              c.paymentMethod === 'cash_on_delivery'
-                                ? 'bg-[#7A0B10] text-white'
-                                : 'bg-[#F5EDE1] text-[#6B5E53]'
-                            }`}
-                          >
-                            <Banknote size={20} />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-sm sm:text-base text-[#1A1A1A]">
-                              Cash on {c.orderType === 'delivery' ? 'Delivery' : 'Pickup'}
-                            </h4>
-                            <p className="text-xs text-[#6B5E53] mt-0.5">
-                              Pay in cash upon arrival
-                            </p>
-                          </div>
-                        </div>
-                        <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                            c.paymentMethod === 'cash_on_delivery'
-                              ? 'border-[#7A0B10] bg-[#7A0B10] text-white'
-                              : 'border-[#D4C7B8]'
-                          }`}
-                        >
-                          {c.paymentMethod === 'cash_on_delivery' && (
+                          {(c.paymentMethod === 'stripe_online' || !c.paymentMethod?.startsWith('saved_card_')) && (
                             <span className="w-1.5 h-1.5 rounded-full bg-white" />
                           )}
                         </div>
@@ -1381,31 +1118,6 @@ export default function LassiCheckoutPage() {
                   </div>
 
                   <div className="mt-5 space-y-4">
-                    {/* Utensils Switch */}
-                    <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#FAF5EC] border border-[#E8DCCB]">
-                      <div>
-                        <p className="text-xs sm:text-sm font-bold text-[#1A1A1A]">
-                          Need Cutlery, Napkins &amp; Straws?
-                        </p>
-                        <p className="text-[11px] text-[#6B5E53]">
-                          Help us reduce waste by opting out if you have utensils at home.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setNeedUtensils(!needUtensils)}
-                        className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-200 cursor-pointer ${
-                          needUtensils ? 'bg-[#7A0B10]' : 'bg-[#D4C7B8]'
-                        }`}
-                      >
-                        <div
-                          className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
-                            needUtensils ? 'translate-x-6' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </div>
-
                     {/* Kitchen Cooking Notes */}
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-[#6B5E53] mb-1.5">
@@ -1591,81 +1303,6 @@ export default function LassiCheckoutPage() {
                     )}
                   </div>
 
-                  {/* ═══ DRIVER TIP SELECTOR ═══ */}
-                  <div className="py-3.5 border-t border-[#F0E6D8]">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-[#6B5E53] flex items-center gap-1.5">
-                        <Gift size={13} className="text-[#7A0B10]" />
-                        <span>Driver Tip</span>
-                      </label>
-                      {c.tip > 0 && (
-                        <span className="text-xs font-bold text-[#7A0B10]">
-                          +{formatCurrency(c.tip, c.restaurant?.currency)}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {[1, 2, 3, 5].map((amt) => {
-                        const active = c.tip === amt && !isCustomTipActive;
-                        return (
-                          <button
-                            key={amt}
-                            type="button"
-                            onClick={() => handleSelectTipAmount(amt)}
-                            className={`py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                              active
-                                ? 'bg-[#7A0B10] text-white border-[#7A0B10] shadow-xs'
-                                : 'bg-[#FDFBF8] text-[#1A1A1A] border-[#E4D9C8] hover:border-[#D0C2B0]'
-                            }`}
-                          >
-                            ${amt}
-                          </button>
-                        );
-                      })}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCustomTipActive(true);
-                          setCustomTipInput('');
-                        }}
-                        className={`py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                          isCustomTipActive
-                            ? 'bg-[#7A0B10] text-white border-[#7A0B10]'
-                            : 'bg-[#FDFBF8] text-[#1A1A1A] border-[#E4D9C8] hover:border-[#D0C2B0]'
-                        }`}
-                      >
-                        Custom
-                      </button>
-                    </div>
-
-                    {isCustomTipActive && (
-                      <div className="mt-2.5 flex items-center gap-2">
-                        <div className="relative flex-1">
-                          <span className="absolute left-3 top-2 text-xs font-bold text-[#6B5E53]">
-                            $
-                          </span>
-                          <input
-                            type="number"
-                            step="0.5"
-                            min="0"
-                            value={customTipInput}
-                            onChange={(e) => handleCustomTipChange(e.target.value)}
-                            placeholder="Enter tip"
-                            className="w-full h-8 rounded-lg border border-[#E4D9C8] bg-white pl-6 pr-2 text-xs font-bold text-[#1A1A1A] focus:outline-none focus:border-[#7A0B10]"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleSelectTipAmount(0)}
-                          className="text-xs text-[#6B5E53] hover:text-[#1A1A1A] underline cursor-pointer"
-                        >
-                          No Tip
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
                   {/* ═══ BILL BREAKDOWN ═══ */}
                   <div className="py-4 border-t border-[#F0E6D8] space-y-2 text-xs">
                     <div className="flex justify-between text-[#6B5E53]">
@@ -1750,19 +1387,17 @@ export default function LassiCheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Desktop Place Order CTA Button */}
-                  <div className="pt-4 border-t border-[#F0E6D8]">
-                    {isClosed && c.deliveryTimeOption !== 'scheduled' ? (
-                      <div className="p-3.5 bg-[#FEF2F2] border border-[#FECACA] rounded-xl text-xs text-[#991B1B] font-semibold text-center mb-3">
-                        Restaurant is currently closed. Please choose <strong>Schedule for Later</strong> to place an order in advance!
-                      </div>
-                    ) : null}
-
+                  {/* Desktop / In-page Review Order CTA Button (Triggers Step 3 Modal Popup) */}
+                  <div ref={inPagePlaceOrderRef} className="pt-4 border-t border-[#F0E6D8]">
                     <button
                       type="button"
-                      onClick={validateAndPlaceOrder}
-                      disabled={c.isPlacingOrder || (isClosed && c.deliveryTimeOption !== 'scheduled')}
-                      className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#7A0B10] via-[#5C0612] to-[#4A090B] hover:from-[#5C0612] hover:to-[#7A0B10] text-white font-bold text-sm shadow-[0_8px_24px_rgba(122,11,16,0.35)] flex items-center justify-center gap-2.5 transition-all hover:-translate-y-0.5 disabled:opacity-60 cursor-pointer"
+                      onClick={handleReviewOrderClick}
+                      disabled={c.isPlacingOrder || (c.orderType === 'delivery' && Boolean(c.quoteError))}
+                      className={`w-full py-3.5 px-6 rounded-xl font-bold text-sm shadow-[0_8px_24px_rgba(122,11,16,0.35)] flex items-center justify-center gap-2.5 transition-all hover:-translate-y-0.5 cursor-pointer ${
+                        c.isPlacingOrder || (c.orderType === 'delivery' && Boolean(c.quoteError))
+                          ? 'bg-[#9CA3AF] text-white cursor-not-allowed opacity-75'
+                          : 'bg-gradient-to-r from-[#7A0B10] via-[#5C0612] to-[#4A090B] hover:from-[#5C0612] hover:to-[#7A0B10] text-white'
+                      }`}
                     >
                       {c.isPlacingOrder ? (
                         <>
@@ -1771,8 +1406,7 @@ export default function LassiCheckoutPage() {
                         </>
                       ) : (
                         <>
-                          <Lock size={15} strokeWidth={2.4} />
-                          <span>Place Order ({formatCurrency(c.total, c.restaurant?.currency)})</span>
+                          <span>Review Order</span>
                           <ArrowRight size={16} strokeWidth={2.4} />
                         </>
                       )}
@@ -1837,47 +1471,78 @@ export default function LassiCheckoutPage() {
       </main>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          4. STICKY MOBILE PLACE ORDER BOTTOM BAR (Fixed on < md)
+          4. STICKY MOBILE REVIEW ORDER BOTTOM BAR (Fixed on < lg)
+          Auto-hides when scrolled down to the in-page Place Order section
+          Equipped with safe-area protection for Android 3 navigation buttons
          ═══════════════════════════════════════════════════════════════════ */}
-      {c.itemCount > 0 && (!isClosed || c.deliveryTimeOption === 'scheduled') && (
-        <div className="md:hidden fixed bottom-0 inset-x-0 z-[90] bg-[#FFFDF9]/98 backdrop-blur-md border-t border-[#E5D4C0] px-4 py-3 shadow-[0_-8px_24px_rgba(40,10,10,0.14)] flex items-center justify-between gap-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)]">
-          <div>
-            <p className="text-[10px] uppercase tracking-wider font-bold text-[#7A6455]">
-              Total Payable ({c.itemCount} {c.itemCount === 1 ? 'item' : 'items'})
-            </p>
-            <p className="text-lg font-black text-[#7A0B10] leading-tight font-['Playfair_Display']">
-              {formatCurrency(c.total, c.restaurant?.currency)}
-            </p>
+      {c.itemCount > 0 && (
+        <aside
+          aria-label="Mobile sticky review order bar"
+          className={`lg:hidden fixed bottom-0 inset-x-0 z-[90] bg-[#FFFDF9]/95 backdrop-blur-md border-t border-[#E5D4C0] shadow-[0_-8px_30px_rgba(74,11,13,0.14)] transition-all duration-300 ease-in-out ${
+            isStickyBarVisible
+              ? 'translate-y-0 opacity-100 pointer-events-auto'
+              : 'translate-y-full opacity-0 pointer-events-none'
+          }`}
+          style={{
+            paddingBottom: 'max(14px, calc(env(safe-area-inset-bottom, 0px) + 10px))',
+          }}
+        >
+          <div className="max-w-lg mx-auto px-4 pt-3 pb-1 flex items-center justify-between gap-3">
+            {/* Left: Total & Items Breakdown */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#7A6455]">
+                  Total Payable
+                </span>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#F3EAE0] text-[9px] font-bold text-[#7A0B10]">
+                  {c.itemCount} {c.itemCount === 1 ? 'item' : 'items'}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1.5 mt-0.5">
+                <span className="text-xl sm:text-2xl font-black text-[#7A0B10] leading-tight font-['Playfair_Display']">
+                  {formatCurrency(c.total, c.restaurant?.currency)}
+                </span>
+                <span className="text-[10px] text-[#8C7E72] font-medium hidden xs:inline">
+                  (incl. taxes)
+                </span>
+              </div>
+            </div>
+
+            {/* Right: Review Order CTA Button (Opens Step 3 Popup for Tips & Order Confirmation) */}
+            <button
+              type="button"
+              onClick={handleReviewOrderClick}
+              disabled={c.isPlacingOrder || (c.orderType === 'delivery' && Boolean(c.quoteError))}
+              className={`shrink-0 px-5 py-3 sm:px-6 sm:py-3.5 rounded-xl font-bold text-xs sm:text-sm shadow-[0_6px_20px_rgba(122,11,16,0.35)] flex items-center gap-2 active:scale-95 transition-all cursor-pointer ${
+                c.isPlacingOrder || (c.orderType === 'delivery' && Boolean(c.quoteError))
+                  ? 'bg-[#9CA3AF] text-white cursor-not-allowed opacity-75'
+                  : 'bg-gradient-to-r from-[#7A0B10] via-[#5C0612] to-[#4A090B] text-white hover:brightness-110'
+              }`}
+            >
+              {c.isPlacingOrder ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  <span>Review Order</span>
+                  <ArrowRight size={15} strokeWidth={2.4} />
+                </>
+              )}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={validateAndPlaceOrder}
-            disabled={c.isPlacingOrder}
-            className="px-5 py-3 rounded-xl bg-gradient-to-r from-[#7A0B10] via-[#5C0612] to-[#4A090B] text-white font-bold text-xs shadow-[0_6px_18px_rgba(122,11,16,0.35)] flex items-center gap-2 active:scale-95 transition-transform disabled:opacity-60 cursor-pointer"
-          >
-            {c.isPlacingOrder ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
-                <span>Processing...</span>
-              </>
-            ) : (
-              <>
-                <Lock size={14} strokeWidth={2.4} />
-                <span>Place Order</span>
-                <ArrowRight size={15} strokeWidth={2.4} />
-              </>
-            )}
-          </button>
-        </div>
+        </aside>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════
-          5. MODALS
+          5. MODALS & POPUPS
          ═══════════════════════════════════════════════════════════════════ */}
       {/* Map Address Picker Modal */}
       {isAddressModalOpen && (
         <LassiAddressModal
           isOpen={isAddressModalOpen}
+          initialView="map"
           onClose={() => setIsAddressModalOpen(false)}
           onSelect={(locationData) => {
             const { address, lat, lng, addressDetails } = locationData || {};
@@ -1892,24 +1557,23 @@ export default function LassiCheckoutPage() {
                 lon: String(lng || -73.8271),
                 address: addressDetails || {},
               });
+              clearFieldError('addressLine1');
             }
             setIsAddressModalOpen(false);
           }}
         />
       )}
 
-      {/* Step 3 Review & Tipping Modal */}
+      {/* Step 3 Review & Driver Tipping Modal Popup (Matches Big Screen Flow) */}
       <ReviewOrderSection
         step={c.step}
+        t={t}
         user={c.user}
         restaurant={c.restaurant}
         tip={c.tip}
         setTip={c.setTip}
         onBack={() => c.setStep(2)}
-        onPlaceOrder={() => {
-          c.setStep(2);
-          validateAndPlaceOrder();
-        }}
+        onPlaceOrder={c.handlePlaceOrder}
         total={c.total}
         compiledAddress={c.compiledAddress}
         fullName={c.fullName}
@@ -1951,6 +1615,12 @@ export default function LassiCheckoutPage() {
         }
         .lassi-phone-wrap .PhoneInputCountry {
           margin-right: 6px;
+        }
+
+        .lassi-phone-wrap .PhoneInputCountrySelect {
+          color-scheme: light;
+          background-color: #ffffff;
+          color: #1a1a1a;
         }
       `}</style>
     </div>

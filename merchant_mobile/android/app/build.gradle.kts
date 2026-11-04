@@ -16,7 +16,7 @@ plugins {
 }
 
 android {
-    namespace = "com.lassilounge.merchant_mobile"
+    namespace = "com.bhaturaco.merchant_mobile"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -40,7 +40,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.lassilounge.merchant_mobile"
+        applicationId = "com.bhaturaco.merchant_mobile"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

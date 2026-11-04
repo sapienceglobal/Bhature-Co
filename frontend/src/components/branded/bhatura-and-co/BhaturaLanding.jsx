@@ -15,16 +15,22 @@ import AddressModal from '@/components/shared/AddressModal';
 
 export default function BhaturaLanding() {
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [addressModalView, setAddressModalView] = useState('map');
+
+  const handleOpenAddressModal = (view = 'map') => {
+    setAddressModalView(typeof view === 'string' ? view : 'map');
+    setIsAddressModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-[#FDF8EE] text-[#1C1917] flex flex-col selection:bg-[#D4AF37]/30 selection:text-[#5C0612]">
       {/* 1. Header */}
-      <BhaturaHeader onOpenAddressModal={() => setIsAddressModalOpen(true)} />
+      <BhaturaHeader onOpenAddressModal={handleOpenAddressModal} />
 
       {/* Main Content Sections */}
       <main className="flex-1">
         {/* 2. Hero Section */}
-        <BhaturaHeroSection onOpenAddressModal={() => setIsAddressModalOpen(true)} />
+        <BhaturaHeroSection onOpenAddressModal={handleOpenAddressModal} />
 
         {/* 3. Delicious Categories */}
         <BhaturaCategoriesSection />
@@ -55,6 +61,7 @@ export default function BhaturaLanding() {
       {isAddressModalOpen && (
         <AddressModal
           isOpen={isAddressModalOpen}
+          initialView={addressModalView}
           onClose={() => setIsAddressModalOpen(false)}
           onSelect={(locationData) => {
             const { address, lat, lng, addressDetails, flatNo } = locationData || {};

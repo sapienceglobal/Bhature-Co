@@ -1,5 +1,6 @@
-package com.lassilounge.merchant_mobile
+package com.bhaturaco.customer
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
 class MainActivity : FlutterFragmentActivity()
+

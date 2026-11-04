@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/widgets/menu_item_card.dart';
@@ -144,7 +146,7 @@ class _MenuScreenState extends State<MenuScreen> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.red),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primary),
           onPressed: () {
             if (widget.onBack != null) {
               widget.onBack!();
@@ -157,7 +159,7 @@ class _MenuScreenState extends State<MenuScreen> {
           'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
           height: 52,
           errorBuilder: (c, e, s) =>
-              const Text('BHATURA & CO', style: TextStyle(color: Colors.black)),
+              Text('BHATURA & CO', style: GoogleFonts.playfairDisplay(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 18)),
         ),
         actions: [
           IconButton(

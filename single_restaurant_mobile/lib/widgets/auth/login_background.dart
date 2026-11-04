@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:single_restaurant_mobile/constants/colors.dart';
 
-/// Background decorator providing warm ivory backdrop and Indian monuments footer.
+/// Background decorator providing warm royal ivory/cream backdrop
+/// and authentic Qutub Minar Delhi/North Indian heritage monuments footer.
 class LoginBackground extends StatelessWidget {
   final Widget child;
 
@@ -12,11 +14,11 @@ class LoginBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFFAF7F0),
+      color: AppColors.background,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Bottom Indian Monuments Skyline & Ribbon Footer
+          // Bottom Indian Heritage Minar Skyline Footer
           Positioned(
             bottom: 0,
             left: 0,

@@ -25,7 +25,7 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> {
   static const List<Map<String, String>> _slides = [
     {
       'tag': 'Signature Dish',
-      'title': 'AMRITSARI\\nCHOLE BHATURE',
+      'title': 'AMRITSARI\nCHOLE BHATURE',
       'subtitle': 'Delicious food, delivered\nhot and fresh to your doorstep!',
       'cta': 'ORDER NOW',
       'image': 'assets/images/branded/lassi-lounge/hero-curry.jpg',

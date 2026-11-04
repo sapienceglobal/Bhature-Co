@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
 
@@ -42,7 +44,7 @@ class CartItemCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
+        border: Border.all(color: const Color(0xFFE8DEC8), width: 1.0),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -127,10 +129,10 @@ class CartItemCard extends StatelessWidget {
                             children: [
                               Text(
                                 name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
+                                style: GoogleFonts.playfairDisplay(
+                                  fontWeight: FontWeight.w700,
                                   fontSize: 15,
-                                  color: Color(0xFF1F2937),
+                                  color: AppColors.textDark,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -141,9 +143,9 @@ class CartItemCard extends StatelessWidget {
                                   Flexible(
                                     child: Text(
                                       '$sizeName • $spiceLabel',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 12,
+                                      style: GoogleFonts.poppins(
+                                        color: AppColors.textLight,
+                                        fontSize: 11.5,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -165,7 +167,7 @@ class CartItemCard extends StatelessWidget {
                           padding: EdgeInsets.all(2.0),
                           child: Icon(
                             Icons.delete_outline,
-                            color: Color(0xFF4A4A4A),
+                            color: Color(0xFF78716C),
                             size: 20,
                           ),
                         ),
@@ -184,8 +186,8 @@ class CartItemCard extends StatelessWidget {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             '\$${((item['price'] ?? 0.0) as num).toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              color: Color(0xFF8B1E1E),
+                            style: GoogleFonts.poppins(
+                              color: AppColors.primary,
                               fontWeight: FontWeight.w900,
                               fontSize: 16,
                             ),
@@ -197,8 +199,9 @@ class CartItemCard extends StatelessWidget {
                       Container(
                         height: 32,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFF2EC),
+                          color: const Color(0xFFFAF3E8),
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE8DEC8)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -208,7 +211,7 @@ class CartItemCard extends StatelessWidget {
                               borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
                               child: const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                child: Icon(Icons.remove, size: 14, color: Color(0xFF8B1E1E)),
+                                child: Icon(Icons.remove, size: 14, color: AppColors.primary),
                               ),
                             ),
                             Container(
@@ -216,10 +219,10 @@ class CartItemCard extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               child: Text(
                                 '$quantity',
-                                style: const TextStyle(
+                                style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
-                                  color: Color(0xFF1F2937),
+                                  color: AppColors.textDark,
                                 ),
                               ),
                             ),
@@ -228,7 +231,7 @@ class CartItemCard extends StatelessWidget {
                               borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
                               child: const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                child: Icon(Icons.add, size: 14, color: Color(0xFF8B1E1E)),
+                                child: Icon(Icons.add, size: 14, color: AppColors.primary),
                               ),
                             ),
                           ],
