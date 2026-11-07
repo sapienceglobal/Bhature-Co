@@ -483,14 +483,14 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFDF9F2),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF3ECE6)),
-        boxShadow: const [
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0A000000),
+            color: const Color(0xFF4A0810).withValues(alpha: 0.05),
             blurRadius: 12,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -876,14 +876,14 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: const Color(0xFFFDF9F2),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFF3ECE6)),
-                      boxShadow: const [
+                      border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
+                      boxShadow: [
                         BoxShadow(
-                          color: Color(0x06000000),
+                          color: const Color(0xFF4A0810).withValues(alpha: 0.04),
                           blurRadius: 8,
-                          offset: Offset(0, 3),
+                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
@@ -1170,14 +1170,14 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFDF9F2),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF3ECE6)),
-        boxShadow: const [
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0A000000),
+            color: const Color(0xFF4A0810).withValues(alpha: 0.05),
             blurRadius: 12,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -1351,14 +1351,14 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFDF9F2),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF3ECE6)),
-        boxShadow: const [
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0A000000),
+            color: const Color(0xFF4A0810).withValues(alpha: 0.05),
             blurRadius: 12,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),

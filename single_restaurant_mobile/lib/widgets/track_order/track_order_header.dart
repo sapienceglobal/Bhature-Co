@@ -20,13 +20,19 @@ class TrackOrderHeader extends StatelessWidget {
     final items = order['items'] as List?;
     final imagePath = (items != null && items.isNotEmpty && items[0]['image'] != null)
         ? items[0]['image']
-        : 'assets/images/branded/lassi-lounge/categories/appetizers.jpg';
+        : 'assets/images/branded/bhatura-and-co/cat-bhature.png';
 
     final status = order['status'] as String;
     final displayStatus = isRefunded ? 'REFUNDED' : status.replaceAll('_', ' ').toUpperCase();
 
     return Container(
       margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFDF9F2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -40,7 +46,7 @@ class TrackOrderHeader extends StatelessWidget {
                     fit: BoxFit.cover,
                     placeholder: (context, url) => const CircularProgressIndicator(),
                     errorWidget: (context, url, error) => Image.asset(
-                      'assets/images/branded/lassi-lounge/categories/appetizers.jpg',
+                      'assets/images/branded/bhatura-and-co/cat-bhature.png',
                       width: 80,
                       height: 80,
                       fit: BoxFit.cover,

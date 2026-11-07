@@ -164,13 +164,14 @@ class LoyaltyBalanceCard extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 18),
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFFFDF9F2),
             borderRadius: BorderRadius.circular(20),
-            boxShadow: const [
+            border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
+            boxShadow: [
               BoxShadow(
-                color: Color(0x0C000000),
+                color: const Color(0xFF4A0810).withValues(alpha: 0.05),
                 blurRadius: 14,
-                offset: Offset(0, 4),
+                offset: const Offset(0, 4),
               ),
             ],
           ),

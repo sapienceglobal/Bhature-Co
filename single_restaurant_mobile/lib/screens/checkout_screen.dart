@@ -1,5 +1,6 @@
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
@@ -117,10 +118,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF8B1E1E)),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF730B17)),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text('Checkout', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+          title: Text(
+            'Checkout',
+            style: GoogleFonts.playfairDisplay(
+              color: const Color(0xFF4A0810),
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
         body: const GuestLoginPrompt(
           icon: Icons.shopping_bag_outlined,
@@ -150,10 +158,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF8B1E1E)),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF730B17)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Checkout', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+        title: Text(
+          'Checkout',
+          style: GoogleFonts.playfairDisplay(
+            color: const Color(0xFF4A0810),
+            fontSize: 21,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
@@ -165,14 +180,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFF8B1E1E)),
+                    color: const Color(0xFFFDF9F2),
+                    border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.headset_mic_outlined, color: Color(0xFF8B1E1E), size: 16),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.headset_mic_outlined, color: Color(0xFF730B17), size: 16),
                       SizedBox(width: 4),
-                      Text('Support', style: TextStyle(color: Color(0xFF8B1E1E), fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text('Support', style: TextStyle(color: Color(0xFF730B17), fontSize: 12, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),

@@ -16,9 +16,9 @@ class BankOffersCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         decoration: BoxDecoration(
-          color: const Color(0xFFF9FAFB),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
+          color: const Color(0xFFFDF9F2),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
         ),
         child: Row(
           children: [
@@ -26,34 +26,35 @@ class BankOffersCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFE5E7EB).withValues(alpha: 0.6),
+                color: const Color(0xFFF9ECEA),
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE6D7C3), width: 0.8),
               ),
               alignment: Alignment.center,
-              child: Icon(
+              child: const Icon(
                 Icons.credit_card_off_outlined,
                 size: 24,
-                color: Colors.grey.shade600,
+                color: Color(0xFF730B17),
               ),
             ),
             const SizedBox(width: 14),
-            Expanded(
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'No Bank Offers Available',
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF1E1E1E),
+                      color: Color(0xFF23140E),
                       fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3),
                   Text(
                     'Check back later for exciting bank discounts.',
                     style: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: Color(0xFF6E5A4F),
                       fontSize: 11.5,
                     ),
                   ),
@@ -77,9 +78,9 @@ class MoreWaysToSaveCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
+          color: const Color(0xFFFDF9F2),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
         ),
         child: Consumer<RestaurantProvider>(
           builder: (context, restProv, _) {

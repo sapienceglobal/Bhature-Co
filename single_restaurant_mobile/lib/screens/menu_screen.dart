@@ -16,6 +16,7 @@ import 'package:single_restaurant_mobile/widgets/menu/menu_category_strip.dart';
 import 'package:single_restaurant_mobile/widgets/menu/menu_filter_bar.dart';
 import 'package:single_restaurant_mobile/widgets/menu/menu_loyalty_banner.dart';
 import 'package:single_restaurant_mobile/utils/category_helper.dart';
+import 'package:single_restaurant_mobile/utils/spice_helper.dart';
 import 'package:single_restaurant_mobile/widgets/menu/menu_empty_filter_state.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -31,6 +32,7 @@ class _MenuScreenState extends State<MenuScreen> {
   String? _selectedCategoryId;
   String _sortOrder = 'Popularity';
   String _vegFilter = 'All';
+  String _spiceFilter = 'All';
 
   @override
   void initState() {
@@ -47,29 +49,149 @@ class _MenuScreenState extends State<MenuScreen> {
     }
   }
 
-
   Widget _buildCartIcon() {
     return Consumer<CartProvider>(
       builder: (context, cart, child) {
-        final itemCount = cart.items.fold(0, (sum, i) => sum + (i['quantity'] as int));
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen())),
-            ),
-            if (itemCount > 0)
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(color: Colors.red.shade900, shape: BoxShape.circle),
-                  child: Text('$itemCount', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+        final itemCount =
+            cart.items.fold(0, (sum, i) => sum + ((i['quantity'] ?? i['qty'] ?? 1) as int));
+        return Padding(
+          padding: const EdgeInsets.only(right: 12.0),
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.shopping_bag_outlined,
+                  color: Color(0xFF42080E),
+                  size: 25,
+                ),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CartScreen()),
                 ),
               ),
-          ],
+              if (itemCount > 0)
+                Positioned(
+                  right: 5,
+                  top: 6,
+                  child: Container(
+                    padding: const EdgeInsets.all(4.5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF720A15),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFFAF3E8),
+                        width: 1.5,
+                      ),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$itemCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFloatingViewCartBar() {
+    return Consumer<CartProvider>(
+      builder: (context, cart, _) {
+        final itemCount =
+            cart.items.fold(0, (sum, i) => sum + ((i['quantity'] ?? i['qty'] ?? 1) as int));
+        if (itemCount <= 0) return const SizedBox.shrink();
+
+        return Container(
+          color: const Color(0xFFFAF3E8),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+          child: GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CartScreen()),
+            ),
+            child: Container(
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF730B17),
+                    Color(0xFF590710),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(26),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF4A0810).withValues(alpha: 0.25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.shopping_bag_outlined,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '$itemCount ${itemCount == 1 ? 'item' : 'items'} added',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    height: 20,
+                    width: 1.0,
+                    margin: const EdgeInsets.symmetric(horizontal: 14),
+                    color: Colors.white.withValues(alpha: 0.35),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View Cart',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );
@@ -128,6 +250,22 @@ class _MenuScreenState extends State<MenuScreen> {
       items = items.where((i) => i['isVeg'] == false).toList();
     }
 
+    if (_spiceFilter == 'Mild') {
+      items = items
+          .where((i) =>
+              i is Map<String, dynamic> &&
+              SpiceHelper.canCustomizeSpice(i) &&
+              i['isSpicy'] != true)
+          .toList();
+    } else if (_spiceFilter == 'Medium') {
+      items = items
+          .where((i) =>
+              i is Map<String, dynamic> &&
+              SpiceHelper.canCustomizeSpice(i) &&
+              i['isSpicy'] == true)
+          .toList();
+    }
+
     if (_sortOrder == 'Price: Low to High') {
       items.sort((a, b) => (a['price'] ?? 0).compareTo(b['price'] ?? 0));
     } else if (_sortOrder == 'Price: High to Low') {
@@ -139,14 +277,27 @@ class _MenuScreenState extends State<MenuScreen> {
       orElse: () => displayCategories[0],
     );
 
+    final isAllCategory = _selectedCategoryId == 'all';
+    final sectionTitle = isAllCategory
+        ? 'All Favourites'
+        : (currentCategory['name'] ?? '').toString();
+    final sectionSubtitle = isAllCategory
+        ? 'Made fresh. Served with love.'
+        : CategoryHelper.getCategoryDescription(currentCategory);
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF3E8),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFFFAF3E8),
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+          icon: const Icon(
+            Icons.arrow_back_rounded,
+            color: Color(0xFF720A15),
+            size: 25,
+          ),
           onPressed: () {
             if (widget.onBack != null) {
               widget.onBack!();
@@ -156,24 +307,102 @@ class _MenuScreenState extends State<MenuScreen> {
           },
         ),
         title: Image.asset(
-          'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-          height: 52,
-          errorBuilder: (c, e, s) =>
-              Text('BHATURA & CO', style: GoogleFonts.playfairDisplay(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 18)),
+          'assets/images/branded/bhatura-and-co/logo-emblem.png',
+          height: 48,
+          fit: BoxFit.contain,
+          errorBuilder: (c, e, s) => Text(
+            'Bhatura & Co',
+            style: GoogleFonts.playfairDisplay(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black87),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
-          ),
           _buildCartIcon(),
         ],
       ),
       body: ResponsiveCenter(
         maxWidth: AppResponsive.maxContentWidth,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Flexible category strip
+            // Top "Our Menu" Heading + Search Pill
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Our Menu',
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF6B0A14),
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Your favourites, freshly prepared.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12.5,
+                      color: const Color(0xFF4A3A32),
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SearchScreen(),
+                      ),
+                    ),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 9.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFDF9F2),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: const Color(0xFFE4D4C0),
+                          width: 1.0,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.search_rounded,
+                            color: Color(0xFF3D271D),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Search for your favourite food',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13.0,
+                                fontWeight: FontWeight.w400,
+                                color: const Color(0xFF6B5A50),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Circular Medallion Category Strip
             MenuCategoryStrip(
               displayCategories: displayCategories,
               selectedCategoryId: _selectedCategoryId,
@@ -192,41 +421,51 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
             ),
 
-            // Responsive filter bar (wraps on 320dp width)
+            // 3-Pill Filter Bar (Filters, Spice level, Sort)
             MenuFilterBar(
               vegFilter: effectiveVegFilter,
               availableVegFilters: availableVegFilters,
+              spiceFilter: _spiceFilter,
               sortOrder: _sortOrder,
               onVegFilterChanged: (v) => setState(() => _vegFilter = v),
+              onSpiceFilterChanged: (sp) => setState(() => _spiceFilter = sp),
               onSortOrderChanged: (s) => setState(() => _sortOrder = s),
             ),
 
-            // Items List (preserved ListView + Column as requested)
+            // Items List
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 children: [
                   Text(
-                    currentCategory['name'] ?? '',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red.shade900,
+                    sectionTitle,
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 23,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF6B0A14),
+                      height: 1.15,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
-                    CategoryHelper.getCategoryDescription(currentCategory),
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    sectionSubtitle,
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF4A3A32),
+                      fontSize: 12.5,
+                    ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 14),
 
                   if (items.isEmpty)
                     MenuEmptyFilterState(
                       vegFilter: effectiveVegFilter,
                       categoryName: currentCategory['name'] ?? '',
-                      onResetFilter: () => setState(() => _vegFilter = 'All'),
-                      onShowAllCategories: () => setState(() => _selectedCategoryId = 'all'),
+                      onResetFilter: () => setState(() {
+                        _vegFilter = 'All';
+                        _spiceFilter = 'All';
+                      }),
+                      onShowAllCategories: () =>
+                          setState(() => _selectedCategoryId = 'all'),
                     )
                   else
                     Consumer<CartProvider>(
@@ -238,20 +477,39 @@ class _MenuScreenState extends State<MenuScreen> {
                             int lastMatchIndex = -1;
                             for (int i = 0; i < cart.items.length; i++) {
                               final c = cart.items[i];
-                              if ((c['menuItemId'] ?? c['_id'] ?? c['id']) == dishId) {
-                                totalQty += (c['quantity'] ?? c['qty'] ?? 1) as int;
+                              if ((c['menuItemId'] ?? c['_id'] ?? c['id']) ==
+                                  dishId) {
+                                totalQty +=
+                                    (c['quantity'] ?? c['qty'] ?? 1) as int;
                                 lastMatchIndex = i;
                               }
                             }
                             return MenuItemCard(
                               item: item,
                               cartQty: totalQty,
-                              onAdd: () => AddToCartHelper.handleAddToCart(context, item, cart, restaurantProvider),
-                              onIncrement: () => AddToCartHelper.handleAddToCart(context, item, cart, restaurantProvider),
+                              onAdd: () => AddToCartHelper.handleAddToCart(
+                                context,
+                                item,
+                                cart,
+                                restaurantProvider,
+                              ),
+                              onIncrement: () =>
+                                  AddToCartHelper.handleAddToCart(
+                                context,
+                                item,
+                                cart,
+                                restaurantProvider,
+                              ),
                               onDecrement: () {
                                 if (lastMatchIndex != -1) {
-                                  final lastQty = (cart.items[lastMatchIndex]['quantity'] ?? cart.items[lastMatchIndex]['qty'] ?? 1) as int;
-                                  cart.updateQuantity(lastMatchIndex, lastQty - 1);
+                                  final lastQty = (cart.items[lastMatchIndex]
+                                          ['quantity'] ??
+                                      cart.items[lastMatchIndex]['qty'] ??
+                                      1) as int;
+                                  cart.updateQuantity(
+                                    lastMatchIndex,
+                                    lastQty - 1,
+                                  );
                                 }
                               },
                             );
@@ -260,13 +518,15 @@ class _MenuScreenState extends State<MenuScreen> {
                       },
                     ),
 
-                  const SizedBox(height: 20),
-
+                  const SizedBox(height: 16),
                   const MenuLoyaltyBanner(),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
+
+            // Floating View Cart Pill Bar above Bottom Navbar
+            _buildFloatingViewCartBar(),
           ],
         ),
       ),

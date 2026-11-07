@@ -33,17 +33,17 @@ class AddressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = isDefault ? const Color(0xFFFFF0F0) : Colors.white;
-    final borderColor = isDefault ? Colors.red.shade200 : AppColors.divider;
-    final leadingIconColor = isDefault ? AppColors.secondary : Colors.grey;
+    final bgColor = isDefault ? const Color(0xFFFDF2F0) : const Color(0xFFFDF9F2);
+    final borderColor = isDefault ? const Color(0xFFE5B358) : const Color(0xFFE6D7C3);
+    final leadingIconColor = isDefault ? const Color(0xFF730B17) : const Color(0xFF6E5A4F);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor, width: 1.2),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

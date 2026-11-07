@@ -10,44 +10,40 @@ class AddressTopBanner extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7F0), // Light orange/beige
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFFDF9F2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: const Color(0xFFF9ECEA),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 4,
-                ),
-              ],
+              border: Border.all(color: const Color(0xFFE6D7C3), width: 0.8),
             ),
-            child: const Icon(Icons.location_on, color: AppColors.secondary, size: 24),
+            child: const Icon(Icons.location_on, color: Color(0xFF730B17), size: 24),
           ),
           const SizedBox(width: 16),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Your saved addresses for quick & easy checkout',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF23140E)),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   'Select an address during checkout to place your order',
-                  style: TextStyle(color: Colors.grey.shade700, fontSize: 11),
+                  style: TextStyle(color: Color(0xFF6E5A4F), fontSize: 11),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.map_outlined, color: Colors.orange, size: 40),
+          const Icon(Icons.map_outlined, color: Color(0xFFE5B358), size: 40),
         ],
       ),
     );
@@ -63,34 +59,30 @@ class AddressFooterBanner extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7F0), // Light orange/beige
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFFDF9F2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: const Color(0xFFF9ECEA),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 4,
-                ),
-              ],
+              border: Border.all(color: const Color(0xFFE6D7C3), width: 0.8),
             ),
-            child: const Icon(Icons.security, color: Colors.brown, size: 24),
+            child: const Icon(Icons.security, color: Color(0xFF730B17), size: 24),
           ),
           const SizedBox(width: 16),
           const Expanded(
             child: Text(
               'Your addresses are secure and\nused only for delivering your orders.',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, height: 1.4),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, height: 1.4, color: Color(0xFF23140E)),
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.delivery_dining, color: AppColors.secondary, size: 40),
+          const Icon(Icons.delivery_dining, color: Color(0xFF730B17), size: 40),
         ],
       ),
     );

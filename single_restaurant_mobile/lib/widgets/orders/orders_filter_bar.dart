@@ -31,14 +31,18 @@ class OrdersFilterBar extends StatelessWidget {
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.secondary : const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(16),
+                color: isSelected ? const Color(0xFF730B17) : const Color(0xFFFDF9F2),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: isSelected ? const Color(0xFFE5B358) : const Color(0xFFE6D7C3),
+                  width: 1.1,
+                ),
               ),
               alignment: Alignment.center,
               child: Text(
                 filter,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black87,
+                  color: isSelected ? Colors.white : const Color(0xFF23140E),
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   fontSize: 13,
                 ),

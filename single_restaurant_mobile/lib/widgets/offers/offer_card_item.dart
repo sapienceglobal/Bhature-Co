@@ -73,13 +73,13 @@ class _OfferCardItemState extends State<OfferCardItem> {
       width: 160,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE8DEC8), width: 1.2),
+        color: const Color(0xFFFDF9F2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
+            color: const Color(0xFF4A0810).withValues(alpha: 0.05),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],

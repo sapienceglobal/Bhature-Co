@@ -91,6 +91,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/images/branded/bhatura-and-co/
     - assets/images/branded/lassi-lounge/
     - assets/images/branded/lassi-lounge/about/
     - assets/images/branded/lassi-lounge/categories/

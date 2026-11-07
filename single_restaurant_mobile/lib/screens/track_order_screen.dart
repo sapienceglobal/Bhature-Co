@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/order_provider.dart';
@@ -104,17 +105,21 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF8F5),
+      backgroundColor: const Color(0xFFFAF3E8),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF730B17)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Track Order',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 24),
+          style: GoogleFonts.playfairDisplay(
+            color: const Color(0xFF4A0810),
+            fontWeight: FontWeight.w800,
+            fontSize: 23,
+          ),
         ),
         centerTitle: false,
         actions: [
@@ -124,11 +129,12 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
               onPressed: () {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpSupportScreen()));
               },
-              icon: const Icon(Icons.headset_mic_outlined, color: AppColors.secondary, size: 16),
-              label: const Text('Support', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
+              icon: const Icon(Icons.headset_mic_outlined, color: Color(0xFF730B17), size: 16),
+              label: const Text('Support', style: TextStyle(color: Color(0xFF730B17), fontWeight: FontWeight.bold)),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.secondary),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                backgroundColor: const Color(0xFFFDF9F2),
+                side: const BorderSide(color: Color(0xFFE6D7C3), width: 1.2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
             ),

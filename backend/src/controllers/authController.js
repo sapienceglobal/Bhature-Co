@@ -418,8 +418,9 @@ export const socialLogin = asyncHandler(async (req, response) => {
       idToken: jwtToken,
       audience: [
         process.env.GOOGLE_CLIENT_ID,
+        '324905255189-4dkm6eh02ij5o7ek85kc8bjkqcrvt4nm.apps.googleusercontent.com',
         '960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com'
-      ],
+      ].filter(Boolean),
     });
 
     const payload = ticket.getPayload();
@@ -1135,6 +1136,7 @@ const sanitizeSavedCart = ({ items = [], restaurant = null, specialInstructions 
         quantity,
         qty: quantity,
         selectedSize: item.selectedSize || null,
+        selectedSpiceLevel: item.selectedSpiceLevel ? String(item.selectedSpiceLevel).slice(0, 50) : null,
         addOns,
         specialInstructions: String(item.specialInstructions || '').slice(0, 500),
         lineTotal: Math.round((basePrice + addOnTotal) * quantity * 100) / 100

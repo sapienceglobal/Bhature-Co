@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
@@ -72,12 +73,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFFAF3E8),
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: const Color(0xFFFAF3E8),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF730B17)),
           onPressed: widget.onBack,
         ),
         title: _isSearching
@@ -87,23 +88,27 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 decoration: const InputDecoration(
                   hintText: 'Search orders...',
                   border: InputBorder.none,
-                  hintStyle: TextStyle(color: Colors.black54),
+                  hintStyle: TextStyle(color: Color(0xFF6E5A4F)),
                 ),
-                style: const TextStyle(color: Colors.black, fontSize: 18),
+                style: const TextStyle(color: Color(0xFF23140E), fontSize: 18),
                 onChanged: (value) {
                   setState(() {
                     _searchQuery = value;
                   });
                 },
               )
-            : const Text(
+            : Text(
                 'My Orders',
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 24),
+                style: GoogleFonts.playfairDisplay(
+                  color: const Color(0xFF4A0810),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 23,
+                ),
               ),
         centerTitle: false,
         actions: [
           IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search, color: Colors.black, size: 26),
+            icon: Icon(_isSearching ? Icons.close : Icons.search, color: const Color(0xFF730B17), size: 26),
             onPressed: () {
               setState(() {
                 if (_isSearching) {

@@ -22,14 +22,14 @@ class ProfileHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFDF9F2),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF3ECE6)),
-        boxShadow: const [
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            color: const Color(0xFF4A0810).withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),

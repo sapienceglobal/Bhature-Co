@@ -32,11 +32,12 @@ class CheckoutTippingSection extends StatelessWidget {
                 margin: const EdgeInsets.only(right: 8),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF8B1E1E) : Colors.white,
+                  color: isSelected ? const Color(0xFF730B17) : const Color(0xFFFDF9F2),
                   border: Border.all(
-                    color: isSelected ? const Color(0xFF8B1E1E) : Colors.grey.shade300,
+                    color: isSelected ? const Color(0xFFE5B358) : const Color(0xFFE6D7C3),
+                    width: 1.2,
                   ),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Column(
                   children: [
@@ -74,11 +75,12 @@ class CheckoutTippingSection extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: checkout.tip == 0.0 ? const Color(0xFF8B1E1E) : Colors.white,
+                color: checkout.tip == 0.0 ? const Color(0xFF730B17) : const Color(0xFFFDF9F2),
                 border: Border.all(
-                  color: checkout.tip == 0.0 ? const Color(0xFF8B1E1E) : Colors.grey.shade300,
+                  color: checkout.tip == 0.0 ? const Color(0xFFE5B358) : const Color(0xFFE6D7C3),
+                  width: 1.2,
                 ),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
                 children: [

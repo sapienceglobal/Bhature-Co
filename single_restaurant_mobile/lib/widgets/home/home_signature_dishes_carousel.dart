@@ -13,7 +13,7 @@ class HomeSignatureDishesCarousel extends StatelessWidget {
   Widget build(BuildContext context) {
     final textScaler = MediaQuery.textScalerOf(context);
     final carouselHeight =
-        (200.0 * (textScaler.scale(13.0) / 13.0)).clamp(198.0, 218.0);
+        (228.0 * (textScaler.scale(13.0) / 13.0)).clamp(224.0, 260.0);
 
     return SizedBox(
       height: carouselHeight,
@@ -21,6 +21,7 @@ class HomeSignatureDishesCarousel extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemCount: dishes.length,
         padding: const EdgeInsets.symmetric(horizontal: 16),
+        physics: const BouncingScrollPhysics(),
         itemBuilder: (context, index) {
           final dish = dishes[index];
           return HomeDishCard(dish: dish);

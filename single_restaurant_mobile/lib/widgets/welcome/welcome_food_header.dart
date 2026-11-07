@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Top hero food banner featuring authentic Indian gourmet feast photography
-/// (copper handi butter chicken, biryani, naan, chutneys)
-/// and the official Lassi Lounge branding header.
+/// Top hero banner for Bhatura & Co Welcome Screen.
+/// Features a rich royal maroon radial backdrop with the circular
+/// Bhatura & Co emblem centered prominently.
 class WelcomeFoodHeader extends StatelessWidget {
   final double height;
 
@@ -13,71 +13,39 @@ class WelcomeFoodHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final topPadding = MediaQuery.paddingOf(context).top;
+    final availableHeight = (height - topPadding - 28.0).clamp(150.0, 380.0);
+    final emblemSize = (availableHeight * 0.90).clamp(170.0, 320.0);
+
+    return Container(
       height: height,
       width: double.infinity,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Background Food Feast Image
-          Image.asset(
-            'assets/images/branded/lassi-lounge/welcome_hero_food.png',
-            fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
-            errorBuilder: (context, error, stackTrace) {
-              // Fallback to high-res feast asset or network image
-              return Image.asset(
-                'assets/images/branded/lassi-lounge/welcome_food_feast.jpg',
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: const Color(0xFF200E08),
-                ),
-              );
-            },
-          ),
-
-          // Top Subtle Gradient Scrim for Status Bar & Notch Readability
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 175,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.70),
-                    Colors.black.withValues(alpha: 0.35),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment(0.0, -0.1),
+          radius: 0.95,
+          colors: [
+            Color(0xFF7A0D18),
+            Color(0xFF590710),
+            Color(0xFF3E040A),
+          ],
+          stops: [0.0, 0.65, 1.0],
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 18.0),
+            child: Image.asset(
+              'assets/images/branded/bhatura-and-co/logo-full.png',
+              width: emblemSize,
+              height: emblemSize,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
             ),
           ),
-
-          // Standalone Crisp Lassi Lounge Logo
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 10.0),
-                child: Center(
-                  child: Image.asset(
-                    'assets/images/branded/lassi-lounge/Lassi-Lounge-icon.png',
-                    height: height < 260 ? 110.0 : 142.0,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

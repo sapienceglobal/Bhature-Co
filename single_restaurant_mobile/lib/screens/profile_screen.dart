@@ -111,8 +111,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         centerTitle: true,
         title: Image.asset(
-          'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-          height: 50,
+          'assets/images/branded/bhatura-and-co/logo-emblem.png',
+          height: 52,
           fit: BoxFit.contain,
           errorBuilder: (c, e, s) => const SizedBox.shrink(),
         ),
@@ -293,17 +293,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(22),
       child: Container(
-        width: 38,
-        height: 38,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFFDF9F2),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.grey.shade300, width: 1.0),
+          border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2)),
+            BoxShadow(color: const Color(0xFF4A0810).withValues(alpha: 0.05), blurRadius: 6, offset: const Offset(0, 2)),
           ],
         ),
-        child: Icon(icon, size: 21, color: Colors.black87),
+        child: Icon(icon, size: 21, color: const Color(0xFF730B17)),
       ),
     );
   }

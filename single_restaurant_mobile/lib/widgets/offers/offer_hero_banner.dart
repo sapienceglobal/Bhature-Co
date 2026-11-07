@@ -71,24 +71,24 @@ class OfferHeroBanner extends StatelessWidget {
               alignment: Alignment.centerRight,
               placeholder: (context, url) => Container(color: const Color(0xFF4C0810)),
               errorWidget: (context, url, error) => Image.asset(
-                'assets/images/branded/lassi-lounge/hero-offer-curry.jpg',
+                'assets/images/branded/bhatura-and-co/cat-bhature.png',
                 fit: BoxFit.cover,
                 alignment: Alignment.centerRight,
                 errorBuilder: (ctx, err, st) => Image.asset(
-                  'assets/images/branded/lassi-lounge/hero-curry.jpg',
-                  fit: BoxFit.cover,
+                  'assets/images/branded/bhatura-and-co/logo-emblem.png',
+                  fit: BoxFit.contain,
                   alignment: Alignment.centerRight,
                 ),
               ),
             )
           else
             Image.asset(
-              'assets/images/branded/lassi-lounge/hero-offer-curry.jpg',
+              'assets/images/branded/bhatura-and-co/cat-bhature.png',
               fit: BoxFit.cover,
               alignment: Alignment.centerRight,
               errorBuilder: (ctx, err, st) => Image.asset(
-                'assets/images/branded/lassi-lounge/hero-curry.jpg',
-                fit: BoxFit.cover,
+                'assets/images/branded/bhatura-and-co/logo-emblem.png',
+                fit: BoxFit.contain,
                 alignment: Alignment.centerRight,
               ),
             ),

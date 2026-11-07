@@ -20,6 +20,10 @@ const OrderItemSchema = new mongoose.Schema({
     name: { type: String, default: null },
     price: { type: Number, default: null }
   },
+  selectedSpiceLevel: {
+    type: String,
+    default: null
+  },
   addOns: [{
     name: { type: String },
     price: { type: Number, default: 0 }

@@ -71,7 +71,7 @@ class ImageHelper {
       return '$basePath/momos_3d.png';
     }
     if (name.contains('amritsar') || name.contains('kulcha') || name.contains('bhature')) {
-      return '$basePath/amritsar_special_3d.png';
+      return 'assets/images/branded/bhatura-and-co/cat_chole_bhature_exact.png';
     }
     if (name.contains('combo')) {
       return '$basePath/rice_combo_3d.png';

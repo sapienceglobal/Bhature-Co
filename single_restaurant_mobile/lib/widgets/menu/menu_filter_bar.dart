@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class MenuFilterBar extends StatelessWidget {
   final String vegFilter;
   final List<String> availableVegFilters;
+  final String spiceFilter;
   final String sortOrder;
   final ValueChanged<String> onVegFilterChanged;
+  final ValueChanged<String>? onSpiceFilterChanged;
   final ValueChanged<String> onSortOrderChanged;
 
   const MenuFilterBar({
     super.key,
     required this.vegFilter,
     this.availableVegFilters = const ['All', 'Veg', 'Non-Veg'],
+    this.spiceFilter = 'All',
     required this.sortOrder,
     required this.onVegFilterChanged,
+    this.onSpiceFilterChanged,
     required this.onSortOrderChanged,
   });
 
-  static Widget _buildVegSymbol({required bool isVeg, double size = 13}) {
-    final color = isVeg ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+  static Widget _buildVegSymbol({required bool isVeg, double size = 12}) {
+    final color = isVeg ? const Color(0xFF1B8A3D) : const Color(0xFFC62828);
     return Container(
       width: size,
       height: size,
@@ -40,221 +45,255 @@ class MenuFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          final bool isNarrow = width < 380;
-          final bool isExtraNarrow = width < 340;
+    final effectiveVeg = availableVegFilters.contains(vegFilter)
+        ? vegFilter
+        : availableVegFilters.first;
 
-          return FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.center,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: width),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Left section: Filters & Veg dropdown
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+    final String shortSort = sortOrder == 'Popularity'
+        ? 'Popular'
+        : sortOrder == 'Price: Low to High'
+            ? 'Low-High'
+            : 'High-Low';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Row(
+        children: [
+          // 1. Filters Chip (Veg / Non-Veg / All)
+          Expanded(
+            flex: 28,
+            child: PopupMenuButton<String>(
+              onSelected: onVegFilterChanged,
+              color: const Color(0xFFFDF9F2),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: const BorderSide(color: Color(0xFFE4D4C0)),
+              ),
+              itemBuilder: (context) => availableVegFilters.map((val) {
+                return PopupMenuItem<String>(
+                  value: val,
+                  child: Row(
                     children: [
-                      Icon(
-                        Icons.filter_alt_outlined,
-                        size: isNarrow ? 18 : 20,
-                        color: Colors.black87,
-                      ),
-                      const SizedBox(width: 4),
-                      if (!isNarrow) ...[
-                        const Text(
-                          'Filters',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13.5,
-                            color: Colors.black87,
-                          ),
+                      if (val == 'Veg') ...[
+                        _buildVegSymbol(isVeg: true, size: 13),
+                        const SizedBox(width: 8),
+                      ] else if (val == 'Non-Veg') ...[
+                        _buildVegSymbol(isVeg: false, size: 13),
+                        const SizedBox(width: 8),
+                      ] else ...[
+                        const Icon(
+                          Icons.filter_alt_outlined,
+                          size: 15,
+                          color: Color(0xFF3E2E28),
                         ),
                         const SizedBox(width: 8),
                       ],
-                      if (availableVegFilters.length == 1)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                          decoration: BoxDecoration(
-                            color: vegFilter == 'Veg'
-                                ? const Color(0xFFE8F5E9)
-                                : const Color(0xFFFFEBEE),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: vegFilter == 'Veg'
-                                  ? const Color(0xFFA5D6A7)
-                                  : const Color(0xFFEF9A9A),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildVegSymbol(isVeg: vegFilter == 'Veg', size: 12),
-                              const SizedBox(width: 5),
-                              Text(
-                                vegFilter,
-                                style: TextStyle(
-                                  color: vegFilter == 'Veg'
-                                      ? const Color(0xFF2E7D32)
-                                      : const Color(0xFFC62828),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: isNarrow ? 12.0 : 13.0,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: availableVegFilters.contains(vegFilter)
-                                ? vegFilter
-                                : availableVegFilters.first,
-                            isDense: true,
-                            dropdownColor: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            elevation: 4,
-                            icon: const Icon(Icons.keyboard_arrow_down, size: 16),
-                            selectedItemBuilder: (BuildContext context) {
-                              return availableVegFilters.map<Widget>((String value) {
-                                final String displayLabel = value == 'All'
-                                    ? (isExtraNarrow ? 'All' : 'Veg & Non-Veg')
-                                    : value;
-                                final Color textColor = value == 'Veg'
-                                    ? const Color(0xFF2E7D32)
-                                    : value == 'Non-Veg'
-                                        ? const Color(0xFFC62828)
-                                        : Colors.black87;
-
-                                return Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    if (value == 'Veg') ...[
-                                      _buildVegSymbol(isVeg: true, size: 12),
-                                      const SizedBox(width: 5),
-                                    ] else if (value == 'Non-Veg') ...[
-                                      _buildVegSymbol(isVeg: false, size: 12),
-                                      const SizedBox(width: 5),
-                                    ],
-                                    Text(
-                                      displayLabel,
-                                      style: TextStyle(
-                                        color: textColor,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: isNarrow ? 12.5 : 13.5,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }).toList();
-                            },
-                            onChanged: (v) {
-                              if (v != null) onVegFilterChanged(v);
-                            },
-                            items: availableVegFilters.map((String value) {
-                              final String displayLabel = value == 'All'
-                                  ? (isExtraNarrow ? 'All' : 'Veg & Non-Veg')
-                                  : value;
-                              final Color itemColor = value == 'Veg'
-                                  ? const Color(0xFF2E7D32)
-                                  : value == 'Non-Veg'
-                                      ? const Color(0xFFC62828)
-                                      : const Color(0xFF1E293B);
-
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    if (value == 'Veg') ...[
-                                      _buildVegSymbol(isVeg: true, size: 13),
-                                      const SizedBox(width: 8),
-                                    ] else if (value == 'Non-Veg') ...[
-                                      _buildVegSymbol(isVeg: false, size: 13),
-                                      const SizedBox(width: 8),
-                                    ] else ...[
-                                      const Icon(
-                                        Icons.restaurant,
-                                        size: 14,
-                                        color: Color(0xFF64748B),
-                                      ),
-                                      const SizedBox(width: 8),
-                                    ],
-                                    Text(
-                                      displayLabel,
-                                      style: TextStyle(
-                                        color: itemColor,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                    ],
-                  ),
-
-                  // Right section: Sort by dropdown
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
                       Text(
-                        isNarrow ? 'Sort: ' : 'Sort by ',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: isNarrow ? 12.0 : 13.0,
-                        ),
-                      ),
-                      DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: sortOrder,
-                          isDense: true,
-                          dropdownColor: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          elevation: 4,
-                          icon: const Icon(Icons.keyboard_arrow_down, size: 16),
-                          style: TextStyle(
-                            color: const Color(0xFF8B1E1E),
-                            fontWeight: FontWeight.bold,
-                            fontSize: isNarrow ? 12.5 : 13.5,
-                          ),
-                          onChanged: (v) {
-                            if (v != null) onSortOrderChanged(v);
-                          },
-                          items: [
-                            'Popularity',
-                            'Price: Low to High',
-                            'Price: High to Low'
-                          ].map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
+                        val == 'All' ? 'All Items' : val,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: effectiveVeg == val
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: const Color(0xFF23140E),
                         ),
                       ),
                     ],
                   ),
-                ],
+                );
+              }).toList(),
+              child: Container(
+                height: 36,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDF9F2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: effectiveVeg != 'All'
+                        ? const Color(0xFF720A15)
+                        : const Color(0xFFE4D4C0),
+                    width: 1.0,
+                  ),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (effectiveVeg == 'Veg') ...[
+                        _buildVegSymbol(isVeg: true, size: 12),
+                        const SizedBox(width: 5),
+                      ] else if (effectiveVeg == 'Non-Veg') ...[
+                        _buildVegSymbol(isVeg: false, size: 12),
+                        const SizedBox(width: 5),
+                      ] else ...[
+                        const Icon(
+                          Icons.filter_alt_outlined,
+                          size: 16,
+                          color: Color(0xFF23140E),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        effectiveVeg == 'All' ? 'Filters' : effectiveVeg,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF23140E),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          );
-        },
+          ),
+
+          const SizedBox(width: 8),
+
+          // 2. Spice level Chip
+          Expanded(
+            flex: 36,
+            child: PopupMenuButton<String>(
+              onSelected: (val) {
+                if (onSpiceFilterChanged != null) {
+                  onSpiceFilterChanged!(val);
+                }
+              },
+              color: const Color(0xFFFDF9F2),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: const BorderSide(color: Color(0xFFE4D4C0)),
+              ),
+              itemBuilder: (context) => const [
+                PopupMenuItem(value: 'All', child: Text('All Spice Levels')),
+                PopupMenuItem(value: 'Mild', child: Text('Mild')),
+                PopupMenuItem(value: 'Medium', child: Text('Medium / Spicy')),
+              ],
+              child: Container(
+                height: 36,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDF9F2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: spiceFilter != 'All'
+                        ? const Color(0xFF720A15)
+                        : const Color(0xFFE4D4C0),
+                    width: 1.0,
+                  ),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        spiceFilter == 'All'
+                            ? 'Spice level'
+                            : 'Spice: $spiceFilter',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF23140E),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 17,
+                        color: Color(0xFF23140E),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          // 3. Sort Chip
+          Expanded(
+            flex: 36,
+            child: PopupMenuButton<String>(
+              onSelected: onSortOrderChanged,
+              color: const Color(0xFFFDF9F2),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: const BorderSide(color: Color(0xFFE4D4C0)),
+              ),
+              itemBuilder: (context) => [
+                'Popularity',
+                'Price: Low to High',
+                'Price: High to Low',
+              ].map((val) {
+                return PopupMenuItem<String>(
+                  value: val,
+                  child: Text(
+                    val,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: sortOrder == val
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: sortOrder == val
+                          ? const Color(0xFF720A15)
+                          : const Color(0xFF23140E),
+                    ),
+                  ),
+                );
+              }).toList(),
+              child: Container(
+                height: 36,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDF9F2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFFE4D4C0),
+                    width: 1.0,
+                  ),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          style: GoogleFonts.poppins(fontSize: 12.5),
+                          children: [
+                            const TextSpan(
+                              text: 'Sort: ',
+                              style: TextStyle(
+                                color: Color(0xFF4A3A32),
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                            TextSpan(
+                              text: shortSort,
+                              style: const TextStyle(
+                                color: Color(0xFF720A15),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 17,
+                        color: Color(0xFF23140E),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

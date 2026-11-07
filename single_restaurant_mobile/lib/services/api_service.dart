@@ -81,7 +81,7 @@ class ApiService {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'x-tenant-id': 'bhatura-and-co', // Required for single restaurant mode backend logic
-      'x-app-secret': 'mobile_app_secure_key_2026', // API key for mobile apps
+      'x-app-secret': 'sec@8097#2026!BhaturaNJ', // API key for mobile apps
       'x-platform': 'customer_app',
       'x-device-os': Platform.isAndroid ? 'Android' : (Platform.isIOS ? 'iOS' : Platform.operatingSystem),
       'x-device-os-version': Platform.operatingSystemVersion,

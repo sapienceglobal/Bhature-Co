@@ -35,11 +35,11 @@ class CheckoutContactInfo extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFFDF9F2),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: !isComplete ? const Color(0xFFEF4444).withOpacity(0.4) : Colors.grey.shade200,
-          width: !isComplete ? 1.5 : 1,
+          color: !isComplete ? const Color(0xFFEF4444).withValues(alpha: 0.4) : const Color(0xFFE6D7C3),
+          width: !isComplete ? 1.5 : 1.2,
         ),
       ),
       child: Column(

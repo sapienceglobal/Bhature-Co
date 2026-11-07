@@ -25,14 +25,14 @@ class ProfileMenuList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFDF9F2),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF3ECE6)),
-        boxShadow: const [
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            color: const Color(0xFF4A0810).withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -175,7 +175,7 @@ class ProfileMenuList extends StatelessWidget {
   }
 
   Widget _buildDivider() {
-    return const Divider(height: 1, indent: 68, endIndent: 16, color: Color(0xFFF5EFEA));
+    return const Divider(height: 1, indent: 68, endIndent: 16, color: Color(0xFFEFE4D4));
   }
 
   Widget _buildMenuItem(
@@ -188,28 +188,29 @@ class ProfileMenuList extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       leading: Container(
         padding: const EdgeInsets.all(9),
-        decoration: const BoxDecoration(
-          color: Color(0xFFFDF1EF),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9ECEA),
           shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFFE6D7C3), width: 0.8),
         ),
-        child: Icon(icon, color: const Color(0xFF5C0612), size: 20),
+        child: Icon(icon, color: const Color(0xFF730B17), size: 20),
       ),
       title: Text(
         title,
         style: const TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: 14.5,
-          color: Color(0xFF1E0C0E),
+          color: Color(0xFF23140E),
         ),
       ),
       subtitle: Text(
         subtitle,
         style: const TextStyle(
-          color: Color(0xFF6E6E6E),
+          color: Color(0xFF6E5A4F),
           fontSize: 12,
         ),
       ),
-      trailing: const Icon(Icons.chevron_right, color: Color(0xFF757575), size: 20),
+      trailing: const Icon(Icons.chevron_right, color: Color(0xFF730B17), size: 20),
       onTap: onTap ?? () {},
     );
   }

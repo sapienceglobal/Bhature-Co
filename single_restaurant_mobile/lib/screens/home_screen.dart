@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
@@ -10,7 +11,6 @@ import 'package:single_restaurant_mobile/screens/offers_screen.dart';
 import 'dart:convert';
 import 'package:single_restaurant_mobile/services/api_service.dart';
 import 'package:single_restaurant_mobile/theme/app_responsive.dart';
-import 'package:single_restaurant_mobile/theme/app_spacing.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
 import 'package:single_restaurant_mobile/widgets/empty_state_widget.dart';
@@ -22,8 +22,6 @@ import 'package:single_restaurant_mobile/widgets/home/home_location_sheet.dart';
 import 'package:single_restaurant_mobile/widgets/home/home_promo_cards.dart';
 import 'package:single_restaurant_mobile/widgets/home/home_section_title.dart';
 import 'package:single_restaurant_mobile/widgets/home/home_signature_dishes_carousel.dart';
-import 'package:single_restaurant_mobile/widgets/common/app_bottom_sheet.dart';
-import 'package:single_restaurant_mobile/widgets/menu/menu_category_strip.dart';
 import 'package:single_restaurant_mobile/widgets/shimmer_loading.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -187,61 +185,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _showCategoriesPopup(BuildContext context, List<dynamic> categories) {
-    final isTablet = AppResponsive.isTablet(context);
-    final columns = isTablet ? 5 : 3;
-
-    AppBottomSheet.show(
-      context: context,
-      builder: (bottomSheetContext) {
-        return AppBottomSheet(
-          title: 'All Categories',
-          padding: EdgeInsets.zero,
-          child: GridView.builder(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
-            ),
-            shrinkWrap: true,
-            physics: const ClampingScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              childAspectRatio: 0.65,
-              crossAxisSpacing: AppSpacing.md,
-              mainAxisSpacing: AppSpacing.md,
-            ),
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              final cat = categories[index];
-              return GestureDetector(
-                onTap: () {
-                  Navigator.pop(bottomSheetContext);
-                  _navigateToMenu(cat['_id']);
-                },
-                child: CategoryItemView(
-                  name: cat['name'] ?? '',
-                  category: cat,
-                  isSelected: false,
-                  inGrid: true,
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     _logoController.forward(from: 0.0);
 
     final textScaler = MediaQuery.textScalerOf(context);
     final scale = (textScaler.scale(14.0) / 14.0).clamp(1.0, 1.35);
-    final scaledHeight = 192.0 + (scale - 1.0) * 70.0;
+    final scaledHeight = 192.0 + (scale - 1.0) * 65.0;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFFAF3E8),
       appBar: HomeAppBar(
         logoScaleAnimation: _logoScaleAnimation,
         logoController: _logoController,
@@ -287,39 +240,93 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const SizedBox(height: 4),
                     HomeHeroBanner(
                       restaurant: restaurant,
                       onOrderNow: () => _navigateToMenu(),
                       onSlideTap: _onHeroSlideTap,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     if (categories.isNotEmpty) ...[
-                      HomeSectionTitle(
-                        title: 'CATEGORIES',
-                        onViewAll: () =>
-                            _showCategoriesPopup(context, categories),
-                      ),
                       HomeCategoriesCarousel(
                         categories: categories,
                         onCategoryTap: (catId) => _navigateToMenu(catId),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 12),
                     ],
                     HomePromoCardsCarousel(
                       activeCoupon: _activeCoupon,
                       onOffersTap: _navigateToOffers,
                     ),
-                    const SizedBox(height: 18),
-                    const HomeDeliveryPartners(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 10),
                     if (signatureDishes.isNotEmpty) ...[
                       HomeSectionTitle(
-                        title: 'OUR SIGNATURE DISHES',
+                        title: 'Our Signature Favourites',
                         onViewAll: () => _navigateToMenu(),
                       ),
                       HomeSignatureDishesCarousel(dishes: signatureDishes),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 16),
                     ],
+                    // Freshly prepared • Packed with care Ribbon
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 9.5,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFF6B0A14),
+                              Color(0xFF56070F),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(22),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF4A0810)
+                                  .withValues(alpha: 0.16),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.spa_rounded,
+                                color: Color(0xFFF2C26B),
+                                size: 15,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Freshly prepared  •  Packed with care',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFFAF3E6),
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.spa_rounded,
+                                color: Color(0xFFF2C26B),
+                                size: 15,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    const HomeDeliveryPartners(),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomeSectionTitle extends StatelessWidget {
   final String title;
@@ -17,36 +18,40 @@ class HomeSectionTitle extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
-              color: Color(0xFF1E1E1E),
+          Flexible(
+            child: Text(
+              title,
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 20.5,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF23140E),
+                height: 1.15,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           InkWell(
             onTap: onViewAll,
             borderRadius: BorderRadius.circular(6),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'View All',
-                    style: TextStyle(
-                      color: Color(0xFFB71C1C),
-                      fontWeight: FontWeight.bold,
+                    'View all',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF720A15),
+                      fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
                   ),
-                  SizedBox(width: 2),
-                  Icon(
-                    Icons.chevron_right,
-                    size: 16,
-                    color: Color(0xFFB71C1C),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: Color(0xFF720A15),
                   ),
                 ],
               ),
@@ -57,4 +62,3 @@ class HomeSectionTitle extends StatelessWidget {
     );
   }
 }
-

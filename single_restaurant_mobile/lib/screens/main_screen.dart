@@ -13,7 +13,6 @@ import 'package:single_restaurant_mobile/services/ota_update_service.dart';
 import 'package:single_restaurant_mobile/services/push_notification_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
-import 'package:single_restaurant_mobile/theme/app_radius.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialIndex;
@@ -156,72 +155,105 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 const ProfileScreen(),
               ],
         ),
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFFCF3E8),
-            borderRadius: AppRadius.topXxl,
-            border: const Border(
-              top: BorderSide(color: Color(0xFFE5D4C0), width: 1.2),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF5C0612).withValues(alpha: 0.10),
-                blurRadius: 16,
-                offset: const Offset(0, -4),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: AppRadius.topXxl,
-            child: BottomNavigationBar(
-              type: BottomNavigationBarType.fixed,
-              elevation: 0,
-              backgroundColor: const Color(0xFFFCF3E8),
-              selectedItemColor: AppColors.primary,
-              unselectedItemColor: const Color(0xFF78716C),
-              selectedLabelStyle: GoogleFonts.poppins(
-                fontWeight: FontWeight.w700,
-                fontSize: 11.5,
-              ),
-              unselectedLabelStyle: GoogleFonts.poppins(
-                fontWeight: FontWeight.w500,
-                fontSize: 11.5,
-              ),
-              currentIndex: _currentIndex,
-              onTap: _onItemTapped,
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.home_outlined),
-                  activeIcon: Icon(Icons.home),
-                  label: 'Home',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.menu_book_outlined),
-                  activeIcon: Icon(Icons.menu_book),
-                  label: 'Menu',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.local_offer_outlined),
-                  activeIcon: Icon(Icons.local_offer),
-                  label: 'Offers',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.receipt_long_outlined),
-                  activeIcon: Icon(Icons.receipt_long),
-                  label: 'Orders',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.person_outline),
-                  activeIcon: Icon(Icons.person),
-                  label: 'Account',
-                ),
-              ],
-            ),
-          ),
-        ),
+        bottomNavigationBar: _buildCustomBottomNavBar(context),
     ),
   );
 }
+
+  Widget _buildCustomBottomNavBar(BuildContext context) {
+    const items = [
+      (icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
+      (icon: Icons.menu_book_outlined, activeIcon: Icons.menu_book_rounded, label: 'Menu'),
+      (icon: Icons.local_offer_outlined, activeIcon: Icons.local_offer_rounded, label: 'Offers'),
+      (icon: Icons.receipt_long_outlined, activeIcon: Icons.receipt_long_rounded, label: 'Orders'),
+      (icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Account'),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF4E8),
+        border: const Border(
+          top: BorderSide(color: Color(0xFFE2D2BC), width: 1.0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4A0810).withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        bottom: true,
+        child: SizedBox(
+          height: 62,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(items.length, (index) {
+                final item = items[index];
+                final isSelected = _currentIndex == index;
+
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => _onItemTapped(index),
+                    behavior: HitTestBehavior.opaque,
+                    child: Center(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isSelected ? 14.0 : 6.0,
+                          vertical: 5.0,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF6D0B15)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isSelected ? item.activeIcon : item.icon,
+                                size: 21,
+                                color: isSelected
+                                    ? const Color(0xFFF5C265)
+                                    : const Color(0xFF4A2C24),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                item.label,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11.0,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: isSelected
+                                      ? const Color(0xFFF5C265)
+                                      : const Color(0xFF3D251E),
+                                  height: 1.15,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {

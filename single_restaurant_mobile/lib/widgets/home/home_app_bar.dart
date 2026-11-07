@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
@@ -21,7 +22,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.logoScaleAnimation,
     required this.logoController,
     required this.onLocationTap,
-    this.preferredHeight = 144.0,
+    this.preferredHeight = 190.0,
   });
 
   @override
@@ -30,64 +31,56 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+      decoration: const BoxDecoration(
+        color: Color(0xFFFAF3E8),
       ),
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.only(top: 2.0, bottom: 8.0),
+          padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              // Row 1: Logo & Actions
+              // Row 1: Bhatura & Co Logo & Circular Action Icons
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Logo with VisibilityDetector
-                    VisibilityDetector(
-                      key: const Key('home-screen-logo'),
-                      onVisibilityChanged: (info) {
-                        try {
-                          if (info.visibleFraction == 0.0) {
-                            logoController.reset();
-                          } else if (info.visibleFraction > 0.1 &&
-                              !logoController.isAnimating &&
-                              logoController.status !=
-                                  AnimationStatus.completed) {
-                            logoController.forward(from: 0.0);
-                          }
-                        } catch (_) {}
-                      },
-                      child: ScaleTransition(
-                        scale: logoScaleAnimation,
-                        child: Align(
-                          alignment: Alignment.topCenter,
-                          heightFactor: 1.0,
-                          child: Transform.translate(
-                            offset: const Offset(0, 0),
+                    // Left: Brand Logo
+                    Flexible(
+                      child: VisibilityDetector(
+                        key: const Key('home-screen-logo'),
+                        onVisibilityChanged: (info) {
+                          try {
+                            if (info.visibleFraction == 0.0) {
+                              logoController.reset();
+                            } else if (info.visibleFraction > 0.1 &&
+                                !logoController.isAnimating &&
+                                logoController.status !=
+                                    AnimationStatus.completed) {
+                              logoController.forward(from: 0.0);
+                            }
+                          } catch (_) {}
+                        },
+                        child: ScaleTransition(
+                          scale: logoScaleAnimation,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            heightFactor: 1.0,
                             child: Image.asset(
-                              'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-                              height: 54,
+                              'assets/images/branded/bhatura-and-co/logo-emblem.png',
+                              height: 52,
                               fit: BoxFit.contain,
-                              errorBuilder: (c, e, s) => const Text(
-                                'BHATURA & CO',
-                                style: TextStyle(
+                              alignment: Alignment.centerLeft,
+                              errorBuilder: (c, e, s) => Text(
+                                'Bhatura & Co',
+                                style: GoogleFonts.playfairDisplay(
                                   color: AppColors.primary,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.0,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                             ),
@@ -96,26 +89,18 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     ),
 
-                    // Action Icons: Search, Notifications, Cart
+                    const SizedBox(width: 8),
+
+                    // Right: Notifications & Shopping Bag
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _appBarIconButton(
-                          icon: Icons.search_rounded,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SearchScreen(),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
                         Consumer<NotificationProvider>(
                           builder: (context, np, _) => Stack(
                             clipBehavior: Clip.none,
                             children: [
                               _appBarIconButton(
-                                icon: Icons.notifications_none_outlined,
+                                icon: Icons.notifications_none_rounded,
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -126,30 +111,24 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                               ),
                               if (np.hasUnread && np.unreadCount > 0)
                                 Positioned(
-                                  right: -2,
-                                  top: -2,
+                                  right: 1,
+                                  top: 1,
                                   child: Container(
                                     padding: EdgeInsets.symmetric(
-                                      horizontal: np.unreadCount > 9 ? 5 : 4,
-                                      vertical: 2,
+                                      horizontal: np.unreadCount > 9 ? 4 : 3.5,
+                                      vertical: 1.5,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFE53935),
+                                      color: const Color(0xFF7B0C17),
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(
-                                          color: Colors.white, width: 1.6),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(0xFFE53935)
-                                              .withValues(alpha: 0.45),
-                                          blurRadius: 4,
-                                          spreadRadius: 0.5,
-                                        ),
-                                      ],
+                                        color: const Color(0xFFFAF3E8),
+                                        width: 1.5,
+                                      ),
                                     ),
                                     constraints: const BoxConstraints(
-                                      minWidth: 18,
-                                      minHeight: 18,
+                                      minWidth: 14,
+                                      minHeight: 14,
                                     ),
                                     child: Center(
                                       child: Text(
@@ -158,10 +137,9 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                                             : '${np.unreadCount}',
                                         style: const TextStyle(
                                           color: Colors.white,
-                                          fontSize: 10,
+                                          fontSize: 8.5,
                                           fontWeight: FontWeight.w800,
                                           height: 1,
-                                          letterSpacing: -0.3,
                                         ),
                                       ),
                                     ),
@@ -170,13 +148,13 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Consumer<CartProvider>(
                           builder: (context, cart, _) => Stack(
                             clipBehavior: Clip.none,
                             children: [
                               _appBarIconButton(
-                                icon: Icons.shopping_cart_outlined,
+                                icon: Icons.shopping_bag_outlined,
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -186,26 +164,28 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                               ),
                               if (cart.itemCount > 0)
                                 Positioned(
-                                  right: -2,
-                                  top: -2,
+                                  right: -1,
+                                  top: -1,
                                   child: Container(
-                                    padding: const EdgeInsets.all(4),
+                                    padding: const EdgeInsets.all(3.5),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFD32F2F),
+                                      color: const Color(0xFF730B17),
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                          color: Colors.white, width: 1.5),
+                                        color: const Color(0xFFFAF3E8),
+                                        width: 1.5,
+                                      ),
                                     ),
                                     constraints: const BoxConstraints(
-                                      minWidth: 18,
-                                      minHeight: 18,
+                                      minWidth: 17,
+                                      minHeight: 17,
                                     ),
                                     child: Center(
                                       child: Text(
                                         '${cart.itemCount}',
                                         style: const TextStyle(
                                           color: Colors.white,
-                                          fontSize: 10,
+                                          fontSize: 9.5,
                                           fontWeight: FontWeight.bold,
                                           height: 1,
                                         ),
@@ -224,14 +204,13 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
 
               const SizedBox(height: 8),
 
-              // Row 2: Deliver To Bar
+              // Row 2: Deliver To Card
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Consumer2<AddressProvider, AuthProvider>(
                   builder: (context, addressProvider, authProvider, _) {
-                    String displayAddress =
-                        '87-18 Lefferts Boulevard, New York, NY 10001';
-                    String label = 'DELIVER TO';
+                    String displayAddress = 'Select your delivery address';
+                    String label = 'Deliver to';
 
                     if (authProvider.isAuthenticated &&
                         addressProvider.addresses.isNotEmpty) {
@@ -240,7 +219,10 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                         orElse: () => addressProvider.addresses.first,
                       );
                       displayAddress = def['address'] ?? displayAddress;
-                      label = (def['label'] ?? 'DELIVER TO').toUpperCase();
+                      final rawLabel = (def['label'] ?? 'Deliver to').toString();
+                      label = rawLabel.isNotEmpty
+                          ? 'Deliver to (${rawLabel[0].toUpperCase()}${rawLabel.substring(1).toLowerCase()})'
+                          : 'Deliver to';
                     }
 
                     return GestureDetector(
@@ -248,36 +230,25 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                          horizontal: 12,
+                          vertical: 7.5,
+                        ),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: const Color(0xFFFDF9F2),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: Colors.grey.shade300, width: 1.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.02),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
+                            color: const Color(0xFFE4D4C0),
+                            width: 1.0,
+                          ),
                         ),
                         child: Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFD32F2F)
-                                    .withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.location_on,
-                                color: Color(0xFFD32F2F),
-                                size: 18,
-                              ),
+                            const Icon(
+                              Icons.location_on,
+                              color: Color(0xFF730B17),
+                              size: 20,
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 9),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,20 +256,20 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                                 children: [
                                   Text(
                                     label,
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFFD32F2F),
-                                      letterSpacing: 0.5,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF730B17),
+                                      height: 1.15,
                                     ),
                                   ),
-                                  const SizedBox(height: 1),
                                   Text(
                                     displayAddress,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black87,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12.0,
+                                      fontWeight: FontWeight.w400,
+                                      color: const Color(0xFF3E2E28),
+                                      height: 1.2,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
@@ -308,8 +279,8 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                             ),
                             const SizedBox(width: 6),
                             const Icon(
-                              Icons.keyboard_arrow_down,
-                              color: Colors.black87,
+                              Icons.keyboard_arrow_down_rounded,
+                              color: Color(0xFF3E2E28),
                               size: 20,
                             ),
                           ],
@@ -317,6 +288,58 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     );
                   },
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // Row 3: Search Bar Pill
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SearchScreen(),
+                    ),
+                  ),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 9.5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFDF9F2),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: const Color(0xFFE4D4C0),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.search_rounded,
+                          color: Color(0xFF3D271D),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Search for your favourite food',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13.0,
+                              fontWeight: FontWeight.w400,
+                              color: const Color(0xFF6B5A50),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -334,21 +357,21 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(22),
       child: Container(
-        width: 40,
-        height: 40,
+        width: 39,
+        height: 39,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFFDF9F2),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.grey.shade300, width: 1.0),
+          border: Border.all(color: const Color(0xFFE4D4C0), width: 1.0),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: const Color(0xFF4A0810).withValues(alpha: 0.04),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Icon(icon, size: 21, color: Colors.black87),
+        child: Icon(icon, size: 20, color: const Color(0xFF2B1810)),
       ),
     );
   }

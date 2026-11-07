@@ -23,9 +23,9 @@ class TrackOrderDetailsCard extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
+        color: const Color(0xFFFDF9F2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +99,7 @@ class TrackOrderDetailsCard extends StatelessWidget {
   }
 
   Widget _buildItemRow(String? img, String name, int qty, String price) {
-    final imagePath = img ?? 'assets/images/branded/lassi-lounge/categories/appetizers.jpg';
+    final imagePath = img ?? 'assets/images/branded/bhatura-and-co/cat-bhature.png';
     return Row(
       children: [
         ClipRRect(
@@ -111,7 +111,7 @@ class TrackOrderDetailsCard extends StatelessWidget {
                   height: 36,
                   fit: BoxFit.cover,
                   errorWidget: (context, url, error) => Image.asset(
-                    'assets/images/branded/lassi-lounge/categories/appetizers.jpg',
+                    'assets/images/branded/bhatura-and-co/cat-bhature.png',
                     width: 36,
                     height: 36,
                     fit: BoxFit.cover,

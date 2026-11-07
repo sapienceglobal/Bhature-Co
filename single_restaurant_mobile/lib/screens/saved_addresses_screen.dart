@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
@@ -85,21 +86,25 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFAF3E8),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFFAF3E8),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF730B17)),
           onPressed: () {
             if (Navigator.canPop(context)) {
               Navigator.pop(context);
             }
           },
         ),
-        title: const Text(
+        title: Text(
           'Saved Addresses',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20),
+          style: GoogleFonts.playfairDisplay(
+            color: const Color(0xFF4A0810),
+            fontWeight: FontWeight.w800,
+            fontSize: 21,
+          ),
         ),
         centerTitle: true,
       ),
@@ -167,8 +172,8 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                           phone: provider.addresses[i]['phone'] ?? '',
                           icon: _getIconForLabel(provider.addresses[i]['label']),
                           isDefault: false,
-                          iconBgColor: Colors.blue.shade50,
-                          iconColor: Colors.blue.shade700,
+                          iconBgColor: const Color(0xFFF9ECEA),
+                          iconColor: const Color(0xFF730B17),
                           selectingMode: widget.selectingMode,
                           onTap: () => _onAddressSelected(provider.addresses[i]['_id'], provider),
                           onEdit: () => _showAddressBottomSheet(

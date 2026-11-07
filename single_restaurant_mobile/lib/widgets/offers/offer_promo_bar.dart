@@ -18,13 +18,13 @@ class OfferPromoBar extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
+        color: const Color(0xFFFDF9F2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
+            color: const Color(0xFF4A0810).withValues(alpha: 0.05),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],

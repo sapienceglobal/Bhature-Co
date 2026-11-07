@@ -38,6 +38,7 @@ class MenuCategoriesPopup {
             itemBuilder: (context, index) {
               final cat = categories[index];
               final isSelected = cat['_id'] == selectedCategoryId;
+              final isAll = cat['_id'] == 'all';
               return GestureDetector(
                 onTap: () {
                   onSelectCategory(cat['_id']);
@@ -45,7 +46,10 @@ class MenuCategoriesPopup {
                 },
                 child: CategoryItemView(
                   name: cat['name'] ?? '',
-                  category: cat,
+                  customImageUrl: isAll
+                      ? 'assets/images/branded/bhatura-and-co/cat_chole_bhature_exact.png'
+                      : null,
+                  category: isAll ? null : cat,
                   isSelected: isSelected,
                   inGrid: true,
                 ),

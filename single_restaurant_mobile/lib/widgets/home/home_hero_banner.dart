@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomeHeroBanner extends StatefulWidget {
   final dynamic restaurant;
@@ -24,25 +25,25 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> {
 
   static const List<Map<String, String>> _slides = [
     {
-      'tag': 'Signature Dish',
-      'title': 'AMRITSARI\nCHOLE BHATURE',
-      'subtitle': 'Delicious food, delivered\nhot and fresh to your doorstep!',
-      'cta': 'ORDER NOW',
-      'image': 'assets/images/branded/lassi-lounge/hero-curry.jpg',
+      'title': 'Big Bhature.\nBigger Cravings.',
+      'subtitle': 'Freshly made. Full of flavour.',
+      'cta': 'Order Now',
+      'image': 'assets/images/branded/bhatura-and-co/bhature_3d_platter_perfect.png',
+      'isCutout': 'true',
     },
     {
-      'tag': 'Royal Dum',
-      'title': 'HYDERABADI\nBIRYANI',
-      'subtitle': 'Slow-cooked fragrant basmati rice\ninfused with rich royal spices!',
-      'cta': 'EXPLORE NOW',
+      'title': 'Royal Dum\nBiryani & Combos.',
+      'subtitle': 'Slow-cooked fragrant basmati rice.',
+      'cta': 'Order Now',
       'image': 'assets/images/branded/lassi-lounge/hero-biryani.jpg',
+      'isCutout': 'false',
     },
     {
-      'tag': 'Refreshing',
-      'title': 'ROYAL CHOLE\nBHATURE & LASSI',
-      'subtitle': 'Fluffy hand-rolled bhature &\ntraditional hand-churned lassi!',
-      'cta': 'ORDER NOW',
+      'title': 'Hand-Churned\nRoyal Lassi.',
+      'subtitle': 'Rich, creamy & refreshing sips.',
+      'cta': 'Order Now',
       'image': 'assets/images/branded/lassi-lounge/hero-lassi.jpg',
+      'isCutout': 'false',
     },
   ];
 
@@ -73,25 +74,11 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> {
     super.dispose();
   }
 
-  Widget _buildSlideImage(int index, String assetPath) {
-    return Image.asset(
-      assetPath,
-      fit: BoxFit.cover,
-      alignment: Alignment.centerRight,
-      errorBuilder: (context, error, stackTrace) => Image.asset(
-        'assets/images/branded/lassi-lounge/menu-hero.jpg',
-        fit: BoxFit.cover,
-        alignment: Alignment.centerRight,
-      ),
-    );
-  }
-
-
   @override
   Widget build(BuildContext context) {
     final textScaler = MediaQuery.textScalerOf(context);
     final minHeroHeight =
-        (220.0 * (textScaler.scale(14.0) / 14.0)).clamp(215.0, 265.0);
+        (188.0 * (textScaler.scale(14.0) / 14.0)).clamp(184.0, 226.0);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -100,12 +87,19 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> {
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          color: const Color(0xFF16100C),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF6B0A14),
+              Color(0xFF42040A),
+            ],
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.14),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: const Color(0xFF42040A).withValues(alpha: 0.22),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
@@ -125,109 +119,160 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> {
                 },
                 itemBuilder: (context, index) {
                   final slide = _slides[index];
+                  final isCutout = slide['isCutout'] == 'true';
+
                   return Stack(
                     children: [
-                      // Background Image aligned to right
-                      Positioned.fill(
-                        child: _buildSlideImage(index, slide['image']!),
-                      ),
-
-                      // Gradient overlay (dark readable left to transparent right)
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                              colors: [
-                                const Color(0xFF140D0A).withValues(alpha: 0.95),
-                                const Color(0xFF140D0A).withValues(alpha: 0.85),
-                                Colors.black.withValues(alpha: 0.25),
-                                Colors.transparent,
-                              ],
-                              stops: const [0.0, 0.45, 0.75, 1.0],
+                      if (!isCutout) ...[
+                        Positioned.fill(
+                          child: Image.asset(
+                            slide['image']!,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.centerRight,
+                            errorBuilder: (c, e, s) => const SizedBox(),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [
+                                  const Color(0xFF5D0711).withValues(alpha: 0.96),
+                                  const Color(0xFF5D0711).withValues(alpha: 0.85),
+                                  const Color(0xFF42040A).withValues(alpha: 0.35),
+                                ],
+                                stops: const [0.0, 0.52, 1.0],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-
-                      // Slide Content
-                      Padding(
-                        padding:
-                            const EdgeInsets.fromLTRB(20.0, 18.0, 20.0, 16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              slide['tag']!,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.normal,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            Text(
-                              slide['title']!,
-                              style: const TextStyle(
-                                color: Color(0xFFF5B53D),
-                                fontSize: 27,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.5,
-                                height: 1.05,
-                              ),
-                            ),
-                            const SizedBox(height: 7),
-                            Text(
-                              slide['subtitle']!,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11.5,
-                                height: 1.25,
-                                fontWeight: FontWeight.w400,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: () {
-                                if (widget.onSlideTap != null) {
-                                  widget.onSlideTap!(index);
-                                } else {
-                                  widget.onOrderNow();
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF8B1E1E),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 9,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    slide['cta']!,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 11.5,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  const Icon(Icons.arrow_forward, size: 15),
+                      ] else ...[
+                        // Radial warm glow on right behind 3D platter
+                        Positioned(
+                          right: -20,
+                          top: -10,
+                          bottom: -10,
+                          width: 210,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: RadialGradient(
+                                center: Alignment.center,
+                                radius: 0.65,
+                                colors: [
+                                  const Color(0xFFA81D2B).withValues(alpha: 0.45),
+                                  Colors.transparent,
                                 ],
                               ),
                             ),
-                          ],
+                          ),
+                        ),
+                        // 3D Bhature Platter on Right
+                        Positioned(
+                          right: -6,
+                          bottom: 8,
+                          top: 12,
+                          width: MediaQuery.sizeOf(context).width * 0.48,
+                          child: Image.asset(
+                            slide['image']!,
+                            fit: BoxFit.contain,
+                            alignment: Alignment.centerRight,
+                            errorBuilder: (c, e, s) => Image.asset(
+                              'assets/images/branded/lassi-lounge/hero-curry.jpg',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      // Left Text & Golden Pill CTA
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(18.0, 18.0, 16.0, 18.0),
+                        child: FractionallySizedBox(
+                          widthFactor: 0.62,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  slide['title']!,
+                                  style: GoogleFonts.playfairDisplay(
+                                    color: const Color(0xFFFAF3E6),
+                                    fontSize: 25,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.10,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                slide['subtitle']!,
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFF3E5D0),
+                                  fontSize: 11.5,
+                                  height: 1.25,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 14),
+                              GestureDetector(
+                                onTap: () {
+                                  if (widget.onSlideTap != null) {
+                                    widget.onSlideTap!(index);
+                                  } else {
+                                    widget.onOrderNow();
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 18,
+                                    vertical: 8.5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFFF2C26B),
+                                        Color(0xFFE0A84B),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(24),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.2),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        slide['cta']!,
+                                        style: GoogleFonts.poppins(
+                                          color: const Color(0xFF3A060B),
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 12.5,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.chevron_right_rounded,
+                                        size: 18,
+                                        color: Color(0xFF3A060B),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -237,7 +282,7 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> {
 
               // Interactive 3 Dots Indicator at bottom center
               Positioned(
-                bottom: 11,
+                bottom: 9,
                 left: 0,
                 right: 0,
                 child: Row(
@@ -255,10 +300,12 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
                         margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: isActive ? 9 : 6,
-                        height: isActive ? 9 : 6,
+                        width: isActive ? 7.5 : 5.5,
+                        height: isActive ? 7.5 : 5.5,
                         decoration: BoxDecoration(
-                          color: isActive ? const Color(0xFFF5B53D) : Colors.white.withValues(alpha: 0.65),
+                          color: isActive
+                              ? const Color(0xFFFAF3E6)
+                              : const Color(0xFFFAF3E6).withValues(alpha: 0.45),
                           shape: BoxShape.circle,
                         ),
                       ),

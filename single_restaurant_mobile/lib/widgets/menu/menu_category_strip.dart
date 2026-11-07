@@ -47,7 +47,8 @@ class _MenuCategoryStripState extends State<MenuCategoryStrip> {
 
   void _scrollToSelected() {
     if (!mounted || !_scrollController.hasClients) return;
-    if (widget.selectedCategoryId == null || widget.selectedCategoryId == 'all') {
+    if (widget.selectedCategoryId == null ||
+        widget.selectedCategoryId == 'all') {
       _scrollController.animateTo(
         0.0,
         duration: const Duration(milliseconds: 300),
@@ -59,7 +60,7 @@ class _MenuCategoryStripState extends State<MenuCategoryStrip> {
       (c) => c['_id'] == widget.selectedCategoryId,
     );
     if (index >= 0) {
-      final offset = (index * 88.0 - 40.0).clamp(
+      final offset = (index * 84.0 - 40.0).clamp(
         0.0,
         _scrollController.position.maxScrollExtent,
       );
@@ -75,34 +76,34 @@ class _MenuCategoryStripState extends State<MenuCategoryStrip> {
   Widget build(BuildContext context) {
     final textScaler = MediaQuery.textScalerOf(context);
     final stripHeight =
-        (144.0 * (textScaler.scale(11.0) / 11.0)).clamp(142.0, 172.0);
+        (118.0 * (textScaler.scale(13.0) / 13.0)).clamp(116.0, 148.0);
 
-    return Container(
+    return SizedBox(
       height: stripHeight,
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-      ),
       child: ListView.builder(
         controller: _scrollController,
         scrollDirection: Axis.horizontal,
         itemCount: widget.displayCategories.length + 1, // +1 for "More"
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        physics: const BouncingScrollPhysics(),
         itemBuilder: (context, index) {
           if (index == widget.displayCategories.length) {
             return CategoryItemView(
               name: 'More',
-              icon: Icons.grid_view,
+              icon: Icons.grid_view_rounded,
               isSelected: false,
               onTap: widget.onMoreTap,
             );
           }
           final cat = widget.displayCategories[index];
           final isSelected = cat['_id'] == widget.selectedCategoryId;
+          final isAll = cat['_id'] == 'all';
           return CategoryItemView(
             name: cat['name'] ?? '',
-            icon: cat['_id'] == 'all' ? Icons.fastfood : null,
-            category: cat['_id'] == 'all' ? null : cat,
+            customImageUrl: isAll
+                ? 'assets/images/branded/bhatura-and-co/cat_chole_bhature_exact.png'
+                : null,
+            category: isAll ? null : cat,
             isSelected: isSelected,
             onTap: () => widget.onSelectCategory(cat['_id']),
           );
@@ -115,6 +116,7 @@ class _MenuCategoryStripState extends State<MenuCategoryStrip> {
 class CategoryItemView extends StatelessWidget {
   final String name;
   final IconData? icon;
+  final String? customImageUrl;
   final Map<String, dynamic>? category;
   final bool isSelected;
   final bool inGrid;
@@ -124,6 +126,7 @@ class CategoryItemView extends StatelessWidget {
     super.key,
     required this.name,
     this.icon,
+    this.customImageUrl,
     this.category,
     this.isSelected = false,
     this.inGrid = false,
@@ -135,12 +138,11 @@ class CategoryItemView extends StatelessWidget {
     final isTablet = AppResponsive.isTablet(context);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final itemWidth = inGrid
-        ? (isTablet ? 96.0 : (screenWidth < 350 ? 76.0 : 84.0))
-        : 68.0;
+        ? (isTablet ? 96.0 : (screenWidth < 350 ? 74.0 : 82.0))
+        : 66.0;
 
-    final imageUrl = category != null
-        ? ImageHelper.getCategoryImageUrl(category!)
-        : null;
+    final imageUrl = customImageUrl ??
+        (category != null ? ImageHelper.getCategoryImageUrl(category!) : null);
 
     final tile = PopOutCapsuleImage(
       width: itemWidth,
@@ -156,7 +158,7 @@ class CategoryItemView extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.only(right: 10),
       child: tile,
     );
   }

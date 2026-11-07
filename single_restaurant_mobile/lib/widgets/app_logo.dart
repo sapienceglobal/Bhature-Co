@@ -16,7 +16,7 @@ class AppLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'assets/images/branded/lassi-lounge/splash-branding.png',
+      'assets/images/branded/bhatura-and-co/logo-emblem.png',
       height: height,
       fit: BoxFit.contain,
     );

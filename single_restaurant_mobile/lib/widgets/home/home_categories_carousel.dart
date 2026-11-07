@@ -17,7 +17,7 @@ class HomeCategoriesCarousel extends StatelessWidget {
   Widget build(BuildContext context) {
     final textScaler = MediaQuery.textScalerOf(context);
     final carouselHeight =
-        (144.0 + (textScaler.scale(11.0) - 11.0) * 3.0).clamp(144.0, 172.0);
+        (118.0 + (textScaler.scale(13.0) - 13.0) * 3.0).clamp(116.0, 146.0);
 
     return SizedBox(
       height: carouselHeight,
@@ -32,9 +32,9 @@ class HomeCategoriesCarousel extends StatelessWidget {
           final imageUrl = ImageHelper.getCategoryImageUrl(category);
 
           return Padding(
-            padding: const EdgeInsets.only(right: 14.0),
+            padding: const EdgeInsets.only(right: 12.0),
             child: PopOutCapsuleImage(
-              width: 76.0,
+              width: 74.0,
               imageUrl: imageUrl,
               label: name,
               onTap: () {

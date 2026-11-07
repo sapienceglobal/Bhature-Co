@@ -23,14 +23,14 @@ class CartPickupLocation extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-          boxShadow: const [
+          color: const Color(0xFFFDF9F2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
+          boxShadow: [
             BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(0, 2),
+              color: const Color(0xFF4A0810).withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             )
           ],
         ),

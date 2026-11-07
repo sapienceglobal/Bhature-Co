@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
+import 'package:single_restaurant_mobile/utils/spice_helper.dart';
 
 class CartItemCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -23,11 +24,14 @@ class CartItemCard extends StatelessWidget {
     final name = item['name'] ?? 'Unknown Item';
     final quantity = (item['quantity'] ?? item['qty'] ?? 1) as int;
     final isVeg = item['isVeg'] ?? true;
-    final isSpicy = item['isSpicy'] ?? false;
 
-    // Formatting size and spice label
+    // Formatting size and spice label (only show spice if eligible & selected)
     final sizeName = item['selectedSize'] != null ? (item['selectedSize']['name'] ?? 'Regular') : 'Regular';
-    final spiceLabel = isSpicy ? 'Medium' : 'Mild';
+    final rawSelectedSpice = item['selectedSpiceLevel']?.toString().trim();
+    final canHaveSpice = SpiceHelper.canCustomizeSpice(item);
+    final String? spiceLabel = (canHaveSpice && rawSelectedSpice != null && rawSelectedSpice.isNotEmpty)
+        ? rawSelectedSpice
+        : null;
 
     void goToDetail() {
       Navigator.push(
@@ -42,13 +46,13 @@ class CartItemCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFDF9F2),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8DEC8), width: 1.0),
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
+            color: const Color(0xFF4A0810).withValues(alpha: 0.05),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -142,7 +146,7 @@ class CartItemCard extends StatelessWidget {
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      '$sizeName • $spiceLabel',
+                                      spiceLabel != null ? '$sizeName • $spiceLabel' : '$sizeName',
                                       style: GoogleFonts.poppins(
                                         color: AppColors.textLight,
                                         fontSize: 11.5,
@@ -151,8 +155,10 @@ class CartItemCard extends StatelessWidget {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  const SizedBox(width: 3),
-                                  const Text('🌶️', style: TextStyle(fontSize: 11)),
+                                  if (spiceLabel != null) ...[
+                                    const SizedBox(width: 3),
+                                    const Text('🌶️', style: TextStyle(fontSize: 11)),
+                                  ],
                                 ],
                               ),
                             ],

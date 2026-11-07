@@ -1,41 +1,49 @@
 {
   "project_info": {
-    "project_number": "960808501824",
-    "project_id": "lassi-lounge-48123",
-    "storage_bucket": "lassi-lounge-48123.firebasestorage.app"
+    "project_number": "324905255189",
+    "project_id": "bhatura-co",
+    "storage_bucket": "bhatura-co.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:960808501824:android:deb6aedcc6ca22aee415a5",
+        "mobilesdk_app_id": "1:324905255189:android:85bd8cffedeec963ec691c",
         "android_client_info": {
-          "package_name": "com.example.single_restaurant_mobile"
+          "package_name": "com.bhaturaco.customer"
         }
       },
       "oauth_client": [
         {
-          "client_id": "960808501824-r07dgtht167395jrhgdtu9b3je72j02a.apps.googleusercontent.com",
+          "client_id": "324905255189-lv6d1s2o4epcqdoa66eucd0amg9mah1g.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.example.single_restaurant_mobile",
-            "certificate_hash": "9d02bc6095a7f44797b31b98dbe6e6683387a1f2"
+            "package_name": "com.bhaturaco.customer",
+            "certificate_hash": "18c2dc970b418d7cee8fbb607db8cacdde4f39ca"
           }
         },
         {
-          "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
+          "client_id": "324905255189-moq58u44vne8a86mphrkijbmhssfadkp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bhaturaco.customer",
+            "certificate_hash": "05d0b9f59809c09f38223151e86ce6af6fb8b1ae"
+          }
+        },
+        {
+          "client_id": "324905255189-4dkm6eh02ij5o7ek85kc8bjkqcrvt4nm.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDFAW_DKJaqoB_q9Xx9o5JY8-Zu0MwKBCo"
+          "current_key": "AIzaSyCaQko1SzqLGkdISVzNYBZi0scsG-Co6ys"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
+              "client_id": "324905255189-4dkm6eh02ij5o7ek85kc8bjkqcrvt4nm.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
@@ -44,56 +52,35 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:960808501824:android:083a2a3c36f2202ae415a5",
+        "mobilesdk_app_id": "1:324905255189:android:ce26f1edc49c692eec691c",
         "android_client_info": {
           "package_name": "com.bhaturaco.merchant_mobile"
         }
       },
       "oauth_client": [
         {
-          "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
+          "client_id": "324905255189-0mmc6pnofr5e3civd7uc2sh2lt54hgta.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bhaturaco.merchant_mobile",
+            "certificate_hash": "18c2dc970b418d7cee8fbb607db8cacdde4f39ca"
+          }
+        },
+        {
+          "client_id": "324905255189-4dkm6eh02ij5o7ek85kc8bjkqcrvt4nm.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDFAW_DKJaqoB_q9Xx9o5JY8-Zu0MwKBCo"
+          "current_key": "AIzaSyCaQko1SzqLGkdISVzNYBZi0scsG-Co6ys"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:960808501824:android:083a2a3c36f2202ae415a5",
-        "android_client_info": {
-          "package_name": "com.lassilounge.merchant_mobile"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDFAW_DKJaqoB_q9Xx9o5JY8-Zu0MwKBCo"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
+              "client_id": "324905255189-4dkm6eh02ij5o7ek85kc8bjkqcrvt4nm.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

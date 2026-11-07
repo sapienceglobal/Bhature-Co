@@ -30,9 +30,9 @@ class _CheckoutOrderSummaryState extends State<CheckoutOrderSummary> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        color: const Color(0xFFFDF9F2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
       ),
       child: Column(
         children: [
@@ -99,12 +99,12 @@ class _CheckoutOrderSummaryState extends State<CheckoutOrderSummary> {
                                 imageUrl: item['image'],
                                 fit: BoxFit.cover,
                                 errorWidget: (context, url, error) => Image.asset(
-                                  'assets/images/branded/lassi-lounge/categories/appetizers.jpg',
+                                  'assets/images/branded/bhatura-and-co/cat-bhature.png',
                                   fit: BoxFit.cover,
                                 ),
                               )
                             : Image.asset(
-                                'assets/images/branded/lassi-lounge/categories/appetizers.jpg',
+                                'assets/images/branded/bhatura-and-co/cat-bhature.png',
                                 fit: BoxFit.cover,
                               ),
                       ),

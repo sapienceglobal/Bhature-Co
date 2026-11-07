@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
@@ -58,7 +59,6 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
     setState(() => _isExploreLoading = false);
 
-    // Both authenticated and non-authenticated (guest) users enter Menu tab
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -123,28 +123,83 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 
+  Widget _buildFloralFooter(bool isCompact) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 54,
+              height: 1.2,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.transparent, Color(0xFFD6A146)],
+                ),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Icon(
+                Icons.spa_rounded,
+                size: 16,
+                color: Color(0xFFD6A146),
+              ),
+            ),
+            Container(
+              width: 54,
+              height: 1.2,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFD6A146), Colors.transparent],
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: isCompact ? 6 : 8),
+        Text(
+          'Freshly made. Full of flavour.',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.playfairDisplay(
+            color: const Color(0xFF6B0A14),
+            fontSize: isCompact ? 13.5 : 15.0,
+            fontStyle: FontStyle.italic,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF1B0C06),
+      backgroundColor: const Color(0xFF4B050C),
       body: ResponsiveCenter(
         maxWidth: AppResponsive.maxFormWidth,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final screenHeight = constraints.maxHeight;
             final isCompact = screenHeight < 720 || constraints.maxWidth < 380;
-            final maxAllowedHeader = math.max(160.0, screenHeight * 0.52);
-            final minAllowedHeader = math.min(isCompact ? 200.0 : 250.0, maxAllowedHeader);
+            final maxAllowedHeader = math.max(180.0, screenHeight * 0.49);
+            final minAllowedHeader =
+                math.min(isCompact ? 210.0 : 255.0, maxAllowedHeader);
             final headerHeight = (screenHeight * 0.46).clamp(
               minAllowedHeader,
               maxAllowedHeader,
             );
-            const waveOverlap = 30.0;
-            final cardMinHeight = math.max(0.0, screenHeight - (headerHeight - waveOverlap));
+            const waveOverlap = 36.0;
+            final cardMinHeight =
+                math.max(0.0, screenHeight - (headerHeight - waveOverlap));
 
             return Stack(
               children: [
-                // Top Hero Food Banner (Copper Kadai, Biryani, Naan & Lassi Lounge branding)
+                // Top Hero Emblem Banner (Maroon backdrop + Circular Bhatura & Co Emblem)
                 Positioned(
                   top: 0,
                   left: 0,
@@ -152,7 +207,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   child: WelcomeFoodHeader(height: headerHeight),
                 ),
 
-                // Scrollable Content with Overlapping Wavy White Card
+                // Scrollable Content with Overlapping Wavy Cream Card
                 Positioned.fill(
                   child: SingleChildScrollView(
                     physics: const ClampingScrollPhysics(),
@@ -161,142 +216,158 @@ class _SplashScreenState extends State<SplashScreen> {
                       children: [
                         SizedBox(height: headerHeight - waveOverlap),
 
-                        // Curved White Container Card
-                        ClipPath(
-                          clipper: const WelcomeCardClipper(),
-                          child: Container(
-                            width: double.infinity,
-                            constraints: BoxConstraints(
-                              minHeight: cardMinHeight,
-                            ),
-                            color: Colors.white,
-                            child: Center(
-                              child: Padding(
-                                padding: EdgeInsets.fromLTRB(
-                                  isCompact ? 16.0 : 20.0,
-                                  isCompact ? 36.0 : 44.0,
-                                  isCompact ? 16.0 : 20.0,
-                                  24.0,
+                        // Curved Cream Container Card with Golden Wave Trim
+                        Stack(
+                          children: [
+                            ClipPath(
+                              clipper: const WelcomeCardClipper(),
+                              child: Container(
+                                width: double.infinity,
+                                constraints: BoxConstraints(
+                                  minHeight: cardMinHeight,
                                 ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    // Headline: "Welcome to"
-                                    Text(
-                                      'Welcome to',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: const Color(0xFF1F1F1F),
-                                        fontSize: isCompact ? 24 : 28,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: -0.4,
-                                        height: isCompact ? 1.05 : 1.15,
-                                      ),
+                                color: const Color(0xFFFAF4E8),
+                                child: Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.fromLTRB(
+                                      isCompact ? 18.0 : 24.0,
+                                      isCompact ? 38.0 : 46.0,
+                                      isCompact ? 18.0 : 24.0,
+                                      math.max(20.0, bottomInset + 16.0),
                                     ),
-                                    SizedBox(height: isCompact ? 1 : 2),
-
-                                    // Headline: "Lassi Lounge"
-                                    Text(
-                                      'Bhatura & Co',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: const Color(0xFF8B1E1E),
-                                        fontSize: isCompact ? 29 : 34,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing:
-                                            isCompact ? -0.5 : -0.6,
-                                        height: isCompact ? 1.05 : 1.15,
-                                      ),
-                                    ),
-                                    SizedBox(height: isCompact ? 7 : 10),
-
-                                    // Subtitle
-                                    Text(
-                                      'Authentic Indian Cuisine\nDelivered to Your Doorstep',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: const Color(0xFF555555),
-                                        fontSize: isCompact ? 13 : 14.5,
-                                        fontWeight: FontWeight.w500,
-                                        height: isCompact ? 1.3 : 1.35,
-                                      ),
-                                    ),
-                                    SizedBox(height: isCompact ? 16 : 24),
-
-                                    // 3 Action Buttons with reduced sleek width (guaranteed safe width)
-                                    ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                        maxWidth: math.max(
-                                          180.0,
-                                          math.min(
-                                            constraints.maxWidth - (isCompact ? 32.0 : 40.0),
-                                            315.0,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        // Headline: "Welcome to\nBhatura & Co"
+                                        Text(
+                                          'Welcome to\nBhatura & Co',
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.playfairDisplay(
+                                            color: const Color(0xFF6B0A14),
+                                            fontSize: isCompact ? 28 : 33,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: -0.3,
+                                            height: 1.12,
                                           ),
                                         ),
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          // 1. Explore Our Menu Button
-                                          WelcomeActionButton(
-                                            title: 'EXPLORE OUR MENU',
-                                            isUppercase: true,
-                                            height: isCompact ? 46.0 : 54.0,
-                                            icon: MenuDocumentIcon(
-                                              color: const Color(0xFF8B1E1E),
-                                              size: isCompact ? 22 : 26,
-                                            ),
-                                            backgroundColor:
-                                              const Color(0xFFFEEDE6),
-                                            textColor: const Color(0xFF8B1E1E),
-                                            arrowColor: const Color(0xFF8B1E1E),
-                                            isLoading: _isExploreLoading,
-                                            onTap: _onExploreMenu,
-                                          ),
-                                          SizedBox(height: isCompact ? 11 : 14),
+                                        SizedBox(height: isCompact ? 8 : 12),
 
-                                          // 2. ORDER ONLINE Button
-                                          WelcomeActionButton(
-                                            title: 'ORDER ONLINE',
-                                            isUppercase: true,
-                                            height: isCompact ? 46.0 : 54.0,
-                                            icon: ClochePlatterIcon(
-                                              color: const Color(0xFF1F1F1F),
-                                              size: isCompact ? 22 : 26,
-                                            ),
-                                            backgroundColor:
-                                              const Color(0xFFFAB82C),
-                                            textColor: const Color(0xFF1F1F1F),
-                                            arrowColor: const Color(0xFF1F1F1F),
-                                            isLoading: _isOrderLoading,
-                                            onTap: _onOrderOnline,
+                                        // Subtitle
+                                        Text(
+                                          'Authentic flavours. Freshly prepared.\nDelivered to your doorstep.',
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.poppins(
+                                            color: const Color(0xFF3E3028),
+                                            fontSize: isCompact ? 12.5 : 14.0,
+                                            fontWeight: FontWeight.w500,
+                                            height: 1.38,
                                           ),
-                                          SizedBox(height: isCompact ? 11 : 14),
+                                        ),
+                                        SizedBox(height: isCompact ? 18 : 24),
 
-                                          // 3. RESERVE A TABLE Button
-                                          WelcomeActionButton(
-                                            title: 'RESERVE A TABLE',
-                                            isUppercase: true,
-                                            height: isCompact ? 46.0 : 54.0,
-                                            icon: DiningTableIcon(
-                                              color: const Color(0xFF8B1E1E),
-                                              size: isCompact ? 22 : 26,
+                                        // 3 Action Buttons matching Image 1
+                                        ConstrainedBox(
+                                          constraints: BoxConstraints(
+                                            maxWidth: math.max(
+                                              200.0,
+                                              math.min(
+                                                constraints.maxWidth -
+                                                    (isCompact ? 28.0 : 36.0),
+                                                345.0,
+                                              ),
                                             ),
-                                            backgroundColor: Colors.white,
-                                            borderColor: const Color(0xFF8B1E1E),
-                                            textColor: const Color(0xFF8B1E1E),
-                                            arrowColor: const Color(0xFF8B1E1E),
-                                            isLoading: _isReserveLoading,
-                                            onTap: _onReserveTable,
                                           ),
-                                        ],
-                                      ),
+                                          child: Column(
+                                            children: [
+                                              // 1. ORDER ONLINE (Solid Maroon, White text)
+                                              WelcomeActionButton(
+                                                title: 'ORDER ONLINE',
+                                                isUppercase: true,
+                                                height: isCompact ? 48.0 : 54.0,
+                                                icon: ClochePlatterIcon(
+                                                  color: Colors.white,
+                                                  size: isCompact ? 22 : 26,
+                                                ),
+                                                backgroundColor:
+                                                    const Color(0xFF720A15),
+                                                textColor: Colors.white,
+                                                arrowColor: Colors.white,
+                                                isLoading: _isOrderLoading,
+                                                onTap: _onOrderOnline,
+                                              ),
+                                              SizedBox(
+                                                  height: isCompact ? 11 : 14),
+
+                                              // 2. EXPLORE OUR MENU (Golden Amber, Maroon text)
+                                              WelcomeActionButton(
+                                                title: 'EXPLORE OUR MENU',
+                                                isUppercase: true,
+                                                height: isCompact ? 48.0 : 54.0,
+                                                icon: MenuDocumentIcon(
+                                                  color:
+                                                      const Color(0xFF5C0710),
+                                                  size: isCompact ? 22 : 26,
+                                                ),
+                                                backgroundColor:
+                                                    const Color(0xFFF2BD65),
+                                                textColor:
+                                                    const Color(0xFF5C0710),
+                                                arrowColor:
+                                                    const Color(0xFF5C0710),
+                                                isLoading: _isExploreLoading,
+                                                onTap: _onExploreMenu,
+                                              ),
+                                              SizedBox(
+                                                  height: isCompact ? 11 : 14),
+
+                                              // 3. RESERVE A TABLE (Cream with Maroon Border & text)
+                                              WelcomeActionButton(
+                                                title: 'RESERVE A TABLE',
+                                                isUppercase: true,
+                                                height: isCompact ? 48.0 : 54.0,
+                                                icon: DiningTableIcon(
+                                                  color:
+                                                      const Color(0xFF6B0A14),
+                                                  size: isCompact ? 22 : 26,
+                                                ),
+                                                backgroundColor:
+                                                    const Color(0xFFFCF8F0),
+                                                borderColor:
+                                                    const Color(0xFF72141C),
+                                                textColor:
+                                                    const Color(0xFF6B0A14),
+                                                arrowColor:
+                                                    const Color(0xFF6B0A14),
+                                                isLoading: _isReserveLoading,
+                                                onTap: _onReserveTable,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+
+                                        SizedBox(height: isCompact ? 18 : 24),
+                                        _buildFloralFooter(isCompact),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                            // Golden Wave Trim Overlay
+                            Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              height: 45,
+                              child: IgnorePointer(
+                                child: CustomPaint(
+                                  painter: const WelcomeWaveBorderPainter(),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

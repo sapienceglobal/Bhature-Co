@@ -1,33 +1,33 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// ---------------------------------------------------------------------------
 /// TUNE-ABLE CONSTANTS FOR PHYSICAL DEVICE ADJUSTMENTS
 /// ---------------------------------------------------------------------------
-/// Oval vertical aspect ratio: Height = Width * kOvalAspectRatio
-const double kOvalAspectRatio = 1.25;
+/// Circular aspect ratio: Height = Width * kOvalAspectRatio (1.0 = perfect circle)
+const double kOvalAspectRatio = 1.0;
 
-/// Dish scale relative to oval width: enlarged to 1.12 for bold 3D pop-out look
-const double kDishScale = 1.12;
+/// Dish scale relative to circle width
+const double kDishScale = 1.02;
 
-/// Dish vertical offset percentage (-0.02 = shifted 2% upward from center)
-const double kDishYOffsetPercent = -0.02;
+/// Dish vertical offset percentage
+const double kDishYOffsetPercent = 0.0;
 
 /// Toggle contact shadow directly under the dish
-const bool kEnableContactShadow = true;
+const bool kEnableContactShadow = false;
 
-/// Contact shadow opacity (black alpha 0.12 - 0.15)
-const double kContactShadowAlpha = 0.14;
+/// Contact shadow opacity
+const double kContactShadowAlpha = 0.12;
 
 /// Contact shadow width factor relative to oval width
-const double kContactShadowWidthFactor = 0.60;
+const double kContactShadowWidthFactor = 0.56;
 
 /// Contact shadow blur radius
-const double kContactShadowBlur = 8.0;
+const double kContactShadowBlur = 6.0;
 
-/// Category Tile Widget featuring a vertical oval backdrop with radial gradient,
-/// floating 3D dish cutout with subtle contact shadow, and compact uppercase label.
+/// Category Tile Widget featuring a circular warm-cream medallion with
+/// golden/maroon ring and bold serif label matching the Bhatura & Co identity.
 class PopOutCapsuleImage extends StatelessWidget {
   final String? imageUrl;
   final IconData? icon;
@@ -55,6 +55,19 @@ class PopOutCapsuleImage extends StatelessWidget {
     return lower.endsWith('.jpg') || lower.endsWith('.jpeg');
   }
 
+  String _formatTitleCase(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return trimmed;
+    return trimmed
+        .split(RegExp(r'\s+'))
+        .map((word) {
+          if (word.isEmpty) return word;
+          if (word.toLowerCase() == '&') return '&';
+          return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
+        })
+        .join(' ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final ovalHeight = width * kOvalAspectRatio;
@@ -69,30 +82,31 @@ class PopOutCapsuleImage extends StatelessWidget {
         alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: [
-          // 1. Oval Backdrop (Vertical Oval with Radial Gradient & Outer Shadow)
+          // 1. Circular Medallion Backdrop with Ring
           _buildBackdrop(width, ovalHeight),
 
-          // 2. Contact Shadow directly under the dish (if enabled)
+          // 2. Contact Shadow (if enabled)
           if (kEnableContactShadow && icon == null)
             Positioned(
-              top: dishTop + (dishSize * 0.88),
+              top: dishTop + (dishSize * 0.86),
               child: _buildContactShadow(width),
             ),
 
-          // 3. Dish image (CachedNetworkImage or Asset) or Icon
+          // 3. Dish image clipped neatly inside medallion or slightly popping
           Positioned(
             top: dishTop,
             child: SizedBox(
-              width: dishSize,
-              height: dishSize,
-              child: _buildDish(dishSize),
+              width: dishSize - 5,
+              height: dishSize - 5,
+              child: ClipOval(
+                child: _buildDish(dishSize - 5),
+              ),
             ),
           ),
         ],
       ),
     );
 
-    // If no label is provided, return just the capsule
     if (label == null || label!.isEmpty) {
       if (onTap != null) {
         return GestureDetector(
@@ -104,8 +118,7 @@ class PopOutCapsuleImage extends StatelessWidget {
       return capsuleContent;
     }
 
-    // Full Category Tile with uppercase label
-    final tileWidth = (width * kDishScale).clamp(width + 4.0, width + 10.0);
+    final tileWidth = (width + 10.0);
     Widget tile = SizedBox(
       width: tileWidth,
       child: Column(
@@ -115,28 +128,27 @@ class PopOutCapsuleImage extends StatelessWidget {
           capsuleContent,
           const SizedBox(height: 6),
           Text(
-            label!.toUpperCase(),
+            _formatTitleCase(label!),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 11.0,
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 13.0,
               fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
               color: isSelected
-                  ? const Color(0xFF8B1E1E)
-                  : AppColors.textDark,
-              height: 1.15,
-              letterSpacing: 0.2,
+                  ? const Color(0xFF720A15)
+                  : const Color(0xFF23140E),
+              height: 1.12,
             ),
           ),
           if (isSelected) ...[
-            const SizedBox(height: 3),
+            const SizedBox(height: 4),
             Container(
-              width: 16,
-              height: 2.5,
+              width: 34,
+              height: 2.8,
               decoration: BoxDecoration(
-                color: const Color(0xFF8B1E1E),
-                borderRadius: BorderRadius.circular(1.5),
+                color: const Color(0xFF720A15),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
           ],
@@ -159,20 +171,26 @@ class PopOutCapsuleImage extends StatelessWidget {
       width: w,
       height: h,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.all(Radius.elliptical(w / 2, h / 2)),
+        shape: BoxShape.circle,
         gradient: const RadialGradient(
           center: Alignment.center,
           radius: 0.78,
           colors: [
-            Color(0xFFFDEFD5), // Soft peach/cream center
-            Colors.white, // Edges fade to white
+            Color(0xFFFDF7EC),
+            Color(0xFFF3E4CE),
           ],
+        ),
+        border: Border.all(
+          color: isSelected
+              ? const Color(0xFF720A15)
+              : const Color(0xFFDDC8AD),
+          width: isSelected ? 2.6 : 1.6,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF4A0810).withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -183,16 +201,16 @@ class PopOutCapsuleImage extends StatelessWidget {
     final shadowWidth = w * kContactShadowWidthFactor;
     return Container(
       width: shadowWidth,
-      height: 6.0,
+      height: 5.0,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.all(
-          Radius.elliptical(shadowWidth / 2, 3.0),
+          Radius.elliptical(shadowWidth / 2, 2.5),
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: kContactShadowAlpha),
             blurRadius: kContactShadowBlur,
-            spreadRadius: 1.2,
+            spreadRadius: 1.0,
             offset: const Offset(0, 1),
           ),
         ],
@@ -207,8 +225,8 @@ class PopOutCapsuleImage extends StatelessWidget {
           icon,
           size: size * 0.48,
           color: isSelected
-              ? const Color(0xFF8B1E1E)
-              : const Color(0xFF8B2500),
+              ? const Color(0xFF720A15)
+              : const Color(0xFF6B0A14),
         ),
       );
     }
@@ -218,7 +236,7 @@ class PopOutCapsuleImage extends StatelessWidget {
         child: Icon(
           Icons.restaurant,
           size: size * 0.45,
-          color: Colors.grey.shade400,
+          color: const Color(0xFF9C846C),
         ),
       );
     }
@@ -227,7 +245,7 @@ class PopOutCapsuleImage extends StatelessWidget {
     if (imageUrl!.startsWith('http')) {
       imageWidget = CachedNetworkImage(
         imageUrl: imageUrl!,
-        fit: BoxFit.contain,
+        fit: _isOpaquePhoto ? BoxFit.cover : BoxFit.contain,
         placeholder: (context, url) => const SizedBox(),
         errorWidget: (context, url, error) => Center(
           child: Icon(Icons.restaurant, size: size * 0.4, color: Colors.grey),
@@ -238,17 +256,12 @@ class PopOutCapsuleImage extends StatelessWidget {
           imageUrl!.startsWith('/') ? imageUrl!.substring(1) : imageUrl!;
       imageWidget = Image.asset(
         assetPath,
-        fit: BoxFit.contain,
+        fit: _isOpaquePhoto ? BoxFit.cover : BoxFit.contain,
         filterQuality: FilterQuality.high,
         errorBuilder: (context, error, stackTrace) => Center(
           child: Icon(Icons.restaurant, size: size * 0.4, color: Colors.grey),
         ),
       );
-    }
-
-    // ClipOval fallback if the image is an opaque photo (e.g., .jpg)
-    if (_isOpaquePhoto) {
-      return ClipOval(child: imageWidget);
     }
 
     return imageWidget;

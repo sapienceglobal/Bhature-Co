@@ -33,12 +33,12 @@ class CartBillSummary extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF9F7),
+        color: const Color(0xFFFDF9F2),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF3ECE6), width: 1.2),
+        border: Border.all(color: const Color(0xFFE6D7C3), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: const Color(0xFF4A0810).withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
