@@ -40,7 +40,7 @@ const DEFAULT_PAGE_META = {
   },
 };
 
-const appSecret = process.env.APP_SECRET || process.env.NEXT_PUBLIC_APP_SECRET || 'mobile_app_secure_key_2026';
+const appSecret = process.env.APP_SECRET || process.env.NEXT_PUBLIC_APP_SECRET || 'sec@8097#2026!BhaturaNJ';
 
 /**
  * Fetch editable SEO metadata for a static page from backend with React cache().

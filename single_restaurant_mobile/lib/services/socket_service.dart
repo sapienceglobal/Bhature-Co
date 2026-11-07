@@ -38,7 +38,7 @@ class SocketService {
         .enableAutoConnect()
         .enableForceNewConnection()
         .setAuth({
-          'appSecret': 'mobile_app_secure_key_2026',
+          'appSecret': 'sec@8097#2026!BhaturaNJ',
           if (token != null) 'token': token,
           'tenantId': 'bhatura-and-co',
         })
@@ -46,7 +46,7 @@ class SocketService {
         .setReconnectionDelay(1000)
         .setReconnectionAttempts(10)
         .setExtraHeaders({
-          'x-app-secret': 'mobile_app_secure_key_2026',
+          'x-app-secret': 'sec@8097#2026!BhaturaNJ',
           if (token != null) 'Authorization': 'Bearer $token',
           'x-tenant-id': 'bhatura-and-co',
         })

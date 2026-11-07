@@ -3,7 +3,7 @@ import { cleanUrl } from '@/lib/slugUtils';
 
 const apiUrl = cleanUrl(process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5001';
 const restaurantId = (process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'bhatura-and-co').trim().replace(/[\r\n]/g, '');
-const appSecret = (process.env.APP_SECRET || process.env.NEXT_PUBLIC_APP_SECRET || 'mobile_app_secure_key_2026').trim().replace(/[\r\n]/g, '');
+const appSecret = (process.env.APP_SECRET || process.env.NEXT_PUBLIC_APP_SECRET || 'sec@8097#2026!BhaturaNJ').trim().replace(/[\r\n]/g, '');
 
 /**
  * Shared menu item fetcher wrapped in React's cache().
